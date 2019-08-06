@@ -9,14 +9,23 @@ open Aardvark.UI
 open Aardvark.UI.Primitives
 open Aardvark.UI.Generic
 open Aardvark.Application.OpenVR
+open System
 
 type Message =
     | SetText of string 
     | ToggleVR
+    | Select of string
+    | HoverIn of string
+    | HoverOut
+    | CameraMessage    of FreeFlyController.Message    
+    | SetControllerPosition of V3d
+    | GrabObject
+    | TranslateObject of V3d
 
 module Demo =
     open Aardvark.UI.Primitives
     open Aardvark.Base.Rendering
+    open Model
     
     let show  (att : list<string * AttributeValue<_>>) (sg : ISg<_>) =
 
@@ -33,16 +42,31 @@ module Demo =
                 unpersist = Unpersist.instance
             }
 
-        subApp app
+        subApp' (fun _ _ -> Seq.empty) (fun _ _ -> Seq.empty) [] app
 
-    let initial = 
+    let mkVisibleBox (color : C4b) (box : Box3d) (position : V3d) : VisibleBox = 
         {
-            text = "some text"
-            vr = false
+            id = Guid.NewGuid().ToString()
+            geometry = box
+            color = color     
+            //pose = pose
+            trafo = Trafo3d.Translation(position)
+            size = V3d.One
         }
+     
+    //let createUnitBox (center: V3d) : Box3d =
+    //    Box3d.FromCenterAndSize(center, V3d.One)
+    // Function to create box in a simple way
+
+    let mkNthBox i n = 
+        Box3d.FromCenterAndSize(V3d.Zero, V3d.One)
+       
+     
+    let mkBoxes number =        
+        [0..number-1] |> List.map (fun x -> (mkNthBox x number))  
+       
         
-        
-    let update (state : VrState) (vr : VrActions) (model : Model) (msg : Message) =
+    let rec update (state : VrState) (vr : VrActions) (model : Model) (msg : Message) : Model=
         match msg with
         | SetText t -> 
             { model with text = t }
@@ -50,14 +74,166 @@ module Demo =
             if model.vr then vr.stop()
             else vr.start()
             { model with vr = not model.vr }
+        | HoverIn id ->
+            Log.line "Entered box"
+            {model with boxHovered = Some id}
+        | HoverOut ->
+            {model with boxHovered = None}
+        | CameraMessage m -> 
+            { model with cameraState = FreeFlyController.update model.cameraState m }   
+        | SetControllerPosition p -> 
+            let newModel = { model with position = p }
+
+            let mayHover = 
+                newModel.boxes 
+                |> PList.choose (fun b ->
+                    if b.geometry.Contains(p) then
+                        Some b.id
+                    else None)
+                |> PList.tryFirst
+
+            let newModel = 
+                match mayHover with
+                | Some ID -> update state vr newModel (HoverIn ID)
+                | None -> update state vr newModel HoverOut
+
+            newModel
+            
+            let newModel = 
+                if newModel.isPressed then 
+                    match newModel.boxHovered with
+                    | Some ID -> 
+                        let moveBox = 
+                            newModel.boxes 
+                            |> PList.toList 
+                            |> List.tryPick (fun x -> if x.id = ID then Some x else None)
+
+                        match moveBox with
+                        | Some b -> 
+                            let index = 
+                                newModel.boxes
+                                |> PList.findIndex b
+
+                            let newBoxList = 
+                                newModel.boxes 
+                                |> PList.alter index (fun x -> x |> Option.map (fun y -> { y with trafo = Trafo3d.Translation(newModel.position)}))
+                            
+                            { newModel with boxes = newBoxList }
+                        | None -> newModel
+                    | None -> newModel
+                else newModel
+                
+            newModel
+
+        | GrabObject ->
+            let model = { model with isPressed = not model.isPressed}
+
+            printfn "%s" (model.isPressed.ToString())
+            
+            //let model =  { model with isPressed = newisPressed}
+
+            match model.boxHovered with
+            | Some ID -> 
+                let newSelection = 
+                    if HSet.contains ID model.boxSelected then  
+                        HSet.remove ID model.boxSelected
+                    else HSet.add ID model.boxSelected
+
+                { model with boxSelected = newSelection }
+                //let model = { model with boxSelected = newSelection }
+
+                //let moveBox = 
+                //    model.boxes 
+                //    |> PList.toList 
+                //    |> List.tryPick (fun x -> if x.id = ID then Some x else None)
+
+                //match moveBox with
+                //| Some b -> 
+                //    let index = 
+                //        model.boxes
+                //        |> PList.findIndex b
+
+                //    let newBoxList = 
+                //        model.boxes 
+                //        |> PList.alter index (fun x -> x |> Option.map (fun y -> { y with trafo = Trafo3d.Translation model.position}))//Trafo3d.Translation model.position }))
+                    
+                //    { model with boxes = newBoxList }
+                //| None ->
+                //    model
+
+            | None -> model
+
+        //| TranslateObject pose ->
+        //    let newPos = { model with position = pose}
+        //    let mmm = model.bo
+        | _ -> model
+                    
+
+    let mkColor (model : MModel) (box : MVisibleBox) =
+        let id = box.id
+
+        let color = 
+            id
+            |> Mod.bind (fun s ->
+                let selectedColor =
+                    model.boxSelected
+                    |> ASet.contains s
+                    |> Mod.bind(function 
+                        | true -> Mod.constant C4b.White
+                        | false -> box.color
+                    )
+
+                let hoverColor =
+                    model.boxHovered 
+                    |> Mod.bind (function 
+                        | Some k -> if k = s then Mod.constant C4b.Blue else selectedColor
+                        | None -> selectedColor
+                    )
+
+                hoverColor
+            )
+    
+        color
+    
+    let mkISg (model : MModel) (box : MVisibleBox) =
+    
+        let color = mkColor model box
+        let pos = box.trafo
+        Sg.box color box.geometry
+            //|> Sg.transform (Trafo3d.Translation pos)
+            |> Sg.trafo(pos)
+            //|> Sg.scale 0.25
+            |> Sg.shader {
+                do! DefaultSurfaces.trafo
+                do! DefaultSurfaces.vertexColor
+                do! DefaultSurfaces.simpleLighting
+                }                
+            |> Sg.requirePicking
+            |> Sg.noEvents
+            |> Sg.withEvents [
+                Sg.onClick (fun _  -> GrabObject )
+                Sg.onEnter (fun _  -> HoverIn  (box.id.ToString()))
+                Sg.onLeave (fun _ -> HoverOut)
+            ]
 
     let threads (model : Model) =
         ThreadPool.empty
         
-    let input (msg : VrMessage) =
+    let input (msg : VrMessage)=
         match msg with
-        | VrMessage.PressButton(_,1) ->
+        | VrMessage.PressButton(_,_) ->
             [ToggleVR]
+            //[GrabObject]
+        | VrMessage.UpdatePose(1,p) -> 
+            if p.isValid then 
+                let pos = p.deviceToWorld.Forward.TransformPos(V3d.Zero)
+                //printfn "%d changed pos= %A"  0 pos
+                [SetControllerPosition (pos)]
+            else []
+        | VrMessage.Press(con,_) -> 
+            printfn "Button pressed by %d" con
+            [GrabObject]
+
         | _ -> 
             []
 
@@ -100,20 +276,42 @@ module Demo =
                 do! DefaultSurfaces.vertexColor
             }
 
+    
+        let frustum =
+            Mod.constant (Frustum.perspective 60.0 0.1 100.0 1.0)
+        
         div [ style "width: 100%; height: 100%" ] [
-            show [ style "width: 100%; height: 100%" ] (
-                Sg.textWithConfig TextConfig.Default m.text
-                |> Sg.noEvents
-                |> Sg.andAlso stuff
-            )
+            FreeFlyController.controlledControl m.cameraState CameraMessage frustum
+                (AttributeMap.ofList [
+                    attribute "style" "width:65%; height: 100%; float: left;"
+                    attribute "data-samples" "8"
+                ])
+                (
+                    m.boxes 
+                        |> AList.toASet 
+                        |> ASet.map (function b -> mkISg m b)
+                        |> Sg.set
+                        |> Sg.effect [
+                            toEffect DefaultSurfaces.trafo
+                            toEffect DefaultSurfaces.vertexColor
+                            toEffect DefaultSurfaces.simpleLighting                              
+                            ]
+                        |> Sg.noEvents
+                )
             textarea [ style "position: fixed; top: 5px; left: 5px"; onChange SetText ] m.text
             button [ style "position: fixed; bottom: 5px; right: 5px"; onClick (fun () -> ToggleVR) ] text
-
 
         ]
 
     let vr (info : VrSystemInfo) (m : MModel) =
-    
+
+        let a = 
+            Sg.box' C4b.Cyan Box3d.Unit
+            |> Sg.noEvents
+            |> Sg.scale 0.01
+            |> Sg.trafo (m.position |> Mod.map (fun current -> Trafo3d.Translation(current)))
+        
+
         let deviceSgs = 
             info.state.devices |> AMap.toASet |> ASet.chooseM (fun (_,d) ->
                 d.Model |> Mod.map (fun m ->
@@ -135,7 +333,19 @@ module Demo =
                 do! DefaultSurfaces.simpleLighting
             }
 
-        Sg.textWithConfig TextConfig.Default m.text
+        m.boxes 
+        |> AList.toASet 
+        |> ASet.map (fun b -> 
+            mkISg m b 
+           )
+        |> Sg.set
+        |> Sg.andAlso a 
+        |> Sg.effect [
+            toEffect DefaultSurfaces.trafo
+            toEffect DefaultSurfaces.vertexColor
+            toEffect DefaultSurfaces.simpleLighting                              
+            ]
+        //Sg.textWithConfig TextConfig.Default m.text
         |> Sg.noEvents
         |> Sg.andAlso deviceSgs
 
@@ -149,13 +359,29 @@ module Demo =
             do! DefaultSurfaces.simpleLighting
         }
 
+    let newBoxList = mkBoxes 1 |> List.map ( fun box -> mkVisibleBox C4b.Red box V3d.Zero) |> PList.ofList
+
+
+    let initial = 
+        {
+            text = "some text"
+            vr = false
+            boxes = newBoxList
+            boxHovered = None
+            boxSelected = HSet.empty
+            cameraState = FreeFlyController.initial
+            position = V3d.OOO
+            grabbed = HSet.empty
+            controllerPositions = HMap.empty
+            isPressed = false
+        }
     let app =
         {
             unpersist = Unpersist.instance
             initial = initial
             update = update
             threads = threads
-            input = input
+            input = input 
             ui = ui
             vr = vr
             pauseScene = Some pause
