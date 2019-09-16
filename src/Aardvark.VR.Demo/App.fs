@@ -19,8 +19,9 @@ type Message =
     | HoverOut
     | CameraMessage    of FreeFlyController.Message    
     | SetControllerPosition of V3d
-    | GrabObject
+    | GrabObject of bool
     | TranslateObject of V3d
+    | AddBox
 
 module Demo =
     open Aardvark.UI.Primitives
@@ -44,27 +45,28 @@ module Demo =
 
         subApp' (fun _ _ -> Seq.empty) (fun _ _ -> Seq.empty) [] app
 
-    let mkVisibleBox (color : C4b) (box : Box3d) (position : V3d) : VisibleBox = 
-        {
-            id = Guid.NewGuid().ToString()
-            geometry = box
-            color = color     
-            //pose = pose
-            trafo = Trafo3d.Translation(position)
-            size = V3d.One
-        }
+    //let mkVisibleBox (color : C4b) (box : Box3d) (position : V3d) : VisibleBox = 
+    //    {
+    //        id = Guid.NewGuid().ToString()
+    //        geometry = box
+    //        color = color     
+    //        //pose = pose
+    //        trafo = Trafo3d.Translation(position)
+    //        size = V3d.One
+    //    }
      
     //let createUnitBox (center: V3d) : Box3d =
     //    Box3d.FromCenterAndSize(center, V3d.One)
     // Function to create box in a simple way
 
-    let mkNthBox i n = 
-        Box3d.FromCenterAndSize(V3d.Zero, V3d.One)
+    //let mkNthBox i n = 
+    //    Box3d.FromCenterAndSize(V3d.Zero, V3d.One)
        
      
-    let mkBoxes number =        
-        [0..number-1] |> List.map (fun x -> (mkNthBox x number))  
-       
+    let mkBoxes (number: int) : plist<VisibleBox> =        
+        [0..number-1]
+        |> List.map (fun x -> VisibleBox.createVisibleBox C4b.Red (V3d(0.0, 2.0 * float x, 0.0)))
+        |> PList.ofList
         
     let rec update (state : VrState) (vr : VrActions) (model : Model) (msg : Message) : Model=
         match msg with
@@ -75,10 +77,18 @@ module Demo =
             else vr.start()
             { model with vr = not model.vr }
         | HoverIn id ->
-            Log.line "Entered box"
-            {model with boxHovered = Some id}
+            match model.boxHovered with 
+            | Some oldID when id = oldID -> model
+            | _ ->
+                Log.warn "Entered box with ID: %A" id
+                { model with boxHovered = Some id} 
         | HoverOut ->
-            {model with boxHovered = None}
+            if model.boxHovered.IsSome then
+                Log.warn "Exit box with ID: %A" model.boxHovered.Value    
+                { model with boxHovered = None}
+            else 
+                Log.warn "Nothing hovered"
+                model
         | CameraMessage m -> 
             { model with cameraState = FreeFlyController.update model.cameraState m }   
         | SetControllerPosition p -> 
@@ -87,7 +97,7 @@ module Demo =
             let mayHover = 
                 newModel.boxes 
                 |> PList.choose (fun b ->
-                    if b.geometry.Contains(p) then
+                    if b.geometry.Transformed(b.trafo).Contains(p) then
                         Some b.id
                     else None)
                 |> PList.tryFirst
@@ -97,7 +107,7 @@ module Demo =
                 | Some ID -> update state vr newModel (HoverIn ID)
                 | None -> update state vr newModel HoverOut
 
-            newModel
+            //newModel
             
             let newModel = 
                 if newModel.isPressed then 
@@ -116,7 +126,9 @@ module Demo =
 
                             let newBoxList = 
                                 newModel.boxes 
-                                |> PList.alter index (fun x -> x |> Option.map (fun y -> { y with trafo = Trafo3d.Translation(newModel.position)}))
+                                |> PList.alter index (fun x -> x |> Option.map (fun y -> 
+                                    Log.line "update position to %A" newModel.position
+                                    { y with trafo = Trafo3d.Translation(newModel.position - newModel.offsetToCenter)}))
                             
                             { newModel with boxes = newBoxList }
                         | None -> newModel
@@ -125,21 +137,32 @@ module Demo =
                 
             newModel
 
-        | GrabObject ->
-            let model = { model with isPressed = not model.isPressed}
-
-            printfn "%s" (model.isPressed.ToString())
+        | GrabObject buttonPress ->
+            let offset = 
+                model.boxes 
+                |> PList.choose (fun b ->
+                    if b.geometry.Transformed(b.trafo).Contains(model.position) then
+                        printfn "%A" (b.trafo.Forward.TransformPos(V3d.Zero))
+                        Some (b.trafo.Forward.TransformPos(V3d.Zero))
+                    else 
+                        None
+                )
+                |> PList.tryFirst
+                |> Option.defaultValue V3d.Zero
             
+            
+            { model with isPressed = buttonPress; offsetToCenter = offset}
+
             //let model =  { model with isPressed = newisPressed}
 
-            match model.boxHovered with
-            | Some ID -> 
-                let newSelection = 
-                    if HSet.contains ID model.boxSelected then  
-                        HSet.remove ID model.boxSelected
-                    else HSet.add ID model.boxSelected
+            //match model.boxHovered with
+            //| Some ID -> 
+            //    let newSelection = 
+            //        if HSet.contains ID model.boxSelected then  
+            //            HSet.remove ID model.boxSelected
+            //        else HSet.add ID model.boxSelected
 
-                { model with boxSelected = newSelection }
+            //    { model with boxSelected = newSelection }
                 //let model = { model with boxSelected = newSelection }
 
                 //let moveBox = 
@@ -161,11 +184,13 @@ module Demo =
                 //| None ->
                 //    model
 
-            | None -> model
-
-        //| TranslateObject pose ->
-        //    let newPos = { model with position = pose}
-        //    let mmm = model.bo
+            //| None -> model
+        | AddBox -> 
+            let newBoxList = 
+                 model.boxes |> PList.append (VisibleBox.createVisibleBox C4b.DarkMagenta model.position)
+            
+            {model with boxes = newBoxList}
+            
         | _ -> model
                     
 
@@ -211,7 +236,7 @@ module Demo =
             |> Sg.requirePicking
             |> Sg.noEvents
             |> Sg.withEvents [
-                Sg.onClick (fun _  -> GrabObject )
+                Sg.onClick (fun _  -> GrabObject true)
                 Sg.onEnter (fun _  -> HoverIn  (box.id.ToString()))
                 Sg.onLeave (fun _ -> HoverOut)
             ]
@@ -224,7 +249,7 @@ module Demo =
         | VrMessage.PressButton(_,_) ->
             [ToggleVR]
             //[GrabObject]
-        | VrMessage.UpdatePose(1,p) -> 
+        | VrMessage.UpdatePose(2,p) -> 
             if p.isValid then 
                 let pos = p.deviceToWorld.Forward.TransformPos(V3d.Zero)
                 //printfn "%d changed pos= %A"  0 pos
@@ -232,15 +257,17 @@ module Demo =
             else []
         | VrMessage.Press(con,_) -> 
             printfn "Button pressed by %d" con
-            [GrabObject]
-
+            [GrabObject true]
+        | VrMessage.Unpress(con,_) -> 
+            printfn "Button unpressed by %d" con
+            [GrabObject false]
         | _ -> 
             []
 
     let ui (info : VrSystemInfo) (m : MModel) =
         let text = m.vr |> Mod.map (function true -> "Stop VR" | false -> "Start VR")
-
-
+        let textAddBox = Mod.constant "Add Box"
+        
         let hmd =
             m.vr |> Mod.bind (fun vr ->
                 if vr then
@@ -299,7 +326,10 @@ module Demo =
                         |> Sg.noEvents
                 )
             textarea [ style "position: fixed; top: 5px; left: 5px"; onChange SetText ] m.text
+            br[]
             button [ style "position: fixed; bottom: 5px; right: 5px"; onClick (fun () -> ToggleVR) ] text
+            br []
+            button [ style "position: fixed; bottom: 30px; right: 5px"; onClick (fun () -> AddBox) ] textAddBox
 
         ]
 
@@ -359,8 +389,7 @@ module Demo =
             do! DefaultSurfaces.simpleLighting
         }
 
-    let newBoxList = mkBoxes 1 |> List.map ( fun box -> mkVisibleBox C4b.Red box V3d.Zero) |> PList.ofList
-
+    let newBoxList = mkBoxes 3
 
     let initial = 
         {
@@ -374,6 +403,7 @@ module Demo =
             grabbed = HSet.empty
             controllerPositions = HMap.empty
             isPressed = false
+            offsetToCenter = V3d.One
         }
     let app =
         {

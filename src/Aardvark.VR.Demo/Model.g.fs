@@ -93,6 +93,7 @@ module Mutable =
         let _boxSelected = MSet.Create(__initial.boxSelected)
         let _cameraState = Aardvark.UI.Primitives.Mutable.MCameraControllerState.Create(__initial.cameraState)
         let _position = ResetMod.Create(__initial.position)
+        let _offsetToCenter = ResetMod.Create(__initial.offsetToCenter)
         let _isPressed = ResetMod.Create(__initial.isPressed)
         let _grabbed = MSet.Create(__initial.grabbed)
         let _controllerPositions = MMap.Create(__initial.controllerPositions, (fun v -> Aardvark.Vr.Mutable.MPose.Create(v)), (fun (m,v) -> Aardvark.Vr.Mutable.MPose.Update(m, v)), (fun v -> v))
@@ -104,6 +105,7 @@ module Mutable =
         member x.boxSelected = _boxSelected :> aset<_>
         member x.cameraState = _cameraState
         member x.position = _position :> IMod<_>
+        member x.offsetToCenter = _offsetToCenter :> IMod<_>
         member x.isPressed = _isPressed :> IMod<_>
         member x.grabbed = _grabbed :> aset<_>
         member x.controllerPositions = _controllerPositions :> amap<_,_>
@@ -120,6 +122,7 @@ module Mutable =
                 MSet.Update(_boxSelected, v.boxSelected)
                 Aardvark.UI.Primitives.Mutable.MCameraControllerState.Update(_cameraState, v.cameraState)
                 ResetMod.Update(_position,v.position)
+                ResetMod.Update(_offsetToCenter,v.offsetToCenter)
                 ResetMod.Update(_isPressed,v.isPressed)
                 MSet.Update(_grabbed, v.grabbed)
                 MMap.Update(_controllerPositions, v.controllerPositions)
@@ -180,6 +183,12 @@ module Mutable =
                     override x.Get(r) = r.position
                     override x.Set(r,v) = { r with position = v }
                     override x.Update(r,f) = { r with position = f r.position }
+                }
+            let offsetToCenter =
+                { new Lens<Demo.Model, Aardvark.Base.V3d>() with
+                    override x.Get(r) = r.offsetToCenter
+                    override x.Set(r,v) = { r with offsetToCenter = v }
+                    override x.Update(r,f) = { r with offsetToCenter = f r.offsetToCenter }
                 }
             let isPressed =
                 { new Lens<Demo.Model, System.Boolean>() with
