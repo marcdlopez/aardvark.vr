@@ -67,6 +67,8 @@ module Demo =
         [0..number-1]
         |> List.map (fun x -> VisibleBox.createVisibleBox C4b.Red (V3d(0.0, 2.0 * float x, 0.0)))
         |> PList.ofList
+
+        
         
     let rec update (state : VrState) (vr : VrActions) (model : Model) (msg : Message) : Model=
         match msg with
@@ -128,22 +130,43 @@ module Demo =
                                 newModel.boxes 
                                 |> PList.alter index (fun x -> x |> Option.map (fun y -> 
                                     Log.line "update position to %A" newModel.position
-                                    { y with trafo = Trafo3d.Translation(newModel.position - newModel.offsetToCenter)}))
+                                    { y with trafo = Trafo3d.Translation(newModel.position + newModel.offsetToCenter)}))
                             
                             { newModel with boxes = newBoxList }
                         | None -> newModel
                     | None -> newModel
                 else newModel
                 
-            newModel
+            //for i in newModel.boxes do 
+            //    for j in newModel.boxes do 
+            //        if i.id.Equals(j.id) then 
+            //            newModel
+            //        else
+            //            let newLineStart = i.trafo.Forward.TransformPos
+            //            let newLineEnd = j.trafo.Forward.TransformPos
+                        
+            
+            //{newModel with startingLinePos = newLineStart; endingLinePos = newLineEnd}
 
+            let lines = [|
+                for i in newModel.boxes do 
+                    for j in newModel.boxes do 
+                        if i.id != j.id then 
+                            let startPos = i.trafo.GetModelOrigin()
+                            let endPos = j.trafo.GetModelOrigin()
+                            printfn "Distance between boxes: %f" (V3d.Distance(startPos, endPos))
+                            yield (Line3d [startPos; endPos])
+            |]
+
+            { newModel with lines = lines }
+            
         | GrabObject buttonPress ->
             let offset = 
                 model.boxes 
                 |> PList.choose (fun b ->
-                    if b.geometry.Transformed(b.trafo).Contains(model.position) then
-                        printfn "%A" (b.trafo.Forward.TransformPos(V3d.Zero))
-                        Some (b.trafo.Forward.TransformPos(V3d.Zero))
+                    if b.geometry.Transformed(b.trafo).Contains(model.position) && buttonPress then
+                        printfn "Offset to the origin: %A " (b.trafo.GetModelOrigin() - model.position)
+                        Some (b.trafo.GetModelOrigin() - model.position)
                     else 
                         None
                 )
@@ -249,7 +272,7 @@ module Demo =
         | VrMessage.PressButton(_,_) ->
             [ToggleVR]
             //[GrabObject]
-        | VrMessage.UpdatePose(2,p) -> 
+        | VrMessage.UpdatePose(3,p) -> 
             if p.isValid then 
                 let pos = p.deviceToWorld.Forward.TransformPos(V3d.Zero)
                 //printfn "%d changed pos= %A"  0 pos
@@ -267,6 +290,7 @@ module Demo =
     let ui (info : VrSystemInfo) (m : MModel) =
         let text = m.vr |> Mod.map (function true -> "Stop VR" | false -> "Start VR")
         let textAddBox = Mod.constant "Add Box"
+        let distanceToBox = Mod.constant "Distance between boxes" 
         
         let hmd =
             m.vr |> Mod.bind (fun vr ->
@@ -303,7 +327,12 @@ module Demo =
                 do! DefaultSurfaces.vertexColor
             }
 
-    
+        let line1 = 
+            Sg.lines (Mod.constant C4b.Green) m.lines
+            |> Sg.noEvents
+
+
+
         let frustum =
             Mod.constant (Frustum.perspective 60.0 0.1 100.0 1.0)
         
@@ -330,10 +359,27 @@ module Demo =
             button [ style "position: fixed; bottom: 5px; right: 5px"; onClick (fun () -> ToggleVR) ] text
             br []
             button [ style "position: fixed; bottom: 30px; right: 5px"; onClick (fun () -> AddBox) ] textAddBox
-
+            br []
+            textarea [ style "position: fixed; bottom: 55px; right: 5px"; onChange SetText] distanceToBox 
+              
         ]
 
     let vr (info : VrSystemInfo) (m : MModel) =
+
+        let color = Mod.constant C4b.Green
+
+        //let line = 
+        //    adaptive{
+        //        let! startPoint = m.startingLinePos
+        //        let! endPoint = m.endingLinePos
+        //        let newLine : Line3d = Line3d(startPoint, endPoint)
+        //        return [| newLine |]
+        //    }
+
+        let line1 = 
+            Sg.lines color m.lines
+            |> Sg.noEvents
+
 
         let a = 
             Sg.box' C4b.Cyan Box3d.Unit
@@ -378,7 +424,7 @@ module Demo =
         //Sg.textWithConfig TextConfig.Default m.text
         |> Sg.noEvents
         |> Sg.andAlso deviceSgs
-
+        
         
     let pause (info : VrSystemInfo) (m : MModel) =
         Sg.box' C4b.Red Box3d.Unit
@@ -389,7 +435,7 @@ module Demo =
             do! DefaultSurfaces.simpleLighting
         }
 
-    let newBoxList = mkBoxes 3
+    let newBoxList = mkBoxes 2
 
     let initial = 
         {
@@ -404,6 +450,10 @@ module Demo =
             controllerPositions = HMap.empty
             isPressed = false
             offsetToCenter = V3d.One
+            boxDistance = V3d.Zero
+            startingLinePos = V3d.Zero
+            endingLinePos = V3d.Zero
+            lines = [||]
         }
     let app =
         {

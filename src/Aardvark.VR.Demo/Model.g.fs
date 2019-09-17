@@ -83,6 +83,52 @@ module Mutable =
                 }
     
     
+    type MLine(__initial : Demo.Line) =
+        inherit obj()
+        let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.Line> = Aardvark.Base.Incremental.EqModRef<Demo.Line>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.Line>
+        let _line = ResetMod.Create(__initial.line)
+        let _color = ResetMod.Create(__initial.color)
+        
+        member x.line = _line :> IMod<_>
+        member x.color = _color :> IMod<_>
+        
+        member x.Current = __current :> IMod<_>
+        member x.Update(v : Demo.Line) =
+            if not (System.Object.ReferenceEquals(__current.Value, v)) then
+                __current.Value <- v
+                
+                ResetMod.Update(_line,v.line)
+                ResetMod.Update(_color,v.color)
+                
+        
+        static member Create(__initial : Demo.Line) : MLine = MLine(__initial)
+        static member Update(m : MLine, v : Demo.Line) = m.Update(v)
+        
+        override x.ToString() = __current.Value.ToString()
+        member x.AsString = sprintf "%A" __current.Value
+        interface IUpdatable<Demo.Line> with
+            member x.Update v = x.Update v
+    
+    
+    
+    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+    module Line =
+        [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+        module Lens =
+            let line =
+                { new Lens<Demo.Line, Aardvark.Base.Line3d>() with
+                    override x.Get(r) = r.line
+                    override x.Set(r,v) = { r with line = v }
+                    override x.Update(r,f) = { r with line = f r.line }
+                }
+            let color =
+                { new Lens<Demo.Line, Aardvark.Base.C4b>() with
+                    override x.Get(r) = r.color
+                    override x.Set(r,v) = { r with color = v }
+                    override x.Update(r,f) = { r with color = f r.color }
+                }
+    
+    
     type MModel(__initial : Demo.Model) =
         inherit obj()
         let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.Model> = Aardvark.Base.Incremental.EqModRef<Demo.Model>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.Model>
@@ -95,6 +141,10 @@ module Mutable =
         let _position = ResetMod.Create(__initial.position)
         let _offsetToCenter = ResetMod.Create(__initial.offsetToCenter)
         let _isPressed = ResetMod.Create(__initial.isPressed)
+        let _boxDistance = ResetMod.Create(__initial.boxDistance)
+        let _startingLinePos = ResetMod.Create(__initial.startingLinePos)
+        let _endingLinePos = ResetMod.Create(__initial.endingLinePos)
+        let _lines = ResetMod.Create(__initial.lines)
         let _grabbed = MSet.Create(__initial.grabbed)
         let _controllerPositions = MMap.Create(__initial.controllerPositions, (fun v -> Aardvark.Vr.Mutable.MPose.Create(v)), (fun (m,v) -> Aardvark.Vr.Mutable.MPose.Update(m, v)), (fun v -> v))
         
@@ -107,6 +157,10 @@ module Mutable =
         member x.position = _position :> IMod<_>
         member x.offsetToCenter = _offsetToCenter :> IMod<_>
         member x.isPressed = _isPressed :> IMod<_>
+        member x.boxDistance = _boxDistance :> IMod<_>
+        member x.startingLinePos = _startingLinePos :> IMod<_>
+        member x.endingLinePos = _endingLinePos :> IMod<_>
+        member x.lines = _lines :> IMod<_>
         member x.grabbed = _grabbed :> aset<_>
         member x.controllerPositions = _controllerPositions :> amap<_,_>
         
@@ -124,6 +178,10 @@ module Mutable =
                 ResetMod.Update(_position,v.position)
                 ResetMod.Update(_offsetToCenter,v.offsetToCenter)
                 ResetMod.Update(_isPressed,v.isPressed)
+                ResetMod.Update(_boxDistance,v.boxDistance)
+                ResetMod.Update(_startingLinePos,v.startingLinePos)
+                ResetMod.Update(_endingLinePos,v.endingLinePos)
+                ResetMod.Update(_lines,v.lines)
                 MSet.Update(_grabbed, v.grabbed)
                 MMap.Update(_controllerPositions, v.controllerPositions)
                 
@@ -195,6 +253,30 @@ module Mutable =
                     override x.Get(r) = r.isPressed
                     override x.Set(r,v) = { r with isPressed = v }
                     override x.Update(r,f) = { r with isPressed = f r.isPressed }
+                }
+            let boxDistance =
+                { new Lens<Demo.Model, Aardvark.Base.V3d>() with
+                    override x.Get(r) = r.boxDistance
+                    override x.Set(r,v) = { r with boxDistance = v }
+                    override x.Update(r,f) = { r with boxDistance = f r.boxDistance }
+                }
+            let startingLinePos =
+                { new Lens<Demo.Model, Aardvark.Base.V3d>() with
+                    override x.Get(r) = r.startingLinePos
+                    override x.Set(r,v) = { r with startingLinePos = v }
+                    override x.Update(r,f) = { r with startingLinePos = f r.startingLinePos }
+                }
+            let endingLinePos =
+                { new Lens<Demo.Model, Aardvark.Base.V3d>() with
+                    override x.Get(r) = r.endingLinePos
+                    override x.Set(r,v) = { r with endingLinePos = v }
+                    override x.Update(r,f) = { r with endingLinePos = f r.endingLinePos }
+                }
+            let lines =
+                { new Lens<Demo.Model, Aardvark.Base.Line3d[]>() with
+                    override x.Get(r) = r.lines
+                    override x.Set(r,v) = { r with lines = v }
+                    override x.Update(r,f) = { r with lines = f r.lines }
                 }
             let grabbed =
                 { new Lens<Demo.Model, Aardvark.Base.hset<System.String>>() with

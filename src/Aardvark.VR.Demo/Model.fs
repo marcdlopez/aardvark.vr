@@ -17,6 +17,12 @@ type VisibleBox = {
 }
 
 [<DomainType>]
+type Line = {
+    line : Line3d
+    color : C4b
+}
+
+[<DomainType>]
 type Model =
     {
         text    : string
@@ -31,6 +37,11 @@ type Model =
         position : V3d
         offsetToCenter : V3d
         isPressed : bool
+        
+        boxDistance : V3d
+        startingLinePos : V3d
+        endingLinePos : V3d
+        lines : Line3d[]
 
         //boxes : hmap<string,VisibleBox>
         grabbed : hset<string>
