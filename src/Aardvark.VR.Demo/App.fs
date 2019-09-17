@@ -379,6 +379,13 @@ module Demo =
         let line1 = 
             Sg.lines color m.lines
             |> Sg.noEvents
+            |> Sg.uniform "LineWidth" (Mod.constant 2.0)
+            |> Sg.effect [
+                toEffect DefaultSurfaces.stableTrafo
+                toEffect DefaultSurfaces.thickLine
+            ]
+            //|> Sg.trafo
+            
 
 
         let a = 
@@ -415,7 +422,7 @@ module Demo =
             mkISg m b 
            )
         |> Sg.set
-        |> Sg.andAlso a 
+        |> Sg.andAlso a  
         |> Sg.effect [
             toEffect DefaultSurfaces.trafo
             toEffect DefaultSurfaces.vertexColor
@@ -424,6 +431,7 @@ module Demo =
         //Sg.textWithConfig TextConfig.Default m.text
         |> Sg.noEvents
         |> Sg.andAlso deviceSgs
+        |> Sg.andAlso line1
         
         
     let pause (info : VrSystemInfo) (m : MModel) =
