@@ -463,7 +463,7 @@ module Demo =
             startingLinePos = V3d.Zero
             endingLinePos = V3d.Zero
             lines = [||]
-            opcModel = OpcSelectionViewer.App.createBasicModel "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423" None false
+            opcModel = OpcSelectionViewer.App.createBasicModel "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423" None true
         }
     let app =
         {
