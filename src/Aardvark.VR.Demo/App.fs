@@ -11,6 +11,7 @@ open Aardvark.UI.Generic
 open Aardvark.Application.OpenVR
 open System
 
+
 type Message =
     | SetText of string 
     | ToggleVR
@@ -462,6 +463,7 @@ module Demo =
             startingLinePos = V3d.Zero
             endingLinePos = V3d.Zero
             lines = [||]
+            opcModel = OpcSelectionViewer.App.createBasicModel "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423" None false
         }
     let app =
         {

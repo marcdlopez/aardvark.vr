@@ -46,6 +46,8 @@ type Model =
         //boxes : hmap<string,VisibleBox>
         grabbed : hset<string>
         controllerPositions : hmap<int, Pose>
+
+        opcModel : OpcSelectionViewer.Model
     }
 
 module VisibleBox =

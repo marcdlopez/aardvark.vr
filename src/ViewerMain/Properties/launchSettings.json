@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "OpcViewer": {
+      "commandName": "Project",
+      "commandLineArgs": "opc=\"C:\\Users\\lopez\\Desktop\\GardenCity\\MSL_Mastcam_Sol_929_id_48423\" -rotate"
+    }
+  }
+}

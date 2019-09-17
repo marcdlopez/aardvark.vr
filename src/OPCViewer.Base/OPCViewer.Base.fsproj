@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <OutputPath>..\..\bin\Release</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>..\..\bin\Debug</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="IndexHelper.fs" />
+    <Compile Include="PlaneFitting.fs" />
+    <Compile Include="KdTrees.fs" />
+    <Compile Include="Shaders.fs" />
+    <Compile Include="SgUtilities.fs" />
+    <Compile Include="Picking\Picking-Model.fs" />
+    <Compile Include="Picking\IntersectionController.fs" />
+    <Compile Include="Picking\Picking.fs" />
+    <Compile Include="CooTrafo\CooTrafo.fs" />
+    <Compile Include="FalseColorLegend-Model.fs" />
+    <Compile Include="FalseColorLegendApp.fs" />
+    <Compile Include="OPCAttributes-Model.fs" />
+    <Compile Include="OpcAttributes.fs" />
+    <Compile Include="Sg.fs" />
+    <None Include="paket.references" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>
