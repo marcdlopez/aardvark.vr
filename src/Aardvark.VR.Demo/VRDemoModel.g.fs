@@ -147,7 +147,6 @@ module Mutable =
         let _lines = ResetMod.Create(__initial.lines)
         let _grabbed = MSet.Create(__initial.grabbed)
         let _controllerPositions = MMap.Create(__initial.controllerPositions, (fun v -> Aardvark.Vr.Mutable.MPose.Create(v)), (fun (m,v) -> Aardvark.Vr.Mutable.MPose.Update(m, v)), (fun v -> v))
-        let _opcModel = OpcSelectionViewer.Mutable.MModel.Create(__initial.opcModel)
         
         member x.text = _text :> IMod<_>
         member x.vr = _vr :> IMod<_>
@@ -164,7 +163,6 @@ module Mutable =
         member x.lines = _lines :> IMod<_>
         member x.grabbed = _grabbed :> aset<_>
         member x.controllerPositions = _controllerPositions :> amap<_,_>
-        member x.opcModel = _opcModel
         
         member x.Current = __current :> IMod<_>
         member x.Update(v : Demo.Model) =
@@ -186,7 +184,6 @@ module Mutable =
                 ResetMod.Update(_lines,v.lines)
                 MSet.Update(_grabbed, v.grabbed)
                 MMap.Update(_controllerPositions, v.controllerPositions)
-                OpcSelectionViewer.Mutable.MModel.Update(_opcModel, v.opcModel)
                 
         
         static member Create(__initial : Demo.Model) : MModel = MModel(__initial)
@@ -292,10 +289,4 @@ module Mutable =
                     override x.Get(r) = r.controllerPositions
                     override x.Set(r,v) = { r with controllerPositions = v }
                     override x.Update(r,f) = { r with controllerPositions = f r.controllerPositions }
-                }
-            let opcModel =
-                { new Lens<Demo.Model, OpcSelectionViewer.Model>() with
-                    override x.Get(r) = r.opcModel
-                    override x.Set(r,v) = { r with opcModel = v }
-                    override x.Update(r,f) = { r with opcModel = f r.opcModel }
                 }

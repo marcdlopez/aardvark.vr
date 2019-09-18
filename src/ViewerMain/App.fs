@@ -136,7 +136,7 @@ module App =
       | AnnotationAction msg -> 
             { model with annotations = AnnotationApp.update model.annotations msg }
       | _ -> model
-                    
+     
   let view (m : MModel) =
                                              
       let box = 

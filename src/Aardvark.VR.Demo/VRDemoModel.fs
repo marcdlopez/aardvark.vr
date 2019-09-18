@@ -1,4 +1,4 @@
-namespace Demo
+﻿namespace Demo
 
 open Aardvark.Base
 open Aardvark.Base.Incremental
@@ -47,7 +47,7 @@ type Model =
         grabbed : hset<string>
         controllerPositions : hmap<int, Pose>
 
-        opcModel : OpcSelectionViewer.Model
+        //opcModel : OpcSelectionViewer.Model
     }
 
 module VisibleBox =
