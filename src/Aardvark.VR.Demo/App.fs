@@ -22,7 +22,7 @@ open OpcViewer.Base.Attributes
 open Rabbyte.Drawing
 open Rabbyte.Annotation
 
-type Message =
+type DemoMessage =
     | SetText of string 
     | ToggleVR
     | Select of string
@@ -33,6 +33,7 @@ type Message =
     | GrabObject of bool
     | TranslateObject of V3d
     | AddBox
+    | OpcViewerMsg of OpcSelectionViewer.Message
 
 module Demo =
     open Aardvark.Application
@@ -63,8 +64,11 @@ module Demo =
         |> List.map (fun x -> VisibleBox.createVisibleBox C4b.Red (V3d(0.0, 2.0 * float x, 0.0)))
         |> PList.ofList
 
-    let rec update (state : VrState) (vr : VrActions) (model : Model) (msg : Message) : Model=
+    let rec update (state : VrState) (vr : VrActions) (model : Model) (msg : DemoMessage) : Model=
         match msg with
+        | OpcViewerMsg m -> 
+            let newOpcModel = OpcSelectionViewer.App.update model.opcModel m
+            { model with opcModel = newOpcModel }
         | SetText t -> 
             { model with text = t }
         | ToggleVR ->
@@ -137,6 +141,9 @@ module Demo =
                             printfn "Distance between boxes: %f" (V3d.Distance(startPos, endPos))
                             yield (Line3d [startPos; endPos])
             |]
+
+            printfn "Bounding box position (opc): %A" newModel.opcModel.boundingBox.Center
+            printfn "Camera position: %A " newModel.ControllerPosition
 
             { newModel with lines = lines }
             
@@ -300,39 +307,40 @@ module Demo =
               
 
         div [ style "width: 100%; height: 100%" ] [
-            FreeFlyController.controlledControl m.opcModel.cameraState CameraMessage frustum
+            FreeFlyController.controlledControl m.cameraState CameraMessage frustum
                 (AttributeMap.ofList [
                     attribute "style" "width:65%; height: 100%; float: left;"
                     attribute "data-samples" "8"
                 ])
                 (
-                    opcs
-                    |> Sg.map (OpcSelectionViewer.Message.PickingAction)
-                    |> Sg.noEvents
-                    
-                    //m.boxes 
-                    //    |> AList.toASet 
-                    //    |> ASet.map (function b -> mkISg m b)
-                    //    |> Sg.set
-                    //    |> Sg.effect [
-                    //        toEffect DefaultSurfaces.trafo
-                    //        toEffect DefaultSurfaces.vertexColor
-                    //        toEffect DefaultSurfaces.simpleLighting                              
-                    //        ]
-                    //    |> Sg.noEvents
-                    //    |> Sg.andAlso line1
+                    //opcs
+                    //|> Sg.map (OpcSelectionViewer.Message.PickingAction)
+                    //|> Sg.map OpcViewerMsg
+                    //|> Sg.noEvents
+                    m.boxes 
+                        |> AList.toASet 
+                        |> ASet.map (function b -> mkISg m b)
+                        |> Sg.set
+                        |> Sg.effect [
+                            toEffect DefaultSurfaces.trafo
+                            toEffect DefaultSurfaces.vertexColor
+                            toEffect DefaultSurfaces.simpleLighting                              
+                            ]
+                        |> Sg.noEvents
+                        |> Sg.andAlso line1
                 )
             textarea [ style "position: fixed; top: 5px; left: 5px"; onChange SetText ] m.text
             br[]
             button [ style "position: fixed; bottom: 5px; right: 5px"; onClick (fun () -> ToggleVR) ] text
-            //br []
-            //button [ style "position: fixed; bottom: 30px; right: 5px"; onClick (fun () -> AddBox) ] textAddBox
-            //br []
-            //textarea [ style "position: fixed; bottom: 55px; right: 5px"; onChange SetText] distanceToBox 
+            br []
+            button [ style "position: fixed; bottom: 30px; right: 5px"; onClick (fun () -> AddBox) ] textAddBox
+            br []
+            textarea [ style "position: fixed; bottom: 55px; right: 5px"; onChange SetText] distanceToBox 
               
         ]
 
     let ui' (info : VrSystemInfo) (m : MModel) = 
+        let text = m.vr |> Mod.map (function true -> "Stop VR" | false -> "Start VR")
 
         let opcs = 
             m.opcModel.opcInfos
@@ -347,7 +355,7 @@ module Demo =
               
         let frustum =
             Mod.constant (Frustum.perspective 60.0 0.1 100.0 1.0)
-        
+
         div [ style "width: 100%; height: 100%" ] [
             FreeFlyController.controlledControl m.opcModel.cameraState CameraMessage m.opcModel.mainFrustum
                 (AttributeMap.ofList [
@@ -359,9 +367,11 @@ module Demo =
                 ])
                 (
                     opcs
-                    |> Sg.map (OpcSelectionViewer.Message.PickingAction)
+                    |> Sg.map (OpcSelectionViewer.Message.PickingAction) 
+                    |> Sg.map OpcViewerMsg
                     |> Sg.noEvents
                 )
+            button [ style "position: fixed; bottom: 5px; right: 5px"; onClick (fun () -> ToggleVR) ] text
         ]
     
     let vr (info : VrSystemInfo) (m : MModel) =
@@ -455,22 +465,29 @@ module Demo =
                 do! DefaultSurfaces.diffuseTexture
                 do! DefaultSurfaces.simpleLighting
             }
+            
         
         let opcs = 
             m.opcModel.opcInfos
-              |> AMap.toASet
-              |> ASet.map(fun info -> Sg.createSingleOpcSg m.opcModel.opcAttributes.selectedScalar m.opcModel.pickingActive m.opcModel.cameraState.view info)
-              |> Sg.set
-              |> Sg.effect [ 
-                toEffect Shader.stableTrafo
-                toEffect DefaultSurfaces.diffuseTexture  
-                toEffect Shader.AttributeShader.falseColorLegend //falseColorLegendGray
+                |> AMap.toASet
+                |> ASet.map(fun info -> 
+                    Sg.createSingleOpcSg m.opcModel.opcAttributes.selectedScalar m.opcModel.pickingActive m.opcModel.cameraState.view info
+                    )
+                |> Sg.set
+                |> Sg.effect [ 
+                    toEffect Shader.stableTrafo
+                    toEffect DefaultSurfaces.diffuseTexture  
+                    toEffect Shader.AttributeShader.falseColorLegend //falseColorLegendGray
                 ]
-            |> Sg.requirePicking
-            |> Sg.noEvents
-            |> Sg.andAlso deviceSgs
+                |> Sg.translate' (m.opcModel.boundingBox |> Mod.map (fun p -> - p.Center))
+
+                
 
         opcs
+        |> Sg.map (OpcSelectionViewer.Message.PickingAction)
+        |> Sg.map OpcViewerMsg
+        |> Sg.noEvents
+        |> Sg.andAlso deviceSgs
         
         //let renderControl =
         //    FreeFlyController.controlledControl m.opcModel.cameraState OpcSelectionViewer.Camera m.opcModel.mainFrustum
@@ -529,6 +546,6 @@ module Demo =
             threads = threads
             input = input 
             ui = ui'
-            vr = vr
+            vr = vr'
             pauseScene = Some pause
         }

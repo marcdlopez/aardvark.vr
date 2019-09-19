@@ -48,6 +48,7 @@ type Model =
         controllerPositions : hmap<int, Pose>
 
         opcModel : OpcSelectionViewer.Model
+
     }
 
 module VisibleBox =
