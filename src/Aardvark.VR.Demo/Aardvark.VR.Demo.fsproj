@@ -19,7 +19,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Aardvark.VR\Aardvark.VR.fsproj" />
-    <ProjectReference Include="..\ViewerMain\ViewerMain.fsproj" />
+    <ProjectReference Include="..\OPCViewer.Base\OPCViewer.Base.fsproj" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

@@ -9,8 +9,8 @@ open OpcViewer.Base.Picking
 open Aardvark.VRVis.Opc
 open Aardvark.UI.Primitives
 
-module OpcViewerFunc =
 
+module OpcViewerFunc =
     let patchHierarchiesImport dir =
         [ 
             for h in Directory.GetDirectories(dir) |> Array.head |> Array.singleton do

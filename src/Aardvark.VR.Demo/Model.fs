@@ -6,7 +6,6 @@ open Aardvark.Vr
 open Aardvark.UI.Primitives
 open Aardvark.SceneGraph.Opc
 open OpcViewer.Base.Picking
-open OpcSelectionViewer
 open OpcViewer.Base.Attributes
 
 [<DomainType>]
@@ -59,6 +58,7 @@ type Model =
         opcAttributes        : AttributeModel
         mainFrustum          : Frustum
         rotateBox : bool
+        pickingModel : PickingModel
 
 
     }

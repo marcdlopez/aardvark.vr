@@ -19,8 +19,6 @@ open Aardvark.Application.OpenVR
 open OpcViewer.Base
 open OpcViewer.Base.Picking
 open OpcViewer.Base.Attributes
-open Rabbyte.Drawing
-open Rabbyte.Annotation
 
 type DemoMessage =
     | SetText of string 
@@ -33,7 +31,7 @@ type DemoMessage =
     | GrabObject of bool
     | TranslateObject of V3d
     | AddBox
-    | OpcViewerMsg of OpcSelectionViewer.Message
+    | OpcViewerMsg of PickingAction
 
 module Demo =
     open Aardvark.Application
@@ -67,9 +65,9 @@ module Demo =
     let rec update (state : VrState) (vr : VrActions) (model : Model) (msg : DemoMessage) : Model=
         match msg with
         | OpcViewerMsg m -> 
-            let newOpcModel = OpcSelectionViewer.App.update (OpcSelectionViewer.App.createBasicModel "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423" None true) m
+            let newOpcModel = OpcViewer.Base.Picking.PickingApp.update OpcViewer.Base.Picking.PickingModel.initial m
             
-            {model with opcInfos = newOpcModel.opcInfos; patchHierarchies = newOpcModel.patchHierarchies; boundingBox = newOpcModel.boundingBox; opcAttributes = newOpcModel.opcAttributes; mainFrustum = newOpcModel.mainFrustum;}
+            {model with pickingModel = newOpcModel}
             //{ model with opcModel = newOpcModel }
         | SetText t -> 
             { model with text = t }
@@ -373,7 +371,7 @@ module Demo =
                 ])
                 (
                     opcs
-                    |> Sg.map (OpcSelectionViewer.Message.PickingAction) 
+                    //|> Sg.map (OpcSelectionViewer.Message.PickingAction) 
                     |> Sg.map OpcViewerMsg
                     |> Sg.noEvents
                 )
@@ -488,7 +486,8 @@ module Demo =
                 |> Sg.translate' (m.boundingBox |> Mod.map (fun p -> - p.Center))
 
         opcs
-        |> Sg.map (OpcSelectionViewer.Message.PickingAction)
+        //|> Sg.map (OpcSelectionViewer.Message.PickingAction)
+        //|> Sg.map (OpcViewer.Base.Picking.PickingAction.HitSurface)
         |> Sg.map OpcViewerMsg
         |> Sg.noEvents
         |> Sg.andAlso deviceSgs
@@ -526,6 +525,7 @@ module Demo =
     let patchHierarchiesDir = Directory.GetDirectories("C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423") |> Array.head |> Array.singleton
 
     let initial =
+        let rotateBoxInit = false
         let PatchHierarchiesInit = 
             OpcViewerFunc.patchHierarchiesImport "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423"
         let BoundingBoxInit = 
@@ -533,7 +533,7 @@ module Demo =
         let OpcInfosInit = 
             OpcViewerFunc.opcInfosImport (PatchHierarchiesInit)
         let upInit =
-            OpcViewerFunc.upImport BoundingBoxInit true
+            OpcViewerFunc.upImport BoundingBoxInit rotateBoxInit
         let CameraStateInit = 
             OpcViewerFunc.restoreCamStateImport BoundingBoxInit upInit
         {
@@ -560,7 +560,8 @@ module Demo =
             opcInfos = OpcInfosInit
             opcAttributes = SurfaceAttributes.initModel "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423"
             mainFrustum = Frustum.perspective 60.0 0.01 1000.0 1.0
-            rotateBox = true
+            rotateBox = rotateBoxInit
+            pickingModel = OpcViewer.Base.Picking.PickingModel.initial
         }
     let app =
         {
