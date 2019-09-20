@@ -4,6 +4,10 @@ open Aardvark.Base
 open Aardvark.Base.Incremental
 open Aardvark.Vr
 open Aardvark.UI.Primitives
+open Aardvark.SceneGraph.Opc
+open OpcViewer.Base.Picking
+open OpcSelectionViewer
+open OpcViewer.Base.Attributes
 
 [<DomainType>]
 type VisibleBox = {
@@ -47,7 +51,14 @@ type Model =
         grabbed : hset<string>
         controllerPositions : hmap<int, Pose>
 
-        opcModel : OpcSelectionViewer.Model
+        //opcModel : OpcSelectionViewer.Model
+        [<NonIncremental>]
+        patchHierarchies     : list<PatchHierarchy> 
+        boundingBox          : Box3d
+        opcInfos             : hmap<Box3d, OpcData>
+        opcAttributes        : AttributeModel
+        mainFrustum          : Frustum
+
 
     }
 

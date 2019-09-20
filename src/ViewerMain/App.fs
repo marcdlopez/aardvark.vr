@@ -267,6 +267,36 @@ module App =
               onLayoutChanged UpdateDockConfig ]
         )
 
+
+  let patchHierarchiesImport dir =
+      [ 
+          for h in Directory.GetDirectories(dir) |> Array.head |> Array.singleton do
+          yield PatchHierarchy.load Serialization.binarySerializer.Pickle Serialization.binarySerializer.UnPickle (h |> OpcPaths)
+      ]
+
+  let boxImport patchHierarchies = 
+        patchHierarchies
+            |> List.map(fun x -> x.tree |> QTree.getRoot) 
+            |> List.map(fun x -> x.info.GlobalBoundingBox)
+            |> List.fold (fun a b -> Box3d.Union(a, b)) Box3d.Invalid
+    
+  let opcInfosImport patchHierarchies= 
+      [
+          for h in patchHierarchies do
+              
+          let rootTree = h.tree |> QTree.getRoot
+  
+          yield {
+              patchHierarchy = h
+              kdTree         = Aardvark.VRVis.Opc.KdTrees.expandKdTreePaths h.opcPaths.Opc_DirAbsPath (KdTrees.loadKdTrees' h Trafo3d.Identity true ViewerModality.XYZ Serialization.binarySerializer)
+              localBB        = rootTree.info.LocalBoundingBox 
+              globalBB       = rootTree.info.GlobalBoundingBox
+              neighborMap    = HMap.empty
+          }
+      ]
+      |> List.map (fun info -> info.globalBB, info)
+      |> HMap.ofList
+
   let createBasicModel dir axisFile (rotate : bool) =
     Serialization.registry.RegisterFactory (fun _ -> KdTrees.level0KdTreePickler)
     
@@ -282,6 +312,7 @@ module App =
             yield PatchHierarchy.load Serialization.binarySerializer.Pickle Serialization.binarySerializer.UnPickle (h |> OpcPaths)
         ]    
     
+
     let box = 
         patchHierarchies 
             |> List.map(fun x -> x.tree |> QTree.getRoot) 

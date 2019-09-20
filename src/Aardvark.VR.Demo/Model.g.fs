@@ -147,7 +147,10 @@ module Mutable =
         let _lines = ResetMod.Create(__initial.lines)
         let _grabbed = MSet.Create(__initial.grabbed)
         let _controllerPositions = MMap.Create(__initial.controllerPositions, (fun v -> Aardvark.Vr.Mutable.MPose.Create(v)), (fun (m,v) -> Aardvark.Vr.Mutable.MPose.Update(m, v)), (fun v -> v))
-        let _opcModel = OpcSelectionViewer.Mutable.MModel.Create(__initial.opcModel)
+        let _boundingBox = ResetMod.Create(__initial.boundingBox)
+        let _opcInfos = MMap.Create(__initial.opcInfos, (fun v -> OpcViewer.Base.Picking.Mutable.MOpcData.Create(v)), (fun (m,v) -> OpcViewer.Base.Picking.Mutable.MOpcData.Update(m, v)), (fun v -> v))
+        let _opcAttributes = OpcViewer.Base.Attributes.Mutable.MAttributeModel.Create(__initial.opcAttributes)
+        let _mainFrustum = ResetMod.Create(__initial.mainFrustum)
         
         member x.text = _text :> IMod<_>
         member x.vr = _vr :> IMod<_>
@@ -164,7 +167,11 @@ module Mutable =
         member x.lines = _lines :> IMod<_>
         member x.grabbed = _grabbed :> aset<_>
         member x.controllerPositions = _controllerPositions :> amap<_,_>
-        member x.opcModel = _opcModel
+        member x.patchHierarchies = __current.Value.patchHierarchies
+        member x.boundingBox = _boundingBox :> IMod<_>
+        member x.opcInfos = _opcInfos :> amap<_,_>
+        member x.opcAttributes = _opcAttributes
+        member x.mainFrustum = _mainFrustum :> IMod<_>
         
         member x.Current = __current :> IMod<_>
         member x.Update(v : Demo.Model) =
@@ -186,7 +193,10 @@ module Mutable =
                 ResetMod.Update(_lines,v.lines)
                 MSet.Update(_grabbed, v.grabbed)
                 MMap.Update(_controllerPositions, v.controllerPositions)
-                OpcSelectionViewer.Mutable.MModel.Update(_opcModel, v.opcModel)
+                ResetMod.Update(_boundingBox,v.boundingBox)
+                MMap.Update(_opcInfos, v.opcInfos)
+                OpcViewer.Base.Attributes.Mutable.MAttributeModel.Update(_opcAttributes, v.opcAttributes)
+                ResetMod.Update(_mainFrustum,v.mainFrustum)
                 
         
         static member Create(__initial : Demo.Model) : MModel = MModel(__initial)
@@ -293,9 +303,33 @@ module Mutable =
                     override x.Set(r,v) = { r with controllerPositions = v }
                     override x.Update(r,f) = { r with controllerPositions = f r.controllerPositions }
                 }
-            let opcModel =
-                { new Lens<Demo.Model, OpcSelectionViewer.Model>() with
-                    override x.Get(r) = r.opcModel
-                    override x.Set(r,v) = { r with opcModel = v }
-                    override x.Update(r,f) = { r with opcModel = f r.opcModel }
+            let patchHierarchies =
+                { new Lens<Demo.Model, Microsoft.FSharp.Collections.List<Aardvark.SceneGraph.Opc.PatchHierarchy>>() with
+                    override x.Get(r) = r.patchHierarchies
+                    override x.Set(r,v) = { r with patchHierarchies = v }
+                    override x.Update(r,f) = { r with patchHierarchies = f r.patchHierarchies }
+                }
+            let boundingBox =
+                { new Lens<Demo.Model, Aardvark.Base.Box3d>() with
+                    override x.Get(r) = r.boundingBox
+                    override x.Set(r,v) = { r with boundingBox = v }
+                    override x.Update(r,f) = { r with boundingBox = f r.boundingBox }
+                }
+            let opcInfos =
+                { new Lens<Demo.Model, Aardvark.Base.hmap<Aardvark.Base.Box3d,OpcViewer.Base.Picking.OpcData>>() with
+                    override x.Get(r) = r.opcInfos
+                    override x.Set(r,v) = { r with opcInfos = v }
+                    override x.Update(r,f) = { r with opcInfos = f r.opcInfos }
+                }
+            let opcAttributes =
+                { new Lens<Demo.Model, OpcViewer.Base.Attributes.AttributeModel>() with
+                    override x.Get(r) = r.opcAttributes
+                    override x.Set(r,v) = { r with opcAttributes = v }
+                    override x.Update(r,f) = { r with opcAttributes = f r.opcAttributes }
+                }
+            let mainFrustum =
+                { new Lens<Demo.Model, Aardvark.Base.Frustum>() with
+                    override x.Get(r) = r.mainFrustum
+                    override x.Set(r,v) = { r with mainFrustum = v }
+                    override x.Update(r,f) = { r with mainFrustum = f r.mainFrustum }
                 }

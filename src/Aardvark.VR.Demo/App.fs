@@ -67,8 +67,9 @@ module Demo =
     let rec update (state : VrState) (vr : VrActions) (model : Model) (msg : DemoMessage) : Model=
         match msg with
         | OpcViewerMsg m -> 
-            let newOpcModel = OpcSelectionViewer.App.update model.opcModel m
-            { model with opcModel = newOpcModel }
+            let newOpcModel = OpcSelectionViewer.App.update (OpcSelectionViewer.App.createBasicModel "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423" None true) m
+            {model with opcInfos = newOpcModel.opcInfos; patchHierarchies = newOpcModel.patchHierarchies; boundingBox = newOpcModel.boundingBox; opcAttributes = newOpcModel.opcAttributes; mainFrustum = newOpcModel.mainFrustum}
+            //{ model with opcModel = newOpcModel }
         | SetText t -> 
             { model with text = t }
         | ToggleVR ->
@@ -142,8 +143,8 @@ module Demo =
                             yield (Line3d [startPos; endPos])
             |]
 
-            printfn "Bounding box position (opc): %A" newModel.opcModel.boundingBox.Center
-            printfn "Camera position: %A " newModel.ControllerPosition
+            //printfn "Bounding box position (opc): %A" newModel.opcModel.boundingBox.Center
+            //printfn "Camera position: %A " newModel.ControllerPosition
 
             { newModel with lines = lines }
             
@@ -294,9 +295,9 @@ module Demo =
             ]
 
         let opcs = 
-            m.opcModel.opcInfos
+            m.opcInfos
               |> AMap.toASet
-              |> ASet.map(fun info -> Sg.createSingleOpcSg m.opcModel.opcAttributes.selectedScalar m.opcModel.pickingActive m.opcModel.cameraState.view info)
+              |> ASet.map(fun info -> Sg.createSingleOpcSg m.opcAttributes.selectedScalar (Mod.constant false) m.cameraState.view info)
               |> Sg.set
               |> Sg.effect [ 
                 toEffect Shader.stableTrafo
@@ -343,9 +344,9 @@ module Demo =
         let text = m.vr |> Mod.map (function true -> "Stop VR" | false -> "Start VR")
 
         let opcs = 
-            m.opcModel.opcInfos
+            m.opcInfos
               |> AMap.toASet
-              |> ASet.map(fun info -> Sg.createSingleOpcSg m.opcModel.opcAttributes.selectedScalar m.opcModel.pickingActive m.opcModel.cameraState.view info)
+              |> ASet.map(fun info -> Sg.createSingleOpcSg m.opcAttributes.selectedScalar (Mod.constant false) m.cameraState.view info)
               |> Sg.set
               |> Sg.effect [ 
                 toEffect Shader.stableTrafo
@@ -357,7 +358,7 @@ module Demo =
             Mod.constant (Frustum.perspective 60.0 0.1 100.0 1.0)
 
         div [ style "width: 100%; height: 100%" ] [
-            FreeFlyController.controlledControl m.opcModel.cameraState CameraMessage m.opcModel.mainFrustum
+            FreeFlyController.controlledControl m.cameraState CameraMessage m.mainFrustum
                 (AttributeMap.ofList [
                     style "width: 100%; height:100%"; 
                     attribute "showFPS" "true";       // optional, default is false
@@ -468,10 +469,10 @@ module Demo =
             
         
         let opcs = 
-            m.opcModel.opcInfos
+            m.opcInfos
                 |> AMap.toASet
                 |> ASet.map(fun info -> 
-                    Sg.createSingleOpcSg m.opcModel.opcAttributes.selectedScalar m.opcModel.pickingActive m.opcModel.cameraState.view info
+                    Sg.createSingleOpcSg m.opcAttributes.selectedScalar (Mod.constant false) m.cameraState.view info
                     )
                 |> Sg.set
                 |> Sg.effect [ 
@@ -479,7 +480,7 @@ module Demo =
                     toEffect DefaultSurfaces.diffuseTexture  
                     toEffect Shader.AttributeShader.falseColorLegend //falseColorLegendGray
                 ]
-                |> Sg.translate' (m.opcModel.boundingBox |> Mod.map (fun p -> - p.Center))
+                |> Sg.translate' (m.boundingBox |> Mod.map (fun p -> - p.Center))
 
                 
 
@@ -519,6 +520,8 @@ module Demo =
 
     let newBoxList = mkBoxes 2
     
+    let patchHierarchiesDir = Directory.GetDirectories("C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423") |> Array.head |> Array.singleton
+
     let initial = 
         {
             text = "some text"
@@ -536,7 +539,13 @@ module Demo =
             startingLinePos = V3d.Zero
             endingLinePos = V3d.Zero
             lines = [||]
-            opcModel = OpcSelectionViewer.App.createBasicModel "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423" None true
+            
+            //opcModel = OpcSelectionViewer.App.createBasicModel "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423" None true
+            patchHierarchies = OpcSelectionViewer.App.patchHierarchiesImport "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423"
+            boundingBox = OpcSelectionViewer.App.boxImport (OpcSelectionViewer.App.patchHierarchiesImport "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423")
+            opcInfos = OpcSelectionViewer.App.opcInfosImport (OpcSelectionViewer.App.patchHierarchiesImport "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423")
+            opcAttributes = SurfaceAttributes.initModel "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423"
+            mainFrustum = Frustum.perspective 60.0 0.01 1000.0 1.0
         }
     let app =
         {
