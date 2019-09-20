@@ -151,6 +151,7 @@ module Mutable =
         let _opcInfos = MMap.Create(__initial.opcInfos, (fun v -> OpcViewer.Base.Picking.Mutable.MOpcData.Create(v)), (fun (m,v) -> OpcViewer.Base.Picking.Mutable.MOpcData.Update(m, v)), (fun v -> v))
         let _opcAttributes = OpcViewer.Base.Attributes.Mutable.MAttributeModel.Create(__initial.opcAttributes)
         let _mainFrustum = ResetMod.Create(__initial.mainFrustum)
+        let _rotateBox = ResetMod.Create(__initial.rotateBox)
         
         member x.text = _text :> IMod<_>
         member x.vr = _vr :> IMod<_>
@@ -172,6 +173,7 @@ module Mutable =
         member x.opcInfos = _opcInfos :> amap<_,_>
         member x.opcAttributes = _opcAttributes
         member x.mainFrustum = _mainFrustum :> IMod<_>
+        member x.rotateBox = _rotateBox :> IMod<_>
         
         member x.Current = __current :> IMod<_>
         member x.Update(v : Demo.Model) =
@@ -197,6 +199,7 @@ module Mutable =
                 MMap.Update(_opcInfos, v.opcInfos)
                 OpcViewer.Base.Attributes.Mutable.MAttributeModel.Update(_opcAttributes, v.opcAttributes)
                 ResetMod.Update(_mainFrustum,v.mainFrustum)
+                ResetMod.Update(_rotateBox,v.rotateBox)
                 
         
         static member Create(__initial : Demo.Model) : MModel = MModel(__initial)
@@ -332,4 +335,10 @@ module Mutable =
                     override x.Get(r) = r.mainFrustum
                     override x.Set(r,v) = { r with mainFrustum = v }
                     override x.Update(r,f) = { r with mainFrustum = f r.mainFrustum }
+                }
+            let rotateBox =
+                { new Lens<Demo.Model, System.Boolean>() with
+                    override x.Get(r) = r.rotateBox
+                    override x.Set(r,v) = { r with rotateBox = v }
+                    override x.Update(r,f) = { r with rotateBox = f r.rotateBox }
                 }

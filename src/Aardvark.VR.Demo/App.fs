@@ -68,7 +68,8 @@ module Demo =
         match msg with
         | OpcViewerMsg m -> 
             let newOpcModel = OpcSelectionViewer.App.update (OpcSelectionViewer.App.createBasicModel "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423" None true) m
-            {model with opcInfos = newOpcModel.opcInfos; patchHierarchies = newOpcModel.patchHierarchies; boundingBox = newOpcModel.boundingBox; opcAttributes = newOpcModel.opcAttributes; mainFrustum = newOpcModel.mainFrustum}
+            
+            {model with opcInfos = newOpcModel.opcInfos; patchHierarchies = newOpcModel.patchHierarchies; boundingBox = newOpcModel.boundingBox; opcAttributes = newOpcModel.opcAttributes; mainFrustum = newOpcModel.mainFrustum;}
             //{ model with opcModel = newOpcModel }
         | SetText t -> 
             { model with text = t }
@@ -226,11 +227,15 @@ module Demo =
         | VrMessage.PressButton(_,_) ->
             [ToggleVR]
             //[GrabObject]
-        | VrMessage.UpdatePose(3,p) -> 
+        | VrMessage.UpdatePose(cn,p) -> 
+            //let newControllersPos = 
+            //    m.controllerPositions
+            //    |> HMap.add cn p
+            //{m with controllerPositions = newControllersPos}
             if p.isValid then 
                 let pos = p.deviceToWorld.Forward.TransformPos(V3d.Zero)
                 //printfn "%d changed pos= %A"  0 pos
-                [SetControllerPosition (pos)]
+                [SetControllerPosition ( pos)]
             else []
         | VrMessage.Press(con,_) -> 
             printfn "Button pressed by %d" con
@@ -482,8 +487,6 @@ module Demo =
                 ]
                 |> Sg.translate' (m.boundingBox |> Mod.map (fun p -> - p.Center))
 
-                
-
         opcs
         |> Sg.map (OpcSelectionViewer.Message.PickingAction)
         |> Sg.map OpcViewerMsg
@@ -522,14 +525,24 @@ module Demo =
     
     let patchHierarchiesDir = Directory.GetDirectories("C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423") |> Array.head |> Array.singleton
 
-    let initial = 
+    let initial =
+        let PatchHierarchiesInit = 
+            OpcViewerFunc.patchHierarchiesImport "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423"
+        let BoundingBoxInit = 
+            OpcViewerFunc.boxImport (PatchHierarchiesInit)
+        let OpcInfosInit = 
+            OpcViewerFunc.opcInfosImport (PatchHierarchiesInit)
+        let upInit =
+            OpcViewerFunc.upImport BoundingBoxInit true
+        let CameraStateInit = 
+            OpcViewerFunc.restoreCamStateImport BoundingBoxInit upInit
         {
             text = "some text"
             vr = false
             boxes = newBoxList
             boxHovered = None
             boxSelected = HSet.empty
-            cameraState = FreeFlyController.initial
+            //cameraState = FreeFlyController.initial
             ControllerPosition = V3d.OOO
             grabbed = HSet.empty
             controllerPositions = HMap.empty
@@ -539,13 +552,15 @@ module Demo =
             startingLinePos = V3d.Zero
             endingLinePos = V3d.Zero
             lines = [||]
+            cameraState = CameraStateInit
             
             //opcModel = OpcSelectionViewer.App.createBasicModel "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423" None true
-            patchHierarchies = OpcSelectionViewer.App.patchHierarchiesImport "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423"
-            boundingBox = OpcSelectionViewer.App.boxImport (OpcSelectionViewer.App.patchHierarchiesImport "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423")
-            opcInfos = OpcSelectionViewer.App.opcInfosImport (OpcSelectionViewer.App.patchHierarchiesImport "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423")
+            patchHierarchies = PatchHierarchiesInit
+            boundingBox = BoundingBoxInit
+            opcInfos = OpcInfosInit
             opcAttributes = SurfaceAttributes.initModel "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423"
             mainFrustum = Frustum.perspective 60.0 0.01 1000.0 1.0
+            rotateBox = true
         }
     let app =
         {

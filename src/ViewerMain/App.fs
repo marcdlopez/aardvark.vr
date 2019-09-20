@@ -274,12 +274,12 @@ module App =
           yield PatchHierarchy.load Serialization.binarySerializer.Pickle Serialization.binarySerializer.UnPickle (h |> OpcPaths)
       ]
 
-  let boxImport patchHierarchies = 
+  let boxImport patchHierarchies  = 
         patchHierarchies
             |> List.map(fun x -> x.tree |> QTree.getRoot) 
             |> List.map(fun x -> x.info.GlobalBoundingBox)
             |> List.fold (fun a b -> Box3d.Union(a, b)) Box3d.Invalid
-    
+
   let opcInfosImport patchHierarchies= 
       [
           for h in patchHierarchies do
@@ -296,6 +296,17 @@ module App =
       ]
       |> List.map (fun info -> info.globalBB, info)
       |> HMap.ofList
+
+  let upImport (box : Box3d) (rotate : bool)= 
+    if rotate then (box.Center.Normalized) else V3d.OOI
+  
+  let restoreCamStateImport (box : Box3d) up: CameraControllerState =
+      //if File.Exists ".\camstate" then          
+      //    Log.line "[App] restoring camstate"
+      //    let csLight : CameraStateLean = Serialization.loadAs ".\camstate"
+      //    { FreeFlyController.initial with view = csLight |> fromCameraStateLean }
+      //else 
+          { FreeFlyController.initial with view = CameraView.lookAt (box.Max) box.Center up; }
 
   let createBasicModel dir axisFile (rotate : bool) =
     Serialization.registry.RegisterFactory (fun _ -> KdTrees.level0KdTreePickler)

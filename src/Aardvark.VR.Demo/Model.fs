@@ -58,6 +58,7 @@ type Model =
         opcInfos             : hmap<Box3d, OpcData>
         opcAttributes        : AttributeModel
         mainFrustum          : Frustum
+        rotateBox : bool
 
 
     }
