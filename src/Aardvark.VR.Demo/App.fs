@@ -6,7 +6,6 @@ open Aardvark.Base
 open Aardvark.Base.Incremental
 open Aardvark.Base.Rendering
 open Aardvark.Rendering.Text
-open Aardvark.Vr
 open Aardvark.SceneGraph
 open Aardvark.SceneGraph.Opc
 open Aardvark.UI
@@ -15,6 +14,7 @@ open Aardvark.UI.Trafos
 open Aardvark.UI.Generic
 open FShade
 open Aardvark.Application.OpenVR
+open Aardvark.Vr
 
 open OpcViewer.Base
 open OpcViewer.Base.Picking
@@ -27,8 +27,8 @@ type DemoMessage =
     | HoverIn of string
     | HoverOut
     | CameraMessage    of FreeFlyController.Message    
-    | SetControllerPosition of V3d
-    | GrabObject of bool
+    | SetControllerPosition of int*Pose
+    | GrabObject of int*bool
     | TranslateObject of V3d
     | AddBox
     | OpcViewerMsg of PickingAction
@@ -90,64 +90,75 @@ module Demo =
                 model
         | CameraMessage m -> 
             { model with cameraState = FreeFlyController.update model.cameraState m }   
-        | SetControllerPosition p -> 
-            let newModel = { model with ControllerPosition = p }
+        | SetControllerPosition (controllerIndex, p) -> 
+            let newControllersPosition = 
+                //if model.controllerPositions.ContainsKey(controllerIndex) then
+                model.controllerPositions |> HMap.alter controllerIndex (fun old -> 
+                    match old with 
+                    | Some x -> 
+                        printfn "controller with id: %i is moving to pos: %A" controllerIndex (p.deviceToWorld.Forward.TransformPos(V3d.Zero))
+                        Some p   // update / overwirte
+                    | None -> 
+                        printfn "New controller with id: %i" controllerIndex
+                        Some p) // creation 
 
-            let mayHover = 
-                newModel.boxes 
-                |> PList.choose (fun b ->
-                    if b.geometry.Transformed(b.trafo).Contains(p) then
-                        Some b.id
-                    else None)
-                |> PList.tryFirst
-
-            let newModel = 
-                match mayHover with
-                | Some ID -> update state vr newModel (HoverIn ID)
-                | None -> update state vr newModel HoverOut
             
-            let newModel = 
-                if newModel.isPressed then 
-                    match newModel.boxHovered with
-                    | Some ID -> 
-                        let moveBox = 
-                            newModel.boxes 
-                            |> PList.toList 
-                            |> List.tryPick (fun x -> if x.id = ID then Some x else None)
-
-                        match moveBox with
-                        | Some b -> 
-                            let index = 
-                                newModel.boxes
-                                |> PList.findIndex b
-
-                            let newBoxList = 
-                                newModel.boxes 
-                                |> PList.alter index (fun x -> x |> Option.map (fun y -> 
-                                    Log.line "update position to %A" newModel.ControllerPosition
-                                    { y with trafo = Trafo3d.Translation(newModel.ControllerPosition + newModel.offsetToCenter)}))
-                            
-                            { newModel with boxes = newBoxList }
-                        | None -> newModel
-                    | None -> newModel
-                else newModel
-
-            let lines = [|
-                for i in newModel.boxes do 
-                    for j in newModel.boxes do 
-                        if i.id != j.id then 
-                            let startPos = i.trafo.GetModelOrigin()
-                            let endPos = j.trafo.GetModelOrigin()
-                            printfn "Distance between boxes: %f" (V3d.Distance(startPos, endPos))
-                            yield (Line3d [startPos; endPos])
-            |]
-
-            //printfn "Bounding box position (opc): %A" newModel.opcModel.boundingBox.Center
-            //printfn "Camera position: %A " newModel.ControllerPosition
-
-            { newModel with lines = lines }
+            { model with controllerPositions = newControllersPosition}
             
-        | GrabObject buttonPress ->
+            //let newModel = { model with ControllerPosition = p }
+
+            //let mayHover = 
+            //    newModel.boxes 
+            //    |> PList.choose (fun b ->
+            //        if b.geometry.Transformed(b.trafo).Contains(p) then
+            //            Some b.id
+            //        else None)
+            //    |> PList.tryFirst
+
+            //let newModel = 
+            //    match mayHover with
+            //    | Some ID -> update state vr newModel (HoverIn ID)
+            //    | None -> update state vr newModel HoverOut
+            
+            //let newModel = 
+            //    if newModel.isPressed then 
+            //        match newModel.boxHovered with
+            //        | Some ID -> 
+            //            let moveBox = 
+            //                newModel.boxes 
+            //                |> PList.toList 
+            //                |> List.tryPick (fun x -> if x.id = ID then Some x else None)
+            //            match moveBox with
+            //            | Some b -> 
+            //                let index = 
+            //                    newModel.boxes
+            //                    |> PList.findIndex b
+            //                let newBoxList = 
+            //                    newModel.boxes 
+            //                    |> PList.alter index (fun x -> x |> Option.map (fun y -> 
+            //                        Log.line "update position to %A" newModel.ControllerPosition
+            //                        { y with trafo = Trafo3d.Translation(newModel.ControllerPosition + newModel.offsetToCenter)}))
+            //                { newModel with boxes = newBoxList }
+            //            | None -> newModel
+            //        | None -> newModel
+            //    else newModel
+
+            //let lines = [|
+            //    for i in newModel.boxes do 
+            //        for j in newModel.boxes do 
+            //            if i.id != j.id then 
+            //                let startPos = i.trafo.GetModelOrigin()
+            //                let endPos = j.trafo.GetModelOrigin()
+            //                printfn "Distance between boxes: %f" (V3d.Distance(startPos, endPos))
+            //                yield (Line3d [startPos; endPos])
+            //|]
+
+            ////printfn "Bounding box position (opc): %A" newModel.opcModel.boundingBox.Center
+            ////printfn "Camera position: %A " newModel.ControllerPosition
+
+            //{ newModel with lines = lines }
+            
+        | GrabObject (controllerIndex, buttonPress)->
             let offset = 
                 model.boxes 
                 |> PList.choose (fun b ->
@@ -212,7 +223,7 @@ module Demo =
             |> Sg.requirePicking
             |> Sg.noEvents
             |> Sg.withEvents [
-                Sg.onClick (fun _  -> GrabObject true)
+                //Sg.onClick (fun _  -> GrabObject true)
                 Sg.onEnter (fun _  -> HoverIn  (box.id.ToString()))
                 Sg.onLeave (fun _ -> HoverOut)
             ]
@@ -233,16 +244,23 @@ module Demo =
             if p.isValid then 
                 let pos = p.deviceToWorld.Forward.TransformPos(V3d.Zero)
                 //printfn "%d changed pos= %A"  0 pos
-                [SetControllerPosition ( pos)]
+                [SetControllerPosition (cn, p)]
             else []
         | VrMessage.Press(con,_) -> 
             printfn "Button pressed by %d" con
-            [GrabObject true]
+            [GrabObject(con, true)]
         | VrMessage.Unpress(con,_) -> 
             printfn "Button unpressed by %d" con
-            [GrabObject false]
+            [GrabObject (con, false)]
         | _ -> 
             []
+
+
+    let mkControllerBox (cp : MPose) =
+        Sg.box' C4b.Cyan Box3d.Unit
+            |> Sg.noEvents
+            |> Sg.scale 0.01
+            |> Sg.trafo cp.deviceToWorld //|> Mod.map (fun current -> Trafo3d.Translation(current)))
 
     let ui (info : VrSystemInfo) (m : MModel) =
         let text = m.vr |> Mod.map (function true -> "Stop VR" | false -> "Start VR")
@@ -449,6 +467,17 @@ module Demo =
 
     let vr' (info : VrSystemInfo) (m : MModel)= 
 
+        let a = 
+            m.controllerPositions
+            |> AMap.toASet
+            |> ASet.map (fun boxController -> mkControllerBox (snd boxController))
+            |> Sg.set
+            |> Sg.effect [
+                toEffect DefaultSurfaces.trafo
+                toEffect DefaultSurfaces.vertexColor
+                toEffect DefaultSurfaces.simpleLighting                              
+                ]
+
         let deviceSgs = 
             info.state.devices |> AMap.toASet |> ASet.chooseM (fun (_,d) ->
                 d.Model |> Mod.map (fun m ->
@@ -491,6 +520,8 @@ module Demo =
         |> Sg.map OpcViewerMsg
         |> Sg.noEvents
         |> Sg.andAlso deviceSgs
+        |> Sg.andAlso a
+        
         
         //let renderControl =
         //    FreeFlyController.controlledControl m.opcModel.cameraState OpcSelectionViewer.Camera m.opcModel.mainFrustum
@@ -525,7 +556,7 @@ module Demo =
     let patchHierarchiesDir = Directory.GetDirectories("C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423") |> Array.head |> Array.singleton
 
     let initial =
-        let rotateBoxInit = false
+        let rotateBoxInit = true
         let PatchHierarchiesInit = 
             OpcViewerFunc.patchHierarchiesImport "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423"
         let BoundingBoxInit = 

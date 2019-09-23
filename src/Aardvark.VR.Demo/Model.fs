@@ -1,8 +1,8 @@
 namespace Demo
 
+open Aardvark.Vr
 open Aardvark.Base
 open Aardvark.Base.Incremental
-open Aardvark.Vr
 open Aardvark.UI.Primitives
 open Aardvark.SceneGraph.Opc
 open OpcViewer.Base.Picking
@@ -82,19 +82,6 @@ module VisibleBox =
                 id = System.Guid.NewGuid().ToString()
         }
 
-    
-
-
-//[<DomainType>]
-//type ComplexBox = {
-//    position : Trafo3d
-//    size : V3d
-//    //color : C4b
-//    //geometry : Box3d
-//    box : VisibleBox
-//    //[<TreatAsValue>]
-//    //id : string
-//}
 
 
 
