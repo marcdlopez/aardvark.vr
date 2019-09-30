@@ -25,6 +25,23 @@ type Line = {
     color : C4b
 }
 
+type State =
+    | Pressed
+    | Released
+    | Hold
+
+type ButtonStates = {
+    front : State
+    back : State
+}
+
+type ControllerInfo = {
+    pose: Pose
+    //buttons : ButtonStates
+    backButtonPressed : bool
+    frontButtonPressed: bool
+}
+
 [<DomainType>]
 type Model =
     {
@@ -48,12 +65,17 @@ type Model =
 
         //boxes : hmap<string,VisibleBox>
         grabbed : hset<string>
-        controllerPositions : hmap<int, Pose>
-
+        controllerPositions : hmap<int, ControllerInfo>
+        //controllerButtons : hmap<int, bool>
+        controllerDistance : float 
+        offsetControllerDistance : float
         //opcModel : OpcSelectionViewer.Model
         [<NonIncremental>]
         patchHierarchies     : list<PatchHierarchy> 
         boundingBox          : Box3d
+        globalTrafo          : Trafo3d
+        initGlobalTrafo      : Trafo3d
+        initControlTrafo     : Trafo3d
         opcInfos             : hmap<Box3d, OpcData>
         opcAttributes        : AttributeModel
         mainFrustum          : Frustum

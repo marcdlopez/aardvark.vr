@@ -11,6 +11,7 @@
     <OutputPath>..\..\bin\Release\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="NavigationOpc.fs" />
     <Compile Include="SerializationOpc.fs" />
     <Compile Include="OpcViewerFunc.fs" />
     <Compile Include="Model.fs" />

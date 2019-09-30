@@ -146,8 +146,13 @@ module Mutable =
         let _endingLinePos = ResetMod.Create(__initial.endingLinePos)
         let _lines = ResetMod.Create(__initial.lines)
         let _grabbed = MSet.Create(__initial.grabbed)
-        let _controllerPositions = MMap.Create(__initial.controllerPositions, (fun v -> Aardvark.Vr.Mutable.MPose.Create(v)), (fun (m,v) -> Aardvark.Vr.Mutable.MPose.Update(m, v)), (fun v -> v))
+        let _controllerPositions = MMap.Create(__initial.controllerPositions)
+        let _controllerDistance = ResetMod.Create(__initial.controllerDistance)
+        let _offsetControllerDistance = ResetMod.Create(__initial.offsetControllerDistance)
         let _boundingBox = ResetMod.Create(__initial.boundingBox)
+        let _globalTrafo = ResetMod.Create(__initial.globalTrafo)
+        let _initGlobalTrafo = ResetMod.Create(__initial.initGlobalTrafo)
+        let _initControlTrafo = ResetMod.Create(__initial.initControlTrafo)
         let _opcInfos = MMap.Create(__initial.opcInfos, (fun v -> OpcViewer.Base.Picking.Mutable.MOpcData.Create(v)), (fun (m,v) -> OpcViewer.Base.Picking.Mutable.MOpcData.Update(m, v)), (fun v -> v))
         let _opcAttributes = OpcViewer.Base.Attributes.Mutable.MAttributeModel.Create(__initial.opcAttributes)
         let _mainFrustum = ResetMod.Create(__initial.mainFrustum)
@@ -169,8 +174,13 @@ module Mutable =
         member x.lines = _lines :> IMod<_>
         member x.grabbed = _grabbed :> aset<_>
         member x.controllerPositions = _controllerPositions :> amap<_,_>
+        member x.controllerDistance = _controllerDistance :> IMod<_>
+        member x.offsetControllerDistance = _offsetControllerDistance :> IMod<_>
         member x.patchHierarchies = __current.Value.patchHierarchies
         member x.boundingBox = _boundingBox :> IMod<_>
+        member x.globalTrafo = _globalTrafo :> IMod<_>
+        member x.initGlobalTrafo = _initGlobalTrafo :> IMod<_>
+        member x.initControlTrafo = _initControlTrafo :> IMod<_>
         member x.opcInfos = _opcInfos :> amap<_,_>
         member x.opcAttributes = _opcAttributes
         member x.mainFrustum = _mainFrustum :> IMod<_>
@@ -197,7 +207,12 @@ module Mutable =
                 ResetMod.Update(_lines,v.lines)
                 MSet.Update(_grabbed, v.grabbed)
                 MMap.Update(_controllerPositions, v.controllerPositions)
+                ResetMod.Update(_controllerDistance,v.controllerDistance)
+                ResetMod.Update(_offsetControllerDistance,v.offsetControllerDistance)
                 ResetMod.Update(_boundingBox,v.boundingBox)
+                ResetMod.Update(_globalTrafo,v.globalTrafo)
+                ResetMod.Update(_initGlobalTrafo,v.initGlobalTrafo)
+                ResetMod.Update(_initControlTrafo,v.initControlTrafo)
                 MMap.Update(_opcInfos, v.opcInfos)
                 OpcViewer.Base.Attributes.Mutable.MAttributeModel.Update(_opcAttributes, v.opcAttributes)
                 ResetMod.Update(_mainFrustum,v.mainFrustum)
@@ -304,10 +319,22 @@ module Mutable =
                     override x.Update(r,f) = { r with grabbed = f r.grabbed }
                 }
             let controllerPositions =
-                { new Lens<Demo.Model, Aardvark.Base.hmap<System.Int32,Aardvark.Vr.Pose>>() with
+                { new Lens<Demo.Model, Aardvark.Base.hmap<System.Int32,Demo.ControllerInfo>>() with
                     override x.Get(r) = r.controllerPositions
                     override x.Set(r,v) = { r with controllerPositions = v }
                     override x.Update(r,f) = { r with controllerPositions = f r.controllerPositions }
+                }
+            let controllerDistance =
+                { new Lens<Demo.Model, System.Double>() with
+                    override x.Get(r) = r.controllerDistance
+                    override x.Set(r,v) = { r with controllerDistance = v }
+                    override x.Update(r,f) = { r with controllerDistance = f r.controllerDistance }
+                }
+            let offsetControllerDistance =
+                { new Lens<Demo.Model, System.Double>() with
+                    override x.Get(r) = r.offsetControllerDistance
+                    override x.Set(r,v) = { r with offsetControllerDistance = v }
+                    override x.Update(r,f) = { r with offsetControllerDistance = f r.offsetControllerDistance }
                 }
             let patchHierarchies =
                 { new Lens<Demo.Model, Microsoft.FSharp.Collections.List<Aardvark.SceneGraph.Opc.PatchHierarchy>>() with
@@ -320,6 +347,24 @@ module Mutable =
                     override x.Get(r) = r.boundingBox
                     override x.Set(r,v) = { r with boundingBox = v }
                     override x.Update(r,f) = { r with boundingBox = f r.boundingBox }
+                }
+            let globalTrafo =
+                { new Lens<Demo.Model, Aardvark.Base.Trafo3d>() with
+                    override x.Get(r) = r.globalTrafo
+                    override x.Set(r,v) = { r with globalTrafo = v }
+                    override x.Update(r,f) = { r with globalTrafo = f r.globalTrafo }
+                }
+            let initGlobalTrafo =
+                { new Lens<Demo.Model, Aardvark.Base.Trafo3d>() with
+                    override x.Get(r) = r.initGlobalTrafo
+                    override x.Set(r,v) = { r with initGlobalTrafo = v }
+                    override x.Update(r,f) = { r with initGlobalTrafo = f r.initGlobalTrafo }
+                }
+            let initControlTrafo =
+                { new Lens<Demo.Model, Aardvark.Base.Trafo3d>() with
+                    override x.Get(r) = r.initControlTrafo
+                    override x.Set(r,v) = { r with initControlTrafo = v }
+                    override x.Update(r,f) = { r with initControlTrafo = f r.initControlTrafo }
                 }
             let opcInfos =
                 { new Lens<Demo.Model, Aardvark.Base.hmap<Aardvark.Base.Box3d,OpcViewer.Base.Picking.OpcData>>() with
