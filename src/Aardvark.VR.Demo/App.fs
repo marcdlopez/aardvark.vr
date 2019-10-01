@@ -120,9 +120,12 @@ module Demo =
             let newModel = { model with controllerPositions = newControllersPosition}
 
             let newModel : Model = 
-                match model.controllerPositions.Count with
+                let controllersFiltered = 
+                    model.controllerPositions
+                    |> HMap.filter (fun index _ -> index = controllerIndex )
+                match controllersFiltered.Count with
                 | 1 ->
-                    let i0 = (newModel.controllerPositions |> HMap.keys |> Seq.item 0)
+                    let i0 = (newModel.controllerPositions |> HMap.keys |> Seq.item controllerIndex)
                     let b0 = newModel.controllerPositions |> HMap.find i0
                     if b0.backButtonPressed  then
                         let shitftVecDevice = b0.pose.deviceToWorld.GetModelOrigin() - newModel.initControlTrafo.GetModelOrigin()
@@ -263,38 +266,32 @@ module Demo =
             let model = {model with controllerPositions = updateControllerButtons}
 
             let newTrafo : Trafo3d = 
-                match model.controllerPositions.Count with
+                let controllersFiltered = 
+                    model.controllerPositions
+                    |> HMap.filter (fun index CI -> 
+                        CI.backButtonPressed = true
+                        )
+                printfn "Buttons pressed at the same time: %i" controllersFiltered.Count
+                match controllersFiltered.Count with
                 | 1 -> 
                     let test = 
                         model 
-                        |> getWorldTrafoIfBackPressed 0 
+                        |> getWorldTrafoIfBackPressed controllerIndex 
                         //|> Option.defaultValue model.initGlobalTrafo
                     match test with 
                     | Some x -> x
                     | None -> model.initGlobalTrafo
                 | 2 -> 
-                    let i0 = (model.controllerPositions |> HMap.keys |> Seq.item 0)
-                    let i1 = (model.controllerPositions |> HMap.keys |> Seq.item 1)
-                    let b0 = model.controllerPositions|> HMap.find i0
+                    let i0 = (controllersFiltered |> HMap.keys |> Seq.item 0)
+                    let i1 = (controllersFiltered |> HMap.keys |> Seq.item 1)
+                    let b0 = model.controllerPositions |> HMap.find i0
                     let b1 = model.controllerPositions |> HMap.find i1
-                    match b0.backButtonPressed, b1.backButtonPressed with
-                    | true, true ->
-                        printfn " All buttons true" 
-                        let v1 = b0.pose.deviceToWorld.Forward.TransformPos(V3d.Zero)
-                        let v2 = b1.pose.deviceToWorld.Forward.TransformPos(V3d.Zero)
-                        let dist = V3d.Distance(v1, v2)
-                        let model = {model with offsetControllerDistance = dist}
-
-                        Trafo3d.Scale (model.controllerDistance)
-                    | true, false ->
-                        printfn "%A" b0.pose.deviceToWorld
-                        b0.pose.deviceToWorld
-                    | false, true -> 
-                        printfn "%A" b1.pose.deviceToWorld
-                        b1.pose.deviceToWorld
-                    | false, false ->
-                        printfn "All buttons unpressed"
-                        model.initGlobalTrafo
+                    printfn " All buttons true" 
+                    let v1 = b0.pose.deviceToWorld.Forward.TransformPos(V3d.Zero)
+                    let v2 = b1.pose.deviceToWorld.Forward.TransformPos(V3d.Zero)
+                    let dist = V3d.Distance(v1, v2)
+                    let model = {model with offsetControllerDistance = dist}
+                    Trafo3d.Scale (model.controllerDistance)
                 | _ -> 
                     model.initGlobalTrafo
             
