@@ -63,7 +63,7 @@ module Demo =
         |> PList.ofList
 
     let getWorldTrafoIfBackPressed index model : Option<Trafo3d> = 
-        let i0 = (model.controllerPositions |> HMap.keys |> Seq.item index)
+        let i0 = model.controllerPositions |> HMap.keys |> Seq.item index
         let b0 = model.controllerPositions |> HMap.tryFind i0
         b0
         |> Option.bind(fun x -> 
@@ -71,6 +71,14 @@ module Demo =
             | true -> Some x.pose.deviceToWorld
             | false -> None)
         //|> Option.defaultValue model.initGlobalTrafo
+
+    let getDistanceBetweenControllers index0 index1 model : float = 
+        let b0 = model.controllerPositions |> HMap.find index0
+        let b1 = model.controllerPositions |> HMap.find index1
+        printfn " All buttons true" 
+        let v1 = b0.pose.deviceToWorld.GetModelOrigin()
+        let v2 = b1.pose.deviceToWorld.Forward.TransformPos(V3d.Zero)
+        V3d.Distance(v1, v2)
         
 
     let rec update (state : VrState) (vr : VrActions) (model : Model) (msg : DemoMessage) : Model=
@@ -127,28 +135,32 @@ module Demo =
                     )
                 match controllersFiltered.Count with
                 | 1 ->
-                    let i0 = (newModel.controllerPositions |> HMap.keys |> Seq.item controllerIndex)
-                    let b0 = newModel.controllerPositions |> HMap.find i0
-                    if b0.backButtonPressed  then
-                        let shitftVecDevice = b0.pose.deviceToWorld.GetModelOrigin() - newModel.initControlTrafo.GetModelOrigin()
-                        let newTrafoShift = newModel.initGlobalTrafo * (Trafo3d.Translation shitftVecDevice) 
-                        printfn "%A" (newTrafoShift.GetModelOrigin())
-                        {newModel with globalTrafo = newTrafoShift}
-                    else newModel
+                    let CurrentControllerTrafo = 
+                        newModel 
+                        |> getWorldTrafoIfBackPressed controllerIndex 
+                        |> Option.defaultValue newModel.initGlobalTrafo
+
+                    let shitftVecDevice = CurrentControllerTrafo.GetModelOrigin() - newModel.initControlTrafo.GetModelOrigin()
+                    let newTrafoShift = newModel.initGlobalTrafo * (Trafo3d.Translation shitftVecDevice) 
+                    printfn "%A" (newTrafoShift.GetModelOrigin())
+                    {newModel with globalTrafo = newTrafoShift}
                 | 2 ->
-                    let i0 = controllersFiltered |> HMap.keys |> Seq.item 0
-                    let i1 = controllersFiltered |> HMap.keys |> Seq.item 1
-                    let b0 = newModel.controllerPositions |> HMap.find i0
-                    let b1 = newModel.controllerPositions |> HMap.find i1
-                    let v0 = b0.pose.deviceToWorld.Forward.TransformPos(V3d.Zero)
-                    let v1 = b1.pose.deviceToWorld.Forward.TransformPos(V3d.Zero)
+                    let CurrentControllerTrafo0 = 
+                        newModel 
+                        |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
+                        |> Option.defaultValue newModel.initGlobalTrafo
+                    
+                    let CurrentControllerTrafo1 = 
+                        newModel 
+                        |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 1)
+                        |> Option.defaultValue newModel.initGlobalTrafo
+
+                    let v0 = CurrentControllerTrafo0.Forward.TransformPos(V3d.Zero)
+                    let v1 = CurrentControllerTrafo1.Forward.TransformPos(V3d.Zero)
                     let newControllerDistance = V3d.Distance(v0, v1) - newModel.offsetControllerDistance + newModel.initGlobalTrafo.GetScale()
                     //printfn "Distance between Controllers: %f" newControllerDistance
-                    let test = newModel.initGlobalTrafo * Trafo3d.Scale (newControllerDistance) 
-                    printfn "New Position of opc SCALE TEST: %A" (test.GetScale())
-                    printfn "New Position of opc SCALE CONTROL TRAFO: %A" (newModel.initControlTrafo.GetScale())
-                    let testtt = test.GetScale()
-                    {newModel with controllerDistance = newControllerDistance; globalTrafo = test}
+                    let newGlobalTrafo = newModel.initGlobalTrafo * Trafo3d.Scale (newControllerDistance) 
+                    {newModel with controllerDistance = newControllerDistance; globalTrafo = newGlobalTrafo}
                 | _ -> 
                     newModel
             
@@ -231,10 +243,6 @@ module Demo =
             //                printfn "Distance between boxes: %f" (V3d.Distance(startPos, endPos))
             //                yield (Line3d [startPos; endPos])
             //|]
-
-            ////printfn "Bounding box position (opc): %A" newModel.opcModel.boundingBox.Center
-            ////printfn "Camera position: %A " newModel.ControllerPosition
-
             //{ newModel with lines = lines }
             
         | GrabObject (controllerIndex, buttonPress)->
@@ -260,80 +268,25 @@ module Demo =
                     model.controllerPositions
                     |> HMap.filter (fun index CI -> 
                         CI.backButtonPressed = true
-                        )
-                printfn "Buttons pressed at the same time: %i" controllersFiltered.Count
+                    )
                 match controllersFiltered.Count with
                 | 1 -> 
-                    let test = 
+                    let controllerTrafoIfBackPressed = 
                         model 
                         |> getWorldTrafoIfBackPressed controllerIndex 
-                        //|> Option.defaultValue model.initGlobalTrafo
-                    match test with 
+                    match controllerTrafoIfBackPressed with 
                     | Some x -> x, model.offsetControllerDistance
                     | None -> model.initGlobalTrafo, model.offsetControllerDistance
                 | 2 -> 
-                    let i0 = (controllersFiltered |> HMap.keys |> Seq.item 0)
-                    let i1 = (controllersFiltered |> HMap.keys |> Seq.item 1)
-                    let b0 = model.controllerPositions |> HMap.find i0
-                    let b1 = model.controllerPositions |> HMap.find i1
-                    printfn " All buttons true" 
-                    let v1 = b0.pose.deviceToWorld.GetModelOrigin()
-                    let v2 = b1.pose.deviceToWorld.Forward.TransformPos(V3d.Zero)
-                    let dist = V3d.Distance(v1, v2)
-                    
-                    model.initGlobalTrafo, dist//Trafo3d.Scale (model.controllerDistance), dist
+                    let dist = 
+                        model 
+                        |> getDistanceBetweenControllers (controllersFiltered |> HMap.keys |> Seq.item 0) (controllersFiltered |> HMap.keys |> Seq.item 1) 
+
+                    model.initGlobalTrafo, dist
                 | _ -> 
                     model.initGlobalTrafo, model.offsetControllerDistance
             
             let model = {model with initGlobalTrafo = model.globalTrafo; initControlTrafo = newTrafo; offsetControllerDistance = InitialControllerDistance}
-
-            //let newOffsetControllerDist = 
-            //    if model.controllerButtons.Count=2 then 
-            //        let idx1 = model.controllerButtons |> HMap.keys
-            //        let i0 = (idx1 |> Seq.item 0)
-            //        let i1 = (idx1 |> Seq.item 1)
-            //        let b0 = model.controllerButtons |> HMap.find i0
-            //        let b1 = model.controllerButtons |> HMap.find i1
-            //        if b0 && b1 then 
-            //            //store position of the controllers to calculate distance between them
-            //            let p0 = model.controllerPositions |> HMap.find i0
-            //            let p1 = model.controllerPositions |> HMap.find i1
-            //            let v1 = p0.deviceToWorld.Forward.TransformPos(V3d.Zero)
-            //            let v2 = p1.deviceToWorld.Forward.TransformPos(V3d.Zero)
-            //            V3d.Distance(v1, v2)
-            //            //let dist = V3d.Distance(v1, v2)
-            //            //Trafo3d.Scale (dist)
-            //        else 
-            //            //model.initGlobalTrafo
-            //            model.offsetControllerDistance                   
-            //    else
-            //        //model.initGlobalTrafo
-            //        model.offsetControllerDistance
-           
-            //let model = {model with offsetControllerDistance = newOffsetControllerDist; initGlobalTrafo = Trafo3d.Scale (model.controllerDistance)}
-
-            //let initControlShift = 
-            //    if model.controllerButtons.Count = 1 then 
-            //        let idx1 = model.controllerButtons |> HMap.keys
-            //        let i0 = (idx1 |> Seq.item 0)
-            //        //let i1 = (idx1 |> Seq.item 1)
-            //        let b0 = model.controllerButtons |> HMap.find i0
-            //        //let b1 = model.controllerButtons |> HMap.find i1
-            //        if b0  then 
-            //            //store position of the controllers to calculate distance between them
-            //            let p0 = model.controllerPositions |> HMap.find i0
-            //            //let p1 = model.controllerPositions |> HMap.find i1
-            //            let v1 = p0.deviceToWorld.GetModelOrigin()//.Forward.TransformPos(V3d.Zero)
-            //            //let bboundCenterInOriginSpace = model.globalTrafo.Forward.TransformPos(model.boundingBox.Center)
-            //            ////let v2 = p1.deviceToWorld.Forward.TransformPos(V3d.Zero)
-            //            //printfn "v1 : %A" v1
-            //            //printfn "bboundingBox: %A" bboundCenterInOriginSpace
-            //            //Trafo3d.Translation (bboundCenterInOriginSpace - v1)
-            //            p0.deviceToWorld
-            //        else model.initControlTrafo
-            //    else model.initControlTrafo
-
-            //let model = {model with initGlobalTrafo = model.globalTrafo; initControlTrafo = initControlShift}
 
             let offset = 
                 model.boxes 
