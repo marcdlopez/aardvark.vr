@@ -632,54 +632,52 @@ module Demo =
         //        return Trafo3d.Translation(bb.Center) * c0Shift// * c1Shift
         //    }
 
-        //let opcs = 
-        //    m.opcInfos
-        //        |> AMap.toASet
-        //        |> ASet.map(fun info -> 
-        //            Sg.createSingleOpcSg m.opcAttributes.selectedScalar (Mod.constant false) m.cameraState.view info
-        //            )
-        //        |> Sg.set
-        //        |> Sg.effect [ 
-        //            toEffect Shader.stableTrafo
-        //            toEffect DefaultSurfaces.diffuseTexture  
-        //            toEffect Shader.AttributeShader.falseColorLegend //falseColorLegendGray
-        //        ]
-        //        |> Sg.noEvents
-        //        //|> Sg.translate' (m.boundingBox |> Mod.map (fun p -> - p.Center))
-        //opcs
-        //|> Sg.map OpcViewerMsg
-        //|> Sg.noEvents
-        //|> Sg.trafo m.globalTrafo 
-        //|> Sg.andAlso deviceSgs
-        //|> Sg.andAlso a
-
-        let boxGhost = 
-            Sg.box (Mod.constant C4b.DarkYellow) (Mod.constant Box3d.Unit)
-            |> Sg.shader {
-                do! DefaultSurfaces.trafo
-                //do! DefaultSurfaces.vertexColor
-                do! DefaultSurfaces.constantColor (C4f(C3b.DarkYellow, 0.3f))
-                //do! DefaultSurfaces.simpleLighting
-                }
-            |> Sg.noEvents
-            |> Sg.trafo m.initGlobalTrafo
-            
-
-        let boxTest = 
-            Sg.box (Mod.constant C4b.Red) (Mod.constant Box3d.Unit)
-                |> Sg.shader {
-                    do! DefaultSurfaces.trafo
-                    do! DefaultSurfaces.vertexColor
-                    do! DefaultSurfaces.simpleLighting
-                    }
+        let opcs = 
+            m.opcInfos
+                |> AMap.toASet
+                |> ASet.map(fun info -> 
+                    Sg.createSingleOpcSg m.opcAttributes.selectedScalar (Mod.constant false) m.cameraState.view info
+                    )
+                |> Sg.set
+                |> Sg.effect [ 
+                    toEffect Shader.stableTrafo
+                    toEffect DefaultSurfaces.diffuseTexture  
+                    toEffect Shader.AttributeShader.falseColorLegend //falseColorLegendGray
+                ]
                 |> Sg.noEvents
-                |> Sg.trafo m.globalTrafo   
-
-        boxTest 
+                //|> Sg.translate' (m.boundingBox |> Mod.map (fun p -> - p.Center))
+        opcs
+        |> Sg.map OpcViewerMsg
         |> Sg.noEvents
+        |> Sg.trafo m.globalTrafo 
         |> Sg.andAlso deviceSgs
         |> Sg.andAlso a
-        |> Sg.andAlso boxGhost
+
+        //let boxGhost = 
+        //    Sg.box (Mod.constant C4b.DarkYellow) (Mod.constant Box3d.Unit)
+        //    |> Sg.shader {
+        //        do! DefaultSurfaces.trafo
+        //        //do! DefaultSurfaces.vertexColor
+        //        do! DefaultSurfaces.constantColor (C4f(C3b.DarkYellow, 0.3f))
+        //        //do! DefaultSurfaces.simpleLighting
+        //        }
+        //    |> Sg.noEvents
+        //    |> Sg.trafo m.initGlobalTrafo
+          
+        //let boxTest = 
+        //    Sg.box (Mod.constant C4b.Red) (Mod.constant Box3d.Unit)
+        //        |> Sg.shader {
+        //            do! DefaultSurfaces.trafo
+        //            do! DefaultSurfaces.vertexColor
+        //            do! DefaultSurfaces.simpleLighting
+        //            }
+        //        |> Sg.noEvents
+        //        |> Sg.trafo m.globalTrafo   
+        //boxTest 
+        //|> Sg.noEvents
+        //|> Sg.andAlso deviceSgs
+        //|> Sg.andAlso a
+        //|> Sg.andAlso boxGhost
    
     let pause (info : VrSystemInfo) (m : MModel) =
         Sg.box' C4b.Red Box3d.Unit
@@ -734,7 +732,7 @@ module Demo =
             pickingModel = OpcViewer.Base.Picking.PickingModel.initial
             //controllerButtons = hmap.Empty
             controllerDistance = 1.0
-            globalTrafo = Trafo3d.Identity//Trafo3d.Translation -BoundingBoxInit.Center //gloabal trafo for opc, with center in boundingbox center
+            globalTrafo = Trafo3d.Translation -BoundingBoxInit.Center //gloabal trafo for opc, with center in boundingbox center
             offsetControllerDistance = 1.0
             initGlobalTrafo = Trafo3d.Identity
             initControlTrafo = Trafo3d.Identity
