@@ -150,7 +150,7 @@ module Demo =
 
                     let newTrafoRotation = newCurrentRot * newStartRot.Inverse
 
-                    let newTrafoShift = newModel.initGlobalTrafo * (Trafo3d.Translation shitftVecDevice) * newTrafoRotation
+                    let newTrafoShift = newModel.initGlobalTrafo * newModel.initControlTrafo.Inverse * currentControllerTrafo //* newTrafoRotation
                     //printfn "%A" (newTrafoShift.GetModelOrigin())
                     {newModel with globalTrafo = newTrafoShift}
                 | 2 ->
@@ -652,6 +652,8 @@ module Demo =
         //|> Sg.trafo m.globalTrafo 
         //|> Sg.andAlso deviceSgs
         //|> Sg.andAlso a
+
+
 
         let boxTest = 
             Sg.box (Mod.constant C4b.Red) (Mod.constant Box3d.Unit)
