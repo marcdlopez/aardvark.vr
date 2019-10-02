@@ -62,15 +62,14 @@ module Demo =
         |> List.map (fun x -> VisibleBox.createVisibleBox C4b.Red (V3d(0.0, 2.0 * float x, 0.0)))
         |> PList.ofList
 
-    let getWorldTrafoIfBackPressed index model : Option<Trafo3d> = 
-        let i0 = model.controllerPositions |> HMap.keys |> Seq.item index
-        let b0 = model.controllerPositions |> HMap.tryFind i0
+    let getWorldTrafoIfBackPressed index model : Trafo3d = 
+        let b0 = model.controllerPositions |> HMap.tryFind index
         b0
         |> Option.bind(fun x -> 
             match x.backButtonPressed with
             | true -> Some x.pose.deviceToWorld
             | false -> None)
-        //|> Option.defaultValue model.initGlobalTrafo
+        |> Option.defaultValue Trafo3d.Identity
 
     let getDistanceBetweenControllers index0 index1 model : float = 
         let b0 = model.controllerPositions |> HMap.find index0
@@ -79,7 +78,13 @@ module Demo =
         let v1 = b0.pose.deviceToWorld.GetModelOrigin()
         let v2 = b1.pose.deviceToWorld.Forward.TransformPos(V3d.Zero)
         V3d.Distance(v1, v2)
-        
+
+    let getTrafoRotation (controlTrafo : Trafo3d) : Trafo3d = 
+        let mutable scale = V3d.Zero
+        let mutable rot = V3d.Zero
+        let mutable trans = V3d.Zero
+        controlTrafo.Decompose(&scale, &rot, &trans)
+        Trafo3d.Rotation rot
 
     let rec update (state : VrState) (vr : VrActions) (model : Model) (msg : DemoMessage) : Model=
         match msg with
@@ -87,7 +92,6 @@ module Demo =
             let newOpcModel = OpcViewer.Base.Picking.PickingApp.update OpcViewer.Base.Picking.PickingModel.initial m
             
             {model with pickingModel = newOpcModel}
-            //{ model with opcModel = newOpcModel }
         | SetText t -> 
             { model with text = t }
         | ToggleVR ->
@@ -111,11 +115,10 @@ module Demo =
             { model with cameraState = FreeFlyController.update model.cameraState m }   
         | SetControllerPosition (controllerIndex, p) -> 
             let newControllersPosition = 
-                //if model.controllerPositions.ContainsKey(controllerIndex) then
                 model.controllerPositions |> HMap.alter controllerIndex (fun old -> 
                 match old with 
                 | Some x -> 
-                    Some {x with pose = p}   // update / overwrite
+                    Some {x with pose = p; }   // update / overwrite
                 | None -> 
                     let newInfo = {
                        pose = p
@@ -135,28 +138,32 @@ module Demo =
                     )
                 match controllersFiltered.Count with
                 | 1 ->
-                    let CurrentControllerTrafo = 
-                        newModel 
-                        |> getWorldTrafoIfBackPressed controllerIndex 
-                        |> Option.defaultValue newModel.initGlobalTrafo
-
-                    let shitftVecDevice = CurrentControllerTrafo.GetModelOrigin() - newModel.initControlTrafo.GetModelOrigin()
-                    let newTrafoShift = newModel.initGlobalTrafo * (Trafo3d.Translation shitftVecDevice) 
-                    printfn "%A" (newTrafoShift.GetModelOrigin())
-                    {newModel with globalTrafo = newTrafoShift}
-                | 2 ->
-                    let CurrentControllerTrafo0 = 
+                    
+                    let currentControllerTrafo = 
                         newModel 
                         |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
-                        |> Option.defaultValue newModel.initGlobalTrafo
                     
-                    let CurrentControllerTrafo1 = 
+                    let shitftVecDevice = currentControllerTrafo.GetModelOrigin() - newModel.initControlTrafo.GetModelOrigin()
+
+                    let newStartRot = getTrafoRotation newModel.initControlTrafo //Trafo3d.Rotation startRot
+                    let newCurrentRot = getTrafoRotation currentControllerTrafo //Trafo3d.Rotation currentRot
+
+                    let newTrafoRotation = newCurrentRot * newStartRot.Inverse
+
+                    let newTrafoShift = newModel.initGlobalTrafo * (Trafo3d.Translation shitftVecDevice) * newTrafoRotation
+                    //printfn "%A" (newTrafoShift.GetModelOrigin())
+                    {newModel with globalTrafo = newTrafoShift}
+                | 2 ->
+                    let currentControllerTrafo0 = 
+                        newModel 
+                        |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
+                     
+                    let currentControllerTrafo1 = 
                         newModel 
                         |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 1)
-                        |> Option.defaultValue newModel.initGlobalTrafo
-
-                    let v0 = CurrentControllerTrafo0.Forward.TransformPos(V3d.Zero)
-                    let v1 = CurrentControllerTrafo1.Forward.TransformPos(V3d.Zero)
+                    
+                    let v0 = currentControllerTrafo0.GetModelOrigin()
+                    let v1 = currentControllerTrafo1.GetModelOrigin()
                     let newControllerDistance = V3d.Distance(v0, v1) - newModel.offsetControllerDistance + newModel.initGlobalTrafo.GetScale()
                     //printfn "Distance between Controllers: %f" newControllerDistance
                     let newGlobalTrafo = newModel.initGlobalTrafo * Trafo3d.Scale (newControllerDistance) 
@@ -271,12 +278,9 @@ module Demo =
                     )
                 match controllersFiltered.Count with
                 | 1 -> 
-                    let controllerTrafoIfBackPressed = 
-                        model 
-                        |> getWorldTrafoIfBackPressed controllerIndex 
-                    match controllerTrafoIfBackPressed with 
-                    | Some x -> x, model.offsetControllerDistance
-                    | None -> model.initGlobalTrafo, model.offsetControllerDistance
+                    model 
+                    |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0), model.offsetControllerDistance 
+                    
                 | 2 -> 
                     let dist = 
                         model 
@@ -286,21 +290,20 @@ module Demo =
                 | _ -> 
                     model.initGlobalTrafo, model.offsetControllerDistance
             
-            let model = {model with initGlobalTrafo = model.globalTrafo; initControlTrafo = newTrafo; offsetControllerDistance = InitialControllerDistance}
+            {model with initGlobalTrafo = model.globalTrafo; initControlTrafo = newTrafo; offsetControllerDistance = InitialControllerDistance}
 
-            let offset = 
-                model.boxes 
-                |> PList.choose (fun b ->
-                    if b.geometry.Transformed(b.trafo).Contains(model.ControllerPosition) && buttonPress then
-                        printfn "Offset to the origin: %A " (b.trafo.GetModelOrigin() - model.ControllerPosition)
-                        Some (b.trafo.GetModelOrigin() - model.ControllerPosition)
-                    else 
-                        None
-                )
-                |> PList.tryFirst
-                |> Option.defaultValue V3d.Zero
-            
-            { model with isPressed = buttonPress; offsetToCenter = offset}
+            //let offset = 
+            //    model.boxes 
+            //    |> PList.choose (fun b ->
+            //        if b.geometry.Transformed(b.trafo).Contains(model.ControllerPosition) && buttonPress then
+            //            printfn "Offset to the origin: %A " (b.trafo.GetModelOrigin() - model.ControllerPosition)
+            //            Some (b.trafo.GetModelOrigin() - model.ControllerPosition)
+            //        else 
+            //            None
+            //    )
+            //    |> PList.tryFirst
+            //    |> Option.defaultValue V3d.Zero
+            //{ model with isPressed = buttonPress; offsetToCenter = offset}
             
         | _ -> model
 
@@ -361,7 +364,7 @@ module Demo =
         | VrMessage.UpdatePose(cn,p) -> 
             if p.isValid then 
                 let pos = p.deviceToWorld.Forward.TransformPos(V3d.Zero)
-                //printfn "%d changed pos= %A"  0 pos
+                //printfn "%d changed pos= %A" cn pos
                 [SetControllerPosition (cn, p)]
             else []
         | VrMessage.Press(con,_) -> 
@@ -378,7 +381,7 @@ module Demo =
         Sg.box' C4b.Cyan Box3d.Unit
             |> Sg.noEvents
             |> Sg.scale 0.01
-            |> Sg.trafo (Mod.constant cp.deviceToWorld) //|> Mod.map (fun current -> Trafo3d.Translation(current))
+            |> Sg.trafo (Mod.constant cp.deviceToWorld)
 
     let ui (info : VrSystemInfo) (m : MModel) =
         let text = m.vr |> Mod.map (function true -> "Stop VR" | false -> "Start VR")
@@ -629,28 +632,39 @@ module Demo =
         //        return Trafo3d.Translation(bb.Center) * c0Shift// * c1Shift
         //    }
 
-        let opcs = 
-            m.opcInfos
-                |> AMap.toASet
-                |> ASet.map(fun info -> 
-                    Sg.createSingleOpcSg m.opcAttributes.selectedScalar (Mod.constant false) m.cameraState.view info
-                    )
-                |> Sg.set
-                |> Sg.effect [ 
-                    toEffect Shader.stableTrafo
-                    toEffect DefaultSurfaces.diffuseTexture  
-                    toEffect Shader.AttributeShader.falseColorLegend //falseColorLegendGray
-                ]
+        //let opcs = 
+        //    m.opcInfos
+        //        |> AMap.toASet
+        //        |> ASet.map(fun info -> 
+        //            Sg.createSingleOpcSg m.opcAttributes.selectedScalar (Mod.constant false) m.cameraState.view info
+        //            )
+        //        |> Sg.set
+        //        |> Sg.effect [ 
+        //            toEffect Shader.stableTrafo
+        //            toEffect DefaultSurfaces.diffuseTexture  
+        //            toEffect Shader.AttributeShader.falseColorLegend //falseColorLegendGray
+        //        ]
+        //        |> Sg.noEvents
+        //        //|> Sg.translate' (m.boundingBox |> Mod.map (fun p -> - p.Center))
+        //opcs
+        //|> Sg.map OpcViewerMsg
+        //|> Sg.noEvents
+        //|> Sg.trafo m.globalTrafo 
+        //|> Sg.andAlso deviceSgs
+        //|> Sg.andAlso a
+
+        let boxTest = 
+            Sg.box (Mod.constant C4b.Red) (Mod.constant Box3d.Unit)
+                |> Sg.shader {
+                    do! DefaultSurfaces.trafo
+                    do! DefaultSurfaces.vertexColor
+                    do! DefaultSurfaces.simpleLighting
+                    }
                 |> Sg.noEvents
-                //|> Sg.trafo (m.globalTrafo)
-                //|> Sg.translate' (m.boundingBox |> Mod.map (fun p -> - p.Center))
-                
-        opcs
-        //|> Sg.map (OpcSelectionViewer.Message.PickingAction)
-        //|> Sg.map (OpcViewer.Base.Picking.PickingAction.HitSurface)
-        |> Sg.map OpcViewerMsg
+
+        boxTest 
         |> Sg.noEvents
-        |> Sg.trafo m.globalTrafo //(m.controllerDistance |> Mod.map(fun f -> Trafo3d.Scale (max 0.01 f+1.0)))
+        |> Sg.trafo m.globalTrafo
         |> Sg.andAlso deviceSgs
         |> Sg.andAlso a
    
@@ -707,7 +721,7 @@ module Demo =
             pickingModel = OpcViewer.Base.Picking.PickingModel.initial
             //controllerButtons = hmap.Empty
             controllerDistance = 1.0
-            globalTrafo = Trafo3d.Translation -BoundingBoxInit.Center
+            globalTrafo = Trafo3d.Identity//Trafo3d.Translation -BoundingBoxInit.Center //gloabal trafo for opc, with center in boundingbox center
             offsetControllerDistance = 1.0
             initGlobalTrafo = Trafo3d.Identity
             initControlTrafo = Trafo3d.Identity
