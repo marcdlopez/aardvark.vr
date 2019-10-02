@@ -653,7 +653,17 @@ module Demo =
         //|> Sg.andAlso deviceSgs
         //|> Sg.andAlso a
 
-
+        let boxGhost = 
+            Sg.box (Mod.constant C4b.DarkYellow) (Mod.constant Box3d.Unit)
+            |> Sg.shader {
+                do! DefaultSurfaces.trafo
+                //do! DefaultSurfaces.vertexColor
+                do! DefaultSurfaces.constantColor (C4f(C3b.DarkYellow, 0.3f))
+                //do! DefaultSurfaces.simpleLighting
+                }
+            |> Sg.noEvents
+            |> Sg.trafo m.initGlobalTrafo
+            
 
         let boxTest = 
             Sg.box (Mod.constant C4b.Red) (Mod.constant Box3d.Unit)
@@ -663,12 +673,13 @@ module Demo =
                     do! DefaultSurfaces.simpleLighting
                     }
                 |> Sg.noEvents
+                |> Sg.trafo m.globalTrafo   
 
         boxTest 
         |> Sg.noEvents
-        |> Sg.trafo m.globalTrafo
         |> Sg.andAlso deviceSgs
         |> Sg.andAlso a
+        |> Sg.andAlso boxGhost
    
     let pause (info : VrSystemInfo) (m : MModel) =
         Sg.box' C4b.Red Box3d.Unit
