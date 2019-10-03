@@ -152,7 +152,15 @@ module Demo =
                     let newControllerDistance = dist - newModel.offsetControllerDistance + newModel.initControlTrafo.GetScale()
                     //printfn "Distance between Controllers: %f" newControllerDistance
                     let scaleControllerCenter = Trafo3d.Translation (-newModel.initControlTrafo.GetModelOrigin()) * Trafo3d.Scale (newControllerDistance) * Trafo3d.Translation (newModel.initControlTrafo.GetModelOrigin())
-                    let newGlobalTrafo = newModel.initGlobalTrafo * scaleControllerCenter//* Trafo3d.Scale (newControllerDistance) 
+
+                    // Rotation with origin in the controller
+                    let secondControllerTrafo = 
+                        newModel
+                        |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 1)
+                    let newRotation = newModel.initGlobalTrafo * newModel.rotationAxis * secondControllerTrafo.Inverse
+
+                    let newGlobalTrafo = newModel.initGlobalTrafo * newRotation//* scaleControllerCenter//* Trafo3d.Scale (newControllerDistance) 
+                    printfn "global trafo position : %A" (newGlobalTrafo.GetModelOrigin())
                     {newModel with globalTrafo = newGlobalTrafo}
                 | _ -> 
                     newModel
@@ -267,18 +275,39 @@ module Demo =
                     model 
                     |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0), model.offsetControllerDistance 
                 | 2 -> 
-                    let firstControllerTrafo = 
+                    let getFirstControllerTrafo = 
                         model 
                         |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
                     let dist = 
                         model 
                         |> getDistanceBetweenControllers (controllersFiltered |> HMap.keys |> Seq.item 0) (controllersFiltered |> HMap.keys |> Seq.item 1) 
 
-                    firstControllerTrafo, dist
+                    getFirstControllerTrafo, dist
                 | _ -> 
                     model.initControlTrafo, model.offsetControllerDistance
             
-            {model with initGlobalTrafo = model.globalTrafo; initControlTrafo = newTrafo; offsetControllerDistance = InitialControllerDistance}
+            let newRotationCoordinateSystem : Trafo3d = 
+                let controllerFilter = 
+                    model.controllerPositions
+                    |> HMap.filter (fun index CI -> 
+                        CI.backButtonPressed = true
+                    )
+                match controllerFilter.Count with
+                | 2 -> 
+                    let getFirstControllerTrafo = 
+                        model
+                        |> getWorldTrafoIfBackPressed (controllerFilter |> HMap.keys |> Seq.item 0)
+                    let getSecondControllerTrafo = 
+                        model
+                        |> getWorldTrafoIfBackPressed (controllerFilter |> HMap.keys |> Seq.item 1)
+                    let xAxis : V3d = getSecondControllerTrafo.GetModelOrigin() - getFirstControllerTrafo.GetModelOrigin()
+                    let yAxisTrafo : Trafo3d = Trafo3d.Translation (xAxis) * Trafo3d.RotationInDegrees(xAxis, 90.0)
+                    let yAxis : V3d = yAxisTrafo.GetModelOrigin()
+                    let zAxis : V3d = V3d.Cross(xAxis, yAxis)
+                    Trafo3d.FromBasis(xAxis, yAxis, zAxis, getFirstControllerTrafo.GetModelOrigin())
+                | _ -> Trafo3d.Identity
+
+            {model with initGlobalTrafo = model.globalTrafo; initControlTrafo = newTrafo; offsetControllerDistance = InitialControllerDistance; rotationAxis = newRotationCoordinateSystem}
             
         | _ -> model
 
@@ -711,6 +740,7 @@ module Demo =
             offsetControllerDistance = 1.0
             initGlobalTrafo = Trafo3d.Identity
             initControlTrafo = Trafo3d.Identity
+            rotationAxis = Trafo3d.Identity
         }
     let app =
         {

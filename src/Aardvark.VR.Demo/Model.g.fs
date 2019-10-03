@@ -208,6 +208,7 @@ module Mutable =
         let _globalTrafo = ResetMod.Create(__initial.globalTrafo)
         let _initGlobalTrafo = ResetMod.Create(__initial.initGlobalTrafo)
         let _initControlTrafo = ResetMod.Create(__initial.initControlTrafo)
+        let _rotationAxis = ResetMod.Create(__initial.rotationAxis)
         let _opcInfos = MMap.Create(__initial.opcInfos, (fun v -> OpcViewer.Base.Picking.Mutable.MOpcData.Create(v)), (fun (m,v) -> OpcViewer.Base.Picking.Mutable.MOpcData.Update(m, v)), (fun v -> v))
         let _opcAttributes = OpcViewer.Base.Attributes.Mutable.MAttributeModel.Create(__initial.opcAttributes)
         let _mainFrustum = ResetMod.Create(__initial.mainFrustum)
@@ -236,6 +237,7 @@ module Mutable =
         member x.globalTrafo = _globalTrafo :> IMod<_>
         member x.initGlobalTrafo = _initGlobalTrafo :> IMod<_>
         member x.initControlTrafo = _initControlTrafo :> IMod<_>
+        member x.rotationAxis = _rotationAxis :> IMod<_>
         member x.opcInfos = _opcInfos :> amap<_,_>
         member x.opcAttributes = _opcAttributes
         member x.mainFrustum = _mainFrustum :> IMod<_>
@@ -268,6 +270,7 @@ module Mutable =
                 ResetMod.Update(_globalTrafo,v.globalTrafo)
                 ResetMod.Update(_initGlobalTrafo,v.initGlobalTrafo)
                 ResetMod.Update(_initControlTrafo,v.initControlTrafo)
+                ResetMod.Update(_rotationAxis,v.rotationAxis)
                 MMap.Update(_opcInfos, v.opcInfos)
                 OpcViewer.Base.Attributes.Mutable.MAttributeModel.Update(_opcAttributes, v.opcAttributes)
                 ResetMod.Update(_mainFrustum,v.mainFrustum)
@@ -420,6 +423,12 @@ module Mutable =
                     override x.Get(r) = r.initControlTrafo
                     override x.Set(r,v) = { r with initControlTrafo = v }
                     override x.Update(r,f) = { r with initControlTrafo = f r.initControlTrafo }
+                }
+            let rotationAxis =
+                { new Lens<Demo.Model, Aardvark.Base.Trafo3d>() with
+                    override x.Get(r) = r.rotationAxis
+                    override x.Set(r,v) = { r with rotationAxis = v }
+                    override x.Update(r,f) = { r with rotationAxis = f r.rotationAxis }
                 }
             let opcInfos =
                 { new Lens<Demo.Model, Aardvark.Base.hmap<Aardvark.Base.Box3d,OpcViewer.Base.Picking.OpcData>>() with
