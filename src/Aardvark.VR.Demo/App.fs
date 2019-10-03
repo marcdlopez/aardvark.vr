@@ -74,9 +74,8 @@ module Demo =
     let getDistanceBetweenControllers index0 index1 model : float = 
         let b0 = model.controllerPositions |> HMap.find index0
         let b1 = model.controllerPositions |> HMap.find index1
-        printfn " All buttons true" 
         let v1 = b0.pose.deviceToWorld.GetModelOrigin()
-        let v2 = b1.pose.deviceToWorld.Forward.TransformPos(V3d.Zero)
+        let v2 = b1.pose.deviceToWorld.GetModelOrigin()
         V3d.Distance(v1, v2)
 
     let getTrafoRotation (controlTrafo : Trafo3d) : Trafo3d = 
@@ -137,34 +136,25 @@ module Demo =
                         CI.backButtonPressed = true
                     )
                 match controllersFiltered.Count with
-                | 1 ->
-                    
+                | 1 ->                    
                     let currentControllerTrafo = 
                         newModel 
                         |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
                     
-                    let shitftVecDevice = currentControllerTrafo.GetModelOrigin() - newModel.initControlTrafo.GetModelOrigin()
+                    //let shitftVecDevice = currentControllerTrafo.GetModelOrigin() - newModel.initControlTrafo.GetModelOrigin()
+                    //let newStartRot = getTrafoRotation newModel.initControlTrafo //Trafo3d.Rotation startRot
+                    //let newCurrentRot = getTrafoRotation currentControllerTrafo //Trafo3d.Rotation currentRot
+                    //let newTrafoRotation = newCurrentRot * newStartRot.Inverse
 
-                    let newStartRot = getTrafoRotation newModel.initControlTrafo //Trafo3d.Rotation startRot
-                    let newCurrentRot = getTrafoRotation currentControllerTrafo //Trafo3d.Rotation currentRot
-
-                    let newTrafoRotation = newCurrentRot * newStartRot.Inverse
-
-                    let newTrafoShift = newModel.initGlobalTrafo * newModel.initControlTrafo.Inverse * currentControllerTrafo //* newTrafoRotation
+                    let newTrafoShift = newModel.initGlobalTrafo * newModel.initControlTrafo.Inverse * currentControllerTrafo
                     //printfn "%A" (newTrafoShift.GetModelOrigin())
                     {newModel with globalTrafo = newTrafoShift}
                 | 2 ->
-                    let currentControllerTrafo0 = 
-                        newModel 
-                        |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
-                     
-                    let currentControllerTrafo1 = 
-                        newModel 
-                        |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 1)
-                    
-                    let v0 = currentControllerTrafo0.GetModelOrigin()
-                    let v1 = currentControllerTrafo1.GetModelOrigin()
-                    let newControllerDistance = V3d.Distance(v0, v1) - newModel.offsetControllerDistance + newModel.initGlobalTrafo.GetScale()
+                    let dist = 
+                        newModel
+                        |> getDistanceBetweenControllers (controllersFiltered |> HMap.keys |> Seq.item 0) (controllersFiltered |> HMap.keys |> Seq.item 1)
+                   
+                    let newControllerDistance = dist - newModel.offsetControllerDistance + newModel.initGlobalTrafo.GetScale()
                     //printfn "Distance between Controllers: %f" newControllerDistance
                     let newGlobalTrafo = newModel.initGlobalTrafo * Trafo3d.Scale (newControllerDistance) 
                     {newModel with controllerDistance = newControllerDistance; globalTrafo = newGlobalTrafo}
@@ -280,30 +270,16 @@ module Demo =
                 | 1 -> 
                     model 
                     |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0), model.offsetControllerDistance 
-                    
                 | 2 -> 
                     let dist = 
                         model 
                         |> getDistanceBetweenControllers (controllersFiltered |> HMap.keys |> Seq.item 0) (controllersFiltered |> HMap.keys |> Seq.item 1) 
 
-                    model.initGlobalTrafo, dist
+                    model.initControlTrafo, dist
                 | _ -> 
-                    model.initGlobalTrafo, model.offsetControllerDistance
+                    model.initControlTrafo, model.offsetControllerDistance
             
             {model with initGlobalTrafo = model.globalTrafo; initControlTrafo = newTrafo; offsetControllerDistance = InitialControllerDistance}
-
-            //let offset = 
-            //    model.boxes 
-            //    |> PList.choose (fun b ->
-            //        if b.geometry.Transformed(b.trafo).Contains(model.ControllerPosition) && buttonPress then
-            //            printfn "Offset to the origin: %A " (b.trafo.GetModelOrigin() - model.ControllerPosition)
-            //            Some (b.trafo.GetModelOrigin() - model.ControllerPosition)
-            //        else 
-            //            None
-            //    )
-            //    |> PList.tryFirst
-            //    |> Option.defaultValue V3d.Zero
-            //{ model with isPressed = buttonPress; offsetToCenter = offset}
             
         | _ -> model
 
@@ -377,11 +353,11 @@ module Demo =
             []
 
 
-    let mkControllerBox (cp : Pose) =
+    let mkControllerBox (cp : MPose) =
         Sg.box' C4b.Cyan Box3d.Unit
             |> Sg.noEvents
             |> Sg.scale 0.01
-            |> Sg.trafo (Mod.constant cp.deviceToWorld)
+            |> Sg.trafo cp.deviceToWorld
 
     let ui (info : VrSystemInfo) (m : MModel) =
         let text = m.vr |> Mod.map (function true -> "Stop VR" | false -> "Start VR")
@@ -592,8 +568,8 @@ module Demo =
             m.controllerPositions
             |> AMap.toASet
             |> ASet.map (fun boxController -> 
-                let test = snd boxController
-                mkControllerBox test.pose)
+                let ci_pose = snd boxController
+                mkControllerBox ci_pose.pose)
                 //boxController)//mkControllerBox (snd boxController ))
             |> Sg.set
             |> Sg.effect [

@@ -129,6 +129,61 @@ module Mutable =
                 }
     
     
+    type MControllerInfo(__initial : Demo.ControllerInfo) =
+        inherit obj()
+        let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.ControllerInfo> = Aardvark.Base.Incremental.EqModRef<Demo.ControllerInfo>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.ControllerInfo>
+        let _pose = Aardvark.Vr.Mutable.MPose.Create(__initial.pose)
+        let _backButtonPressed = ResetMod.Create(__initial.backButtonPressed)
+        let _frontButtonPressed = ResetMod.Create(__initial.frontButtonPressed)
+        
+        member x.pose = _pose
+        member x.backButtonPressed = _backButtonPressed :> IMod<_>
+        member x.frontButtonPressed = _frontButtonPressed :> IMod<_>
+        
+        member x.Current = __current :> IMod<_>
+        member x.Update(v : Demo.ControllerInfo) =
+            if not (System.Object.ReferenceEquals(__current.Value, v)) then
+                __current.Value <- v
+                
+                Aardvark.Vr.Mutable.MPose.Update(_pose, v.pose)
+                ResetMod.Update(_backButtonPressed,v.backButtonPressed)
+                ResetMod.Update(_frontButtonPressed,v.frontButtonPressed)
+                
+        
+        static member Create(__initial : Demo.ControllerInfo) : MControllerInfo = MControllerInfo(__initial)
+        static member Update(m : MControllerInfo, v : Demo.ControllerInfo) = m.Update(v)
+        
+        override x.ToString() = __current.Value.ToString()
+        member x.AsString = sprintf "%A" __current.Value
+        interface IUpdatable<Demo.ControllerInfo> with
+            member x.Update v = x.Update v
+    
+    
+    
+    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+    module ControllerInfo =
+        [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+        module Lens =
+            let pose =
+                { new Lens<Demo.ControllerInfo, Aardvark.Vr.Pose>() with
+                    override x.Get(r) = r.pose
+                    override x.Set(r,v) = { r with pose = v }
+                    override x.Update(r,f) = { r with pose = f r.pose }
+                }
+            let backButtonPressed =
+                { new Lens<Demo.ControllerInfo, System.Boolean>() with
+                    override x.Get(r) = r.backButtonPressed
+                    override x.Set(r,v) = { r with backButtonPressed = v }
+                    override x.Update(r,f) = { r with backButtonPressed = f r.backButtonPressed }
+                }
+            let frontButtonPressed =
+                { new Lens<Demo.ControllerInfo, System.Boolean>() with
+                    override x.Get(r) = r.frontButtonPressed
+                    override x.Set(r,v) = { r with frontButtonPressed = v }
+                    override x.Update(r,f) = { r with frontButtonPressed = f r.frontButtonPressed }
+                }
+    
+    
     type MModel(__initial : Demo.Model) =
         inherit obj()
         let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.Model> = Aardvark.Base.Incremental.EqModRef<Demo.Model>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.Model>
@@ -146,7 +201,7 @@ module Mutable =
         let _endingLinePos = ResetMod.Create(__initial.endingLinePos)
         let _lines = ResetMod.Create(__initial.lines)
         let _grabbed = MSet.Create(__initial.grabbed)
-        let _controllerPositions = MMap.Create(__initial.controllerPositions)
+        let _controllerPositions = MMap.Create(__initial.controllerPositions, (fun v -> MControllerInfo.Create(v)), (fun (m,v) -> MControllerInfo.Update(m, v)), (fun v -> v))
         let _controllerDistance = ResetMod.Create(__initial.controllerDistance)
         let _offsetControllerDistance = ResetMod.Create(__initial.offsetControllerDistance)
         let _boundingBox = ResetMod.Create(__initial.boundingBox)

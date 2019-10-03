@@ -34,7 +34,7 @@ type ButtonStates = {
     front : State
     back : State
 }
-
+[<DomainType>]
 type ControllerInfo = {
     pose: Pose
     //buttons : ButtonStates
