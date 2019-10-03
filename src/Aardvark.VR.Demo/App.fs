@@ -140,11 +140,6 @@ module Demo =
                     let currentControllerTrafo = 
                         newModel 
                         |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
-                    
-                    //let shitftVecDevice = currentControllerTrafo.GetModelOrigin() - newModel.initControlTrafo.GetModelOrigin()
-                    //let newStartRot = getTrafoRotation newModel.initControlTrafo //Trafo3d.Rotation startRot
-                    //let newCurrentRot = getTrafoRotation currentControllerTrafo //Trafo3d.Rotation currentRot
-                    //let newTrafoRotation = newCurrentRot * newStartRot.Inverse
 
                     let newTrafoShift = newModel.initGlobalTrafo * newModel.initControlTrafo.Inverse * currentControllerTrafo
                     //printfn "%A" (newTrafoShift.GetModelOrigin())
@@ -153,11 +148,12 @@ module Demo =
                     let dist = 
                         newModel
                         |> getDistanceBetweenControllers (controllersFiltered |> HMap.keys |> Seq.item 0) (controllersFiltered |> HMap.keys |> Seq.item 1)
-                   
-                    let newControllerDistance = dist - newModel.offsetControllerDistance + newModel.initGlobalTrafo.GetScale()
+                    
+                    let newControllerDistance = dist - newModel.offsetControllerDistance + newModel.initControlTrafo.GetScale()
                     //printfn "Distance between Controllers: %f" newControllerDistance
-                    let newGlobalTrafo = newModel.initGlobalTrafo * Trafo3d.Scale (newControllerDistance) 
-                    {newModel with controllerDistance = newControllerDistance; globalTrafo = newGlobalTrafo}
+                    let scaleControllerCenter = Trafo3d.Translation (-newModel.initControlTrafo.GetModelOrigin()) * Trafo3d.Scale (newControllerDistance) * Trafo3d.Translation (newModel.initControlTrafo.GetModelOrigin())
+                    let newGlobalTrafo = newModel.initGlobalTrafo * scaleControllerCenter//* Trafo3d.Scale (newControllerDistance) 
+                    {newModel with globalTrafo = newGlobalTrafo}
                 | _ -> 
                     newModel
             
@@ -271,11 +267,14 @@ module Demo =
                     model 
                     |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0), model.offsetControllerDistance 
                 | 2 -> 
+                    let firstControllerTrafo = 
+                        model 
+                        |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
                     let dist = 
                         model 
                         |> getDistanceBetweenControllers (controllersFiltered |> HMap.keys |> Seq.item 0) (controllersFiltered |> HMap.keys |> Seq.item 1) 
 
-                    model.initControlTrafo, dist
+                    firstControllerTrafo, dist
                 | _ -> 
                     model.initControlTrafo, model.offsetControllerDistance
             
