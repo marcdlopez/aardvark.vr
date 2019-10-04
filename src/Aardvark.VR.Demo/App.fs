@@ -157,10 +157,17 @@ module Demo =
                     let secondControllerTrafo = 
                         newModel
                         |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 1)
-                    let newRotation = newModel.initGlobalTrafo * newModel.rotationAxis * secondControllerTrafo.Inverse
 
-                    let newGlobalTrafo = newModel.initGlobalTrafo * newRotation//* scaleControllerCenter//* Trafo3d.Scale (newControllerDistance) 
+                    let secondControllerToNewCoordinateSystem = 
+                        newModel.rotationAxis * secondControllerTrafo
+                    let newRotationTest = 
+                        Trafo3d.Translation (-newModel.initControlTrafo.GetModelOrigin()) * Trafo3d.Translation(secondControllerToNewCoordinateSystem.GetModelOrigin()) * Trafo3d.RotateInto(newModel.rotationAxis.GetModelOrigin(), secondControllerToNewCoordinateSystem.GetModelOrigin()) * Trafo3d.Translation (newModel.initControlTrafo.GetModelOrigin())
+                    
+                    let newRotation = newModel.rotationAxis * newModel.initControlTrafo * secondControllerTrafo
+
+                    let newGlobalTrafo = newModel.initGlobalTrafo * newRotationTest//* scaleControllerCenter//* Trafo3d.Scale (newControllerDistance) 
                     printfn "global trafo position : %A" (newGlobalTrafo.GetModelOrigin())
+                    printfn "rotation coordinate system: %A "(newModel.rotationAxis.GetModelOrigin())
                     {newModel with globalTrafo = newGlobalTrafo}
                 | _ -> 
                     newModel
