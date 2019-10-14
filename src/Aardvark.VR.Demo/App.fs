@@ -39,6 +39,7 @@ module Demo =
     open Aardvark.UI.Primitives
     open Aardvark.Base.Rendering
     open Model
+    open OpenTK
     
     let show  (att : list<string * AttributeValue<_>>) (sg : ISg<_>) =
 
@@ -154,18 +155,28 @@ module Demo =
                     let scaleControllerCenter = Trafo3d.Translation (-newModel.initControlTrafo.GetModelOrigin()) * Trafo3d.Scale (newControllerDistance) * Trafo3d.Translation (newModel.initControlTrafo.GetModelOrigin())
 
                     // Rotation with origin in the controller
+                    let firstControllerTrafo = 
+                        newModel 
+                        |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
+
                     let secondControllerTrafo = 
                         newModel
                         |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 1)
 
                     let secondControllerToNewCoordinateSystem = 
-                        newModel.rotationAxis * secondControllerTrafo
-                    let newRotationTest = 
-                        Trafo3d.Translation (-newModel.initControlTrafo.GetModelOrigin()) * Trafo3d.Translation(secondControllerToNewCoordinateSystem.GetModelOrigin()) * Trafo3d.RotateInto(newModel.rotationAxis.GetModelOrigin(), secondControllerToNewCoordinateSystem.GetModelOrigin()) * Trafo3d.Translation (newModel.initControlTrafo.GetModelOrigin())
+                        newModel.rotationAxis * newModel.init2ControlTrafo.Inverse * secondControllerTrafo
+                    let initialControllerDir = newModel.initControlTrafo.GetModelOrigin() - newModel.init2ControlTrafo.GetModelOrigin()
+                    let currentControllerDir = firstControllerTrafo.GetModelOrigin() - secondControllerTrafo.GetModelOrigin()
                     
+                    let newRotationTest11 = Trafo3d.RotateInto(initialControllerDir.Normalized, currentControllerDir.Normalized)
+                    
+                    let newRotationTest = 
+                        Trafo3d.Translation (-newModel.initControlTrafo.GetModelOrigin()) * newRotationTest11 * Trafo3d.Translation (newModel.initControlTrafo.GetModelOrigin())
+                    
+
                     let newRotation = newModel.rotationAxis * newModel.initControlTrafo * secondControllerTrafo
 
-                    let newGlobalTrafo = newModel.initGlobalTrafo * newRotationTest//* scaleControllerCenter//* Trafo3d.Scale (newControllerDistance) 
+                    let newGlobalTrafo = newModel.initGlobalTrafo * newRotationTest * scaleControllerCenter//* Trafo3d.Scale (newControllerDistance) 
                     printfn "global trafo position : %A" (newGlobalTrafo.GetModelOrigin())
                     printfn "rotation coordinate system: %A "(newModel.rotationAxis.GetModelOrigin())
                     {newModel with globalTrafo = newGlobalTrafo}
@@ -271,7 +282,7 @@ module Demo =
 
             let model = {model with controllerPositions = updateControllerButtons}
 
-            let newTrafo, InitialControllerDistance = 
+            let firstControllerTrafo, secondControllerTrafo, InitialControllerDistance = 
                 let controllersFiltered = 
                     model.controllerPositions
                     |> HMap.filter (fun index CI -> 
@@ -280,18 +291,21 @@ module Demo =
                 match controllersFiltered.Count with
                 | 1 -> 
                     model 
-                    |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0), model.offsetControllerDistance 
+                    |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0), Trafo3d.Identity ,model.offsetControllerDistance 
                 | 2 -> 
                     let getFirstControllerTrafo = 
                         model 
                         |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
+                    let getSecondControllerTrafo = 
+                        model 
+                        |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 1)
                     let dist = 
                         model 
                         |> getDistanceBetweenControllers (controllersFiltered |> HMap.keys |> Seq.item 0) (controllersFiltered |> HMap.keys |> Seq.item 1) 
 
-                    getFirstControllerTrafo, dist
+                    getFirstControllerTrafo, getSecondControllerTrafo ,dist
                 | _ -> 
-                    model.initControlTrafo, model.offsetControllerDistance
+                    model.initControlTrafo, model.init2ControlTrafo ,model.offsetControllerDistance
             
             let newRotationCoordinateSystem : Trafo3d = 
                 let controllerFilter = 
@@ -314,7 +328,7 @@ module Demo =
                     Trafo3d.FromBasis(xAxis, yAxis, zAxis, getFirstControllerTrafo.GetModelOrigin())
                 | _ -> Trafo3d.Identity
 
-            {model with initGlobalTrafo = model.globalTrafo; initControlTrafo = newTrafo; offsetControllerDistance = InitialControllerDistance; rotationAxis = newRotationCoordinateSystem}
+            {model with initGlobalTrafo = model.globalTrafo; initControlTrafo = firstControllerTrafo; init2ControlTrafo = secondControllerTrafo ;offsetControllerDistance = InitialControllerDistance; rotationAxis = newRotationCoordinateSystem}
             
         | _ -> model
 
@@ -643,26 +657,26 @@ module Demo =
         //        return Trafo3d.Translation(bb.Center) * c0Shift// * c1Shift
         //    }
 
-        let opcs = 
-            m.opcInfos
-                |> AMap.toASet
-                |> ASet.map(fun info -> 
-                    Sg.createSingleOpcSg m.opcAttributes.selectedScalar (Mod.constant false) m.cameraState.view info
-                    )
-                |> Sg.set
-                |> Sg.effect [ 
-                    toEffect Shader.stableTrafo
-                    toEffect DefaultSurfaces.diffuseTexture  
-                    toEffect Shader.AttributeShader.falseColorLegend //falseColorLegendGray
-                ]
-                |> Sg.noEvents
-                //|> Sg.translate' (m.boundingBox |> Mod.map (fun p -> - p.Center))
-        opcs
-        |> Sg.map OpcViewerMsg
-        |> Sg.noEvents
-        |> Sg.trafo m.globalTrafo 
-        |> Sg.andAlso deviceSgs
-        |> Sg.andAlso a
+        //let opcs = 
+        //    m.opcInfos
+        //        |> AMap.toASet
+        //        |> ASet.map(fun info -> 
+        //            Sg.createSingleOpcSg m.opcAttributes.selectedScalar (Mod.constant false) m.cameraState.view info
+        //            )
+        //        |> Sg.set
+        //        |> Sg.effect [ 
+        //            toEffect Shader.stableTrafo
+        //            toEffect DefaultSurfaces.diffuseTexture  
+        //            toEffect Shader.AttributeShader.falseColorLegend //falseColorLegendGray
+        //        ]
+        //        |> Sg.noEvents
+        //        //|> Sg.translate' (m.boundingBox |> Mod.map (fun p -> - p.Center))
+        //opcs
+        //|> Sg.map OpcViewerMsg
+        //|> Sg.noEvents
+        //|> Sg.trafo m.globalTrafo 
+        //|> Sg.andAlso deviceSgs
+        //|> Sg.andAlso a
 
         //let boxGhost = 
         //    Sg.box (Mod.constant C4b.DarkYellow) (Mod.constant Box3d.Unit)
@@ -675,19 +689,19 @@ module Demo =
         //    |> Sg.noEvents
         //    |> Sg.trafo m.initGlobalTrafo
           
-        //let boxTest = 
-        //    Sg.box (Mod.constant C4b.Red) (Mod.constant Box3d.Unit)
-        //        |> Sg.shader {
-        //            do! DefaultSurfaces.trafo
-        //            do! DefaultSurfaces.vertexColor
-        //            do! DefaultSurfaces.simpleLighting
-        //            }
-        //        |> Sg.noEvents
-        //        |> Sg.trafo m.globalTrafo   
-        //boxTest 
-        //|> Sg.noEvents
-        //|> Sg.andAlso deviceSgs
-        //|> Sg.andAlso a
+        let boxTest = 
+            Sg.box (Mod.constant C4b.Red) (Mod.constant Box3d.Unit)
+                |> Sg.shader {
+                    do! DefaultSurfaces.trafo
+                    do! DefaultSurfaces.vertexColor
+                    do! DefaultSurfaces.simpleLighting
+                    }
+                |> Sg.noEvents
+                |> Sg.trafo m.globalTrafo   
+        boxTest 
+        |> Sg.noEvents
+        |> Sg.andAlso deviceSgs
+        |> Sg.andAlso a
         //|> Sg.andAlso boxGhost
    
     let pause (info : VrSystemInfo) (m : MModel) =
@@ -743,10 +757,11 @@ module Demo =
             pickingModel = OpcViewer.Base.Picking.PickingModel.initial
             //controllerButtons = hmap.Empty
             controllerDistance = 1.0
-            globalTrafo = Trafo3d.Translation -BoundingBoxInit.Center //gloabal trafo for opc, with center in boundingbox center
+            globalTrafo = Trafo3d.Identity//Trafo3d.Translation -BoundingBoxInit.Center //gloabal trafo for opc, with center in boundingbox center
             offsetControllerDistance = 1.0
             initGlobalTrafo = Trafo3d.Identity
             initControlTrafo = Trafo3d.Identity
+            init2ControlTrafo = Trafo3d.Identity
             rotationAxis = Trafo3d.Identity
         }
     let app =

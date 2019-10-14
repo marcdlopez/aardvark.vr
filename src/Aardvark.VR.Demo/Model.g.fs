@@ -208,6 +208,7 @@ module Mutable =
         let _globalTrafo = ResetMod.Create(__initial.globalTrafo)
         let _initGlobalTrafo = ResetMod.Create(__initial.initGlobalTrafo)
         let _initControlTrafo = ResetMod.Create(__initial.initControlTrafo)
+        let _init2ControlTrafo = ResetMod.Create(__initial.init2ControlTrafo)
         let _rotationAxis = ResetMod.Create(__initial.rotationAxis)
         let _opcInfos = MMap.Create(__initial.opcInfos, (fun v -> OpcViewer.Base.Picking.Mutable.MOpcData.Create(v)), (fun (m,v) -> OpcViewer.Base.Picking.Mutable.MOpcData.Update(m, v)), (fun v -> v))
         let _opcAttributes = OpcViewer.Base.Attributes.Mutable.MAttributeModel.Create(__initial.opcAttributes)
@@ -237,6 +238,7 @@ module Mutable =
         member x.globalTrafo = _globalTrafo :> IMod<_>
         member x.initGlobalTrafo = _initGlobalTrafo :> IMod<_>
         member x.initControlTrafo = _initControlTrafo :> IMod<_>
+        member x.init2ControlTrafo = _init2ControlTrafo :> IMod<_>
         member x.rotationAxis = _rotationAxis :> IMod<_>
         member x.opcInfos = _opcInfos :> amap<_,_>
         member x.opcAttributes = _opcAttributes
@@ -270,6 +272,7 @@ module Mutable =
                 ResetMod.Update(_globalTrafo,v.globalTrafo)
                 ResetMod.Update(_initGlobalTrafo,v.initGlobalTrafo)
                 ResetMod.Update(_initControlTrafo,v.initControlTrafo)
+                ResetMod.Update(_init2ControlTrafo,v.init2ControlTrafo)
                 ResetMod.Update(_rotationAxis,v.rotationAxis)
                 MMap.Update(_opcInfos, v.opcInfos)
                 OpcViewer.Base.Attributes.Mutable.MAttributeModel.Update(_opcAttributes, v.opcAttributes)
@@ -423,6 +426,12 @@ module Mutable =
                     override x.Get(r) = r.initControlTrafo
                     override x.Set(r,v) = { r with initControlTrafo = v }
                     override x.Update(r,f) = { r with initControlTrafo = f r.initControlTrafo }
+                }
+            let init2ControlTrafo =
+                { new Lens<Demo.Model, Aardvark.Base.Trafo3d>() with
+                    override x.Get(r) = r.init2ControlTrafo
+                    override x.Set(r,v) = { r with init2ControlTrafo = v }
+                    override x.Update(r,f) = { r with init2ControlTrafo = f r.init2ControlTrafo }
                 }
             let rotationAxis =
                 { new Lens<Demo.Model, Aardvark.Base.Trafo3d>() with

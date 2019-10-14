@@ -76,6 +76,7 @@ type Model =
         globalTrafo          : Trafo3d
         initGlobalTrafo      : Trafo3d
         initControlTrafo     : Trafo3d
+        init2ControlTrafo    : Trafo3d
         rotationAxis         : Trafo3d
         opcInfos             : hmap<Box3d, OpcData>
         opcAttributes        : AttributeModel
