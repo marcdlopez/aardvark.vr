@@ -34,6 +34,11 @@ type ButtonStates = {
     front : State
     back : State
 }
+
+type MenuState = 
+    | Navigation
+    | Annotation
+
 [<DomainType>]
 type ControllerInfo = {
     pose: Pose
@@ -42,32 +47,33 @@ type ControllerInfo = {
     frontButtonPressed: bool
 }
 
+
 [<DomainType>]
 type Model =
     {
         text    : string
         vr      : bool
         
-        boxes   : plist<VisibleBox> // maybe change to hmap for finding stuff by id...
-        boxHovered : option<string>
-        boxSelected : hset<string>
+        boxes               : plist<VisibleBox> // maybe change to hmap for finding stuff by id...
+        boxHovered          : option<string>
+        boxSelected         : hset<string>
 
-        cameraState : CameraControllerState
+        cameraState         : CameraControllerState
 
-        ControllerPosition : V3d
-        offsetToCenter : V3d
-        isPressed : bool
+        ControllerPosition  : V3d
+        offsetToCenter      : V3d
+        isPressed           : bool
         
-        boxDistance : V3d
-        startingLinePos : V3d
-        endingLinePos : V3d
-        lines : Line3d[]
+        boxDistance         : V3d
+        startingLinePos     : V3d
+        endingLinePos       : V3d
+        lines               : Line3d[]
 
         //boxes : hmap<string,VisibleBox>
-        grabbed : hset<string>
+        grabbed             : hset<string>
         controllerPositions : hmap<int, ControllerInfo>
         //controllerButtons : hmap<int, bool>
-        controllerDistance : float 
+        controllerDistance  : float 
         offsetControllerDistance : float
         //opcModel : OpcSelectionViewer.Model
         [<NonIncremental>]
@@ -81,10 +87,9 @@ type Model =
         opcInfos             : hmap<Box3d, OpcData>
         opcAttributes        : AttributeModel
         mainFrustum          : Frustum
-        rotateBox : bool
-        pickingModel : PickingModel
-
-
+        rotateBox            : bool
+        pickingModel         : PickingModel
+        menu                 : MenuState
     }
 
 module VisibleBox =

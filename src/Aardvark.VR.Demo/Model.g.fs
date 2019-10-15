@@ -215,6 +215,7 @@ module Mutable =
         let _mainFrustum = ResetMod.Create(__initial.mainFrustum)
         let _rotateBox = ResetMod.Create(__initial.rotateBox)
         let _pickingModel = OpcViewer.Base.Picking.Mutable.MPickingModel.Create(__initial.pickingModel)
+        let _menu = ResetMod.Create(__initial.menu)
         
         member x.text = _text :> IMod<_>
         member x.vr = _vr :> IMod<_>
@@ -245,6 +246,7 @@ module Mutable =
         member x.mainFrustum = _mainFrustum :> IMod<_>
         member x.rotateBox = _rotateBox :> IMod<_>
         member x.pickingModel = _pickingModel
+        member x.menu = _menu :> IMod<_>
         
         member x.Current = __current :> IMod<_>
         member x.Update(v : Demo.Model) =
@@ -279,6 +281,7 @@ module Mutable =
                 ResetMod.Update(_mainFrustum,v.mainFrustum)
                 ResetMod.Update(_rotateBox,v.rotateBox)
                 OpcViewer.Base.Picking.Mutable.MPickingModel.Update(_pickingModel, v.pickingModel)
+                ResetMod.Update(_menu,v.menu)
                 
         
         static member Create(__initial : Demo.Model) : MModel = MModel(__initial)
@@ -468,4 +471,10 @@ module Mutable =
                     override x.Get(r) = r.pickingModel
                     override x.Set(r,v) = { r with pickingModel = v }
                     override x.Update(r,f) = { r with pickingModel = f r.pickingModel }
+                }
+            let menu =
+                { new Lens<Demo.Model, Demo.MenuState>() with
+                    override x.Get(r) = r.menu
+                    override x.Set(r,v) = { r with menu = v }
+                    override x.Update(r,f) = { r with menu = f r.menu }
                 }

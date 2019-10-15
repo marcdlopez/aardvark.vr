@@ -23,6 +23,7 @@ open OpcViewer.Base.Attributes
 type DemoMessage =
     | SetText of string 
     | ToggleVR
+    | ChangeMenu
     | Select of string
     | HoverIn of string
     | HoverOut
@@ -98,6 +99,12 @@ module Demo =
             if model.vr then vr.stop()
             else vr.start()
             { model with vr = not model.vr }
+        | ChangeMenu ->
+            if model.menu.Equals(MenuState.Navigation) then
+                {model with menu = MenuState.Annotation}
+            else 
+                {model with menu = MenuState.Navigation}
+
         | HoverIn id ->
             match model.boxHovered with 
             | Some oldID when id = oldID -> model
@@ -165,104 +172,23 @@ module Demo =
 
                     let secondControllerToNewCoordinateSystem = 
                         newModel.rotationAxis * newModel.init2ControlTrafo.Inverse * secondControllerTrafo
+                    
                     let initialControllerDir = newModel.initControlTrafo.GetModelOrigin() - newModel.init2ControlTrafo.GetModelOrigin()
                     let currentControllerDir = firstControllerTrafo.GetModelOrigin() - secondControllerTrafo.GetModelOrigin()
                     
-                    let newRotationTest11 = Trafo3d.RotateInto(initialControllerDir.Normalized, currentControllerDir.Normalized)
-                    
-                    let newRotationTest = 
-                        Trafo3d.Translation (-newModel.initControlTrafo.GetModelOrigin()) * newRotationTest11 * Trafo3d.Translation (newModel.initControlTrafo.GetModelOrigin())
-                    
+                    let getRotation = Trafo3d.RotateInto(initialControllerDir, currentControllerDir)
 
-                    let newRotation = newModel.rotationAxis * newModel.initControlTrafo * secondControllerTrafo
-
-                    let newGlobalTrafo = newModel.initGlobalTrafo * newRotationTest * scaleControllerCenter//* Trafo3d.Scale (newControllerDistance) 
+                    let newRotationTrafo = 
+                        Trafo3d.Translation (-newModel.rotationAxis.GetModelOrigin()) * getRotation * Trafo3d.Translation (newModel.rotationAxis.GetModelOrigin())
+                        // coordinate system (rotation axis) should probably be at the center distance of the controllers
+                        
+                    let newGlobalTrafo = newModel.initGlobalTrafo * newRotationTrafo * scaleControllerCenter//* Trafo3d.Scale (newControllerDistance) 
                     printfn "global trafo position : %A" (newGlobalTrafo.GetModelOrigin())
                     printfn "rotation coordinate system: %A "(newModel.rotationAxis.GetModelOrigin())
                     {newModel with globalTrafo = newGlobalTrafo}
                 | _ -> 
                     newModel
-            
             newModel
-
-            //if newModel.controllerButtons.Count=2 then 
-            //    let idx1 = newModel.controllerButtons |> HMap.keys
-            //    let i0 = (idx1 |> Seq.item 0)
-            //    let i1 = (idx1 |> Seq.item 1)
-            //    let b0 = newModel.controllerButtons |> HMap.find i0
-            //    let b1 = newModel.controllerButtons |> HMap.find i1
-            //    if b0 && b1 then 
-            //        //store position of the controllers to calculate distance between them
-            //        let p0 = model.controllerPositions |> HMap.find i0
-            //        let p1 = model.controllerPositions |> HMap.find i1
-            //        let v0 = p0.deviceToWorld.Forward.TransformPos(V3d.Zero)
-            //        let v1 = p1.deviceToWorld.Forward.TransformPos(V3d.Zero)
-            //        let newControllerDistance = V3d.Distance(v0, v1) - newModel.offsetControllerDistance + newModel.initGlobalTrafo.GetScale()
-            //        printfn "Distance between Controllers: %f" newControllerDistance
-            //        {newModel with controllerDistance = newControllerDistance; globalTrafo = Trafo3d.Scale (newControllerDistance)}
-            //    else
-            //        newModel
-            //elif newModel.controllerButtons.Count = 1 then 
-            //    let idx1 = newModel.controllerButtons |> HMap.keys
-            //    let i0 = (idx1 |> Seq.item 0)
-            //    let b0 = newModel.controllerButtons |> HMap.find i0
-            //    if b0  then
-            //        let cp0 = (newModel.controllerPositions |> HMap.find (newModel.controllerButtons |> HMap.keys |> Seq.item 0))
-            //        let shitftVecDevice = cp0.deviceToWorld.GetModelOrigin() - newModel.initControlTrafo.GetModelOrigin()
-            //        let newTrafoShift = newModel.initGlobalTrafo * (Trafo3d.Translation shitftVecDevice) 
-            //        printfn "%A" (newTrafoShift.GetModelOrigin())
-            //        {newModel with globalTrafo = newTrafoShift}
-            //    else newModel
-            //else newModel
-            
-            //let newModel = { model with ControllerPosition = p }
-
-            //let mayHover = 
-            //    newModel.boxes 
-            //    |> PList.choose (fun b ->
-            //        if b.geometry.Transformed(b.trafo).Contains(p) then
-            //            Some b.id
-            //        else None)
-            //    |> PList.tryFirst
-
-            //let newModel = 
-            //    match mayHover with
-            //    | Some ID -> update state vr newModel (HoverIn ID)
-            //    | None -> update state vr newModel HoverOut
-            
-            //let newModel = 
-            //    if newModel.isPressed then 
-            //        match newModel.boxHovered with
-            //        | Some ID -> 
-            //            let moveBox = 
-            //                newModel.boxes 
-            //                |> PList.toList 
-            //                |> List.tryPick (fun x -> if x.id = ID then Some x else None)
-            //            match moveBox with
-            //            | Some b -> 
-            //                let index = 
-            //                    newModel.boxes
-            //                    |> PList.findIndex b
-            //                let newBoxList = 
-            //                    newModel.boxes 
-            //                    |> PList.alter index (fun x -> x |> Option.map (fun y -> 
-            //                        Log.line "update position to %A" newModel.ControllerPosition
-            //                        { y with trafo = Trafo3d.Translation(newModel.ControllerPosition + newModel.offsetToCenter)}))
-            //                { newModel with boxes = newBoxList }
-            //            | None -> newModel
-            //        | None -> newModel
-            //    else newModel
-
-            //let lines = [|
-            //    for i in newModel.boxes do 
-            //        for j in newModel.boxes do 
-            //            if i.id != j.id then 
-            //                let startPos = i.trafo.GetModelOrigin()
-            //                let endPos = j.trafo.GetModelOrigin()
-            //                printfn "Distance between boxes: %f" (V3d.Distance(startPos, endPos))
-            //                yield (Line3d [startPos; endPos])
-            //|]
-            //{ newModel with lines = lines }
             
         | GrabObject (controllerIndex, buttonPress)->
 
@@ -322,10 +248,11 @@ module Demo =
                         model
                         |> getWorldTrafoIfBackPressed (controllerFilter |> HMap.keys |> Seq.item 1)
                     let xAxis : V3d = getSecondControllerTrafo.GetModelOrigin() - getFirstControllerTrafo.GetModelOrigin()
-                    let yAxisTrafo : Trafo3d = Trafo3d.Translation (xAxis) * Trafo3d.RotationInDegrees(xAxis, 90.0)
+                    let newXAxis = xAxis / 2.0
+                    let yAxisTrafo : Trafo3d = Trafo3d.Translation (newXAxis) * Trafo3d.RotationInDegrees(newXAxis, 90.0)
                     let yAxis : V3d = yAxisTrafo.GetModelOrigin()
-                    let zAxis : V3d = V3d.Cross(xAxis, yAxis)
-                    Trafo3d.FromBasis(xAxis, yAxis, zAxis, getFirstControllerTrafo.GetModelOrigin())
+                    let zAxis : V3d = V3d.Cross(newXAxis, yAxis)
+                    Trafo3d.FromBasis(newXAxis, yAxis, zAxis, getFirstControllerTrafo.GetModelOrigin())
                 | _ -> Trafo3d.Identity
 
             {model with initGlobalTrafo = model.globalTrafo; initControlTrafo = firstControllerTrafo; init2ControlTrafo = secondControllerTrafo ;offsetControllerDistance = InitialControllerDistance; rotationAxis = newRotationCoordinateSystem}
@@ -384,16 +311,18 @@ module Demo =
         
     let input (msg : VrMessage)=
         match msg with
-        | VrMessage.PressButton(_,_) ->
-            [ToggleVR]
+        // buttons identifications: sensitive = 0, backButton = 1, sideButtons = 2
+        | VrMessage.PressButton(_,2) ->
+            //printfn "Button identification %d" button
+            [ChangeMenu]
         | VrMessage.UpdatePose(cn,p) -> 
             if p.isValid then 
                 let pos = p.deviceToWorld.Forward.TransformPos(V3d.Zero)
                 //printfn "%d changed pos= %A" cn pos
                 [SetControllerPosition (cn, p)]
             else []
-        | VrMessage.Press(con,_) -> 
-            printfn "Button pressed by %d" con
+        | VrMessage.Press(con,button) -> 
+            printfn "Button identification %d" button
             [GrabObject(con, true)]
         | VrMessage.Unpress(con,_) -> 
             printfn "Button unpressed by %d" con
@@ -627,6 +556,12 @@ module Demo =
                 toEffect DefaultSurfaces.simpleLighting                              
                 ]
 
+        let menuText = 
+            Sg.textWithConfig TextConfig.Default (Mod.constant("Menu"))
+            |> Sg.noEvents
+            |> Sg.trafo (Mod.constant (Trafo3d.Identity))
+            |> Sg.trafo (Mod.constant (Trafo3d.RotationInDegrees(90.0, 0.0, 90.0)))
+
         let deviceSgs = 
             info.state.devices |> AMap.toASet |> ASet.chooseM (fun (_,d) ->
                 d.Model |> Mod.map (fun m ->
@@ -702,6 +637,7 @@ module Demo =
         |> Sg.noEvents
         |> Sg.andAlso deviceSgs
         |> Sg.andAlso a
+        //|> Sg.andAlso menuText
         //|> Sg.andAlso boxGhost
    
     let pause (info : VrSystemInfo) (m : MModel) =
@@ -763,6 +699,7 @@ module Demo =
             initControlTrafo = Trafo3d.Identity
             init2ControlTrafo = Trafo3d.Identity
             rotationAxis = Trafo3d.Identity
+            menu = MenuState.Navigation
         }
     let app =
         {
