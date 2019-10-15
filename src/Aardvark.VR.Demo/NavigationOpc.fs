@@ -27,7 +27,7 @@ module NavigationOpc =
     open Model
     open OpenTK
 
-    let bigFunctionTest controllerIndex p model : Model = 
+    let currentScenePosition controllerIndex p model : Model = 
         let newControllersPosition = 
             model.controllerPositions |> HMap.alter controllerIndex (fun old -> 
             match old with 

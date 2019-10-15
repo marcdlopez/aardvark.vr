@@ -94,84 +94,16 @@ module Demo =
         | CameraMessage m -> 
             { model with cameraState = FreeFlyController.update model.cameraState m }   
         | SetControllerPosition (controllerIndex, p) -> 
-            //match model.menu with
-            //| MenuState.Navigation ->
-            //    printfn "Navigation"
-            //    let newModel = 
-            //        model 
-            //        |> NavigationOpc.bigFunctionTest controllerIndex p
-            //    failwith ""
-            //| MenuState.Annotation ->
-            //    printfn "Annotation"
-            //| _ -> failwith"No menu supported"
-
-            let newControllersPosition = 
-                model.controllerPositions |> HMap.alter controllerIndex (fun old -> 
-                match old with 
-                | Some x -> 
-                    Some {x with pose = p; }   // update / overwrite
-                | None -> 
-                    let newInfo = {
-                       pose = p
-                       //buttons  = ButtonStates.
-                       backButtonPressed = false
-                       frontButtonPressed = false
-                    }
-                    Some  newInfo) // creation 
-                
-            let newModel = { model with controllerPositions = newControllersPosition}
-
-            let newModel : Model = 
-                let controllersFiltered = 
-                    newModel.controllerPositions
-                    |> HMap.filter (fun index CI -> 
-                        CI.backButtonPressed = true
-                    )
-                match controllersFiltered.Count with
-                | 1 ->                    
-                    let currentControllerTrafo = 
-                        newModel 
-                        |> OpcUtilities.getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
-
-                    let newTrafoShift = newModel.initGlobalTrafo * newModel.initControlTrafo.Inverse * currentControllerTrafo
-                    //printfn "%A" (newTrafoShift.GetModelOrigin())
-                    {newModel with globalTrafo = newTrafoShift}
-                | 2 ->
-                    let dist = 
-                        newModel
-                        |> OpcUtilities.getDistanceBetweenControllers (controllersFiltered |> HMap.keys |> Seq.item 0) (controllersFiltered |> HMap.keys |> Seq.item 1)
-                    
-                    let newControllerDistance = dist - newModel.offsetControllerDistance + newModel.initControlTrafo.GetScale()
-                    //printfn "Distance between Controllers: %f" newControllerDistance
-                    let scaleControllerCenter = Trafo3d.Translation (-newModel.initControlTrafo.GetModelOrigin()) * Trafo3d.Scale (newControllerDistance) * Trafo3d.Translation (newModel.initControlTrafo.GetModelOrigin())
-
-                    // Rotation with origin in the controller
-                    let firstControllerTrafo = 
-                        newModel 
-                        |> OpcUtilities.getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
-
-                    let secondControllerTrafo = 
-                        newModel
-                        |> OpcUtilities.getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 1)
-
-                    let secondControllerToNewCoordinateSystem = 
-                        newModel.rotationAxis * newModel.init2ControlTrafo.Inverse * secondControllerTrafo
-                    
-                    let initialControllerDir = newModel.initControlTrafo.GetModelOrigin() - newModel.init2ControlTrafo.GetModelOrigin()
-                    let currentControllerDir = firstControllerTrafo.GetModelOrigin() - secondControllerTrafo.GetModelOrigin()
-                    
-                    let getRotation = Trafo3d.RotateInto(initialControllerDir, currentControllerDir)
-
-                    let newRotationTrafo = 
-                        Trafo3d.Translation (-newModel.rotationAxis.GetModelOrigin()) * getRotation * Trafo3d.Translation (newModel.rotationAxis.GetModelOrigin())
-                        // coordinate system (rotation axis) should probably be at the center distance of the controllers
-                        
-                    let newGlobalTrafo = newModel.initGlobalTrafo * newRotationTrafo * scaleControllerCenter//* Trafo3d.Scale (newControllerDistance) 
-                    printfn "global trafo position : %A" (newGlobalTrafo.GetModelOrigin())
-                    printfn "rotation coordinate system: %A "(newModel.rotationAxis.GetModelOrigin())
-                    {newModel with globalTrafo = newGlobalTrafo}
-                | _ -> 
-                    newModel
+            let newModel = 
+                match model.menu with
+                | MenuState.Navigation ->
+                    model 
+                    |> NavigationOpc.currentScenePosition controllerIndex p
+                | MenuState.Annotation ->
+                    printfn "Annotation"
+                    model
+                | _ -> model
+            
             newModel
             
         | GrabObject (controllerIndex, buttonPress)->
