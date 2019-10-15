@@ -59,33 +59,6 @@ module Demo =
 
         subApp' (fun _ _ -> Seq.empty) (fun _ _ -> Seq.empty) [] app
 
-    let mkBoxes (number: int) : plist<VisibleBox> =        
-        [0..number-1]
-        |> List.map (fun x -> VisibleBox.createVisibleBox C4b.Red (V3d(0.0, 2.0 * float x, 0.0)))
-        |> PList.ofList
-
-    let getWorldTrafoIfBackPressed index model : Trafo3d = 
-        let b0 = model.controllerPositions |> HMap.tryFind index
-        b0
-        |> Option.bind(fun x -> 
-            match x.backButtonPressed with
-            | true -> Some x.pose.deviceToWorld
-            | false -> None)
-        |> Option.defaultValue Trafo3d.Identity
-
-    let getDistanceBetweenControllers index0 index1 model : float = 
-        let b0 = model.controllerPositions |> HMap.find index0
-        let b1 = model.controllerPositions |> HMap.find index1
-        let v1 = b0.pose.deviceToWorld.GetModelOrigin()
-        let v2 = b1.pose.deviceToWorld.GetModelOrigin()
-        V3d.Distance(v1, v2)
-
-    let getTrafoRotation (controlTrafo : Trafo3d) : Trafo3d = 
-        let mutable scale = V3d.Zero
-        let mutable rot = V3d.Zero
-        let mutable trans = V3d.Zero
-        controlTrafo.Decompose(&scale, &rot, &trans)
-        Trafo3d.Rotation rot
 
     let rec update (state : VrState) (vr : VrActions) (model : Model) (msg : DemoMessage) : Model=
         match msg with
@@ -121,6 +94,17 @@ module Demo =
         | CameraMessage m -> 
             { model with cameraState = FreeFlyController.update model.cameraState m }   
         | SetControllerPosition (controllerIndex, p) -> 
+            //match model.menu with
+            //| MenuState.Navigation ->
+            //    printfn "Navigation"
+            //    let newModel = 
+            //        model 
+            //        |> NavigationOpc.bigFunctionTest controllerIndex p
+            //    failwith ""
+            //| MenuState.Annotation ->
+            //    printfn "Annotation"
+            //| _ -> failwith"No menu supported"
+
             let newControllersPosition = 
                 model.controllerPositions |> HMap.alter controllerIndex (fun old -> 
                 match old with 
@@ -147,7 +131,7 @@ module Demo =
                 | 1 ->                    
                     let currentControllerTrafo = 
                         newModel 
-                        |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
+                        |> OpcUtilities.getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
 
                     let newTrafoShift = newModel.initGlobalTrafo * newModel.initControlTrafo.Inverse * currentControllerTrafo
                     //printfn "%A" (newTrafoShift.GetModelOrigin())
@@ -155,7 +139,7 @@ module Demo =
                 | 2 ->
                     let dist = 
                         newModel
-                        |> getDistanceBetweenControllers (controllersFiltered |> HMap.keys |> Seq.item 0) (controllersFiltered |> HMap.keys |> Seq.item 1)
+                        |> OpcUtilities.getDistanceBetweenControllers (controllersFiltered |> HMap.keys |> Seq.item 0) (controllersFiltered |> HMap.keys |> Seq.item 1)
                     
                     let newControllerDistance = dist - newModel.offsetControllerDistance + newModel.initControlTrafo.GetScale()
                     //printfn "Distance between Controllers: %f" newControllerDistance
@@ -164,11 +148,11 @@ module Demo =
                     // Rotation with origin in the controller
                     let firstControllerTrafo = 
                         newModel 
-                        |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
+                        |> OpcUtilities.getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
 
                     let secondControllerTrafo = 
                         newModel
-                        |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 1)
+                        |> OpcUtilities.getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 1)
 
                     let secondControllerToNewCoordinateSystem = 
                         newModel.rotationAxis * newModel.init2ControlTrafo.Inverse * secondControllerTrafo
@@ -217,17 +201,17 @@ module Demo =
                 match controllersFiltered.Count with
                 | 1 -> 
                     model 
-                    |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0), Trafo3d.Identity ,model.offsetControllerDistance 
+                    |> OpcUtilities.getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0), Trafo3d.Identity ,model.offsetControllerDistance 
                 | 2 -> 
                     let getFirstControllerTrafo = 
                         model 
-                        |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
+                        |> OpcUtilities.getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
                     let getSecondControllerTrafo = 
                         model 
-                        |> getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 1)
+                        |> OpcUtilities.getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 1)
                     let dist = 
                         model 
-                        |> getDistanceBetweenControllers (controllersFiltered |> HMap.keys |> Seq.item 0) (controllersFiltered |> HMap.keys |> Seq.item 1) 
+                        |> OpcUtilities.getDistanceBetweenControllers (controllersFiltered |> HMap.keys |> Seq.item 0) (controllersFiltered |> HMap.keys |> Seq.item 1) 
 
                     getFirstControllerTrafo, getSecondControllerTrafo ,dist
                 | _ -> 
@@ -243,10 +227,10 @@ module Demo =
                 | 2 -> 
                     let getFirstControllerTrafo = 
                         model
-                        |> getWorldTrafoIfBackPressed (controllerFilter |> HMap.keys |> Seq.item 0)
+                        |> OpcUtilities.getWorldTrafoIfBackPressed (controllerFilter |> HMap.keys |> Seq.item 0)
                     let getSecondControllerTrafo = 
                         model
-                        |> getWorldTrafoIfBackPressed (controllerFilter |> HMap.keys |> Seq.item 1)
+                        |> OpcUtilities.getWorldTrafoIfBackPressed (controllerFilter |> HMap.keys |> Seq.item 1)
                     let xAxis : V3d = getSecondControllerTrafo.GetModelOrigin() - getFirstControllerTrafo.GetModelOrigin()
                     let newXAxis = xAxis / 2.0
                     let yAxisTrafo : Trafo3d = Trafo3d.Translation (newXAxis) * Trafo3d.RotationInDegrees(newXAxis, 90.0)
@@ -649,7 +633,7 @@ module Demo =
             do! DefaultSurfaces.simpleLighting
         }
 
-    let newBoxList = mkBoxes 2
+    let newBoxList = OpcUtilities.mkBoxes 2
     
     let patchHierarchiesDir = Directory.GetDirectories("C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423") |> Array.head |> Array.singleton
 
