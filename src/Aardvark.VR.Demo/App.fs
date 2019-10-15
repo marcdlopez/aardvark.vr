@@ -98,7 +98,7 @@ module Demo =
                 match model.menu with
                 | MenuState.Navigation ->
                     model 
-                    |> NavigationOpc.currentScenePosition controllerIndex p
+                    |> NavigationOpc.currentSceneInfo controllerIndex p
                 | MenuState.Annotation ->
                     printfn "Annotation"
                     model
@@ -107,7 +107,7 @@ module Demo =
             newModel
             
         | GrabObject (controllerIndex, buttonPress)->
-
+        
             let updateControllerButtons = 
                 model.controllerPositions
                 |> HMap.alter controllerIndex (fun but ->  
@@ -123,56 +123,17 @@ module Demo =
                     Some newInfo)
 
             let model = {model with controllerPositions = updateControllerButtons}
-
-            let firstControllerTrafo, secondControllerTrafo, InitialControllerDistance = 
-                let controllersFiltered = 
-                    model.controllerPositions
-                    |> HMap.filter (fun index CI -> 
-                        CI.backButtonPressed = true
-                    )
-                match controllersFiltered.Count with
-                | 1 -> 
-                    model 
-                    |> OpcUtilities.getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0), Trafo3d.Identity ,model.offsetControllerDistance 
-                | 2 -> 
-                    let getFirstControllerTrafo = 
-                        model 
-                        |> OpcUtilities.getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
-                    let getSecondControllerTrafo = 
-                        model 
-                        |> OpcUtilities.getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 1)
-                    let dist = 
-                        model 
-                        |> OpcUtilities.getDistanceBetweenControllers (controllersFiltered |> HMap.keys |> Seq.item 0) (controllersFiltered |> HMap.keys |> Seq.item 1) 
-
-                    getFirstControllerTrafo, getSecondControllerTrafo ,dist
-                | _ -> 
-                    model.initControlTrafo, model.init2ControlTrafo ,model.offsetControllerDistance
             
-            let newRotationCoordinateSystem : Trafo3d = 
-                let controllerFilter = 
-                    model.controllerPositions
-                    |> HMap.filter (fun index CI -> 
-                        CI.backButtonPressed = true
-                    )
-                match controllerFilter.Count with
-                | 2 -> 
-                    let getFirstControllerTrafo = 
-                        model
-                        |> OpcUtilities.getWorldTrafoIfBackPressed (controllerFilter |> HMap.keys |> Seq.item 0)
-                    let getSecondControllerTrafo = 
-                        model
-                        |> OpcUtilities.getWorldTrafoIfBackPressed (controllerFilter |> HMap.keys |> Seq.item 1)
-                    let xAxis : V3d = getSecondControllerTrafo.GetModelOrigin() - getFirstControllerTrafo.GetModelOrigin()
-                    let newXAxis = xAxis / 2.0
-                    let yAxisTrafo : Trafo3d = Trafo3d.Translation (newXAxis) * Trafo3d.RotationInDegrees(newXAxis, 90.0)
-                    let yAxis : V3d = yAxisTrafo.GetModelOrigin()
-                    let zAxis : V3d = V3d.Cross(newXAxis, yAxis)
-                    Trafo3d.FromBasis(newXAxis, yAxis, zAxis, getFirstControllerTrafo.GetModelOrigin())
-                | _ -> Trafo3d.Identity
-
-            {model with initGlobalTrafo = model.globalTrafo; initControlTrafo = firstControllerTrafo; init2ControlTrafo = secondControllerTrafo ;offsetControllerDistance = InitialControllerDistance; rotationAxis = newRotationCoordinateSystem}
+            let newModel : Model = 
+                match model.menu with
+                | MenuState.Navigation ->
+                    NavigationOpc.initialSceneInfo model
+                | MenuState.Annotation ->
+                    failwith""
+                | _ -> failwith ""
             
+            newModel
+
         | _ -> model
 
     let mkColor (model : MModel) (box : MVisibleBox) =
