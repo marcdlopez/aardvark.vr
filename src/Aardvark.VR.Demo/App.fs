@@ -23,7 +23,7 @@ open OpcViewer.Base.Attributes
 type DemoMessage =
     | SetText of string 
     | ToggleVR
-    | ChangeMenu
+    | ChangeMenu of int*bool
     | Select of string
     | HoverIn of string
     | HoverOut
@@ -41,6 +41,8 @@ module Demo =
     open Aardvark.Base.Rendering
     open Model
     open OpenTK
+    open Valve.VR
+    open OpenTK.Input
     
     let show  (att : list<string * AttributeValue<_>>) (sg : ISg<_>) =
 
@@ -72,11 +74,38 @@ module Demo =
             if model.vr then vr.stop()
             else vr.start()
             { model with vr = not model.vr }
-        | ChangeMenu ->
-            if model.menu.Equals(MenuState.Navigation) then
-                {model with menu = MenuState.Annotation}
-            else 
-                {model with menu = MenuState.Navigation}
+        | ChangeMenu (controllerIndex, buttonPressed) ->
+            
+            let updateJoystickButton = 
+                model.controllerPositions
+                |> HMap.alter controllerIndex (fun old -> 
+                match old with 
+                | Some x -> 
+                    Some {x with joystickPressed = buttonPressed}   // update / overwrite
+                | None -> 
+                    let controllerPos = model.controllerPositions |> HMap.values |> Seq.item controllerIndex
+                    let newInfo = {
+                        pose = controllerPos.pose
+                        //buttons  = ButtonStates.
+                        backButtonPressed = false
+                        frontButtonPressed = false
+                        joystickPressed = buttonPressed
+                    }
+                    Some  newInfo) // creation)  
+
+            let newBoxList = 
+                if buttonPressed then 
+                    let controllerPos = model.controllerPositions |> HMap.values |> Seq.item controllerIndex
+                    OpcUtilities.mkBoxesMenu controllerPos.pose 1
+                    //failwith""
+                else PList.empty
+                
+            {model with boxes = newBoxList; controllerPositions = updateJoystickButton}
+            
+            //if model.menu.Equals(MenuState.Navigation) then
+            //    {model with menu = MenuState.Annotation}
+            //else 
+            //    {model with menu = MenuState.Navigation}
 
         | HoverIn id ->
             match model.boxHovered with 
@@ -102,10 +131,26 @@ module Demo =
                 | MenuState.Annotation ->
                     printfn "Annotation"
                     model
-                | _ -> model
             
+            let joystickFilter = 
+                newModel.controllerPositions
+                |> HMap.filter (fun index CI -> 
+                    CI.joystickPressed = true
+                )
+            
+            let newModel = 
+                match joystickFilter.Count with 
+                | 1 -> 
+                    let controllerPos = joystickFilter |> HMap.values |> Seq.item 0
+                    let updateBoxPos = 
+                        newModel.boxes
+                        |> PList.map (fun x -> 
+                            {x with trafo = Trafo3d.Translation(controllerPos.pose.deviceToWorld.GetModelOrigin() + V3d(0.0, 0.0, 0.10))})
+                    {newModel with boxes = updateBoxPos}
+                | _ -> newModel
+
             newModel
-            
+        
         | GrabObject (controllerIndex, buttonPress)->
         
             let updateControllerButtons = 
@@ -119,21 +164,18 @@ module Demo =
                         //buttons  = ButtonStates.
                         backButtonPressed = buttonPress
                         frontButtonPressed = false
+                        joystickPressed = false
                      }
                     Some newInfo)
 
             let model = {model with controllerPositions = updateControllerButtons}
             
             let newModel : Model = 
-                match model.menu with
-                | MenuState.Navigation ->
-                    NavigationOpc.initialSceneInfo model
-                | MenuState.Annotation ->
-                    failwith""
-                | _ -> failwith ""
-            
+                model
+                |> NavigationOpc.initialSceneInfo 
+                
             newModel
-
+            
         | _ -> model
 
     let mkColor (model : MModel) (box : MVisibleBox) =
@@ -168,8 +210,8 @@ module Demo =
         let pos = box.trafo
         Sg.box color box.geometry
             //|> Sg.transform (Trafo3d.Translation pos)
+            |> Sg.scale 0.25
             |> Sg.trafo(pos)
-            //|> Sg.scale 0.25
             |> Sg.shader {
                 do! DefaultSurfaces.trafo
                 do! DefaultSurfaces.vertexColor
@@ -191,19 +233,25 @@ module Demo =
         // buttons identifications: sensitive = 0, backButton = 1, sideButtons = 2
         | VrMessage.PressButton(_,2) ->
             //printfn "Button identification %d" button
-            [ChangeMenu]
+            [ToggleVR]
         | VrMessage.UpdatePose(cn,p) -> 
             if p.isValid then 
                 let pos = p.deviceToWorld.Forward.TransformPos(V3d.Zero)
                 //printfn "%d changed pos= %A" cn pos
                 [SetControllerPosition (cn, p)]
             else []
+            
         | VrMessage.Press(con,button) -> 
-            printfn "Button identification %d" button
-            [GrabObject(con, true)]
-        | VrMessage.Unpress(con,_) -> 
+            printfn "%d Button identification %d" con button
+            match button with
+            | 0 -> [ChangeMenu(con, true)]
+            | _ -> [GrabObject(con, true)]
+            
+        | VrMessage.Unpress(con,button) -> 
             printfn "Button unpressed by %d" con
-            [GrabObject (con, false)]
+            match button with 
+            | 0 -> [ChangeMenu(con, false)]
+            | _ -> [GrabObject (con, false)]
         | _ -> 
             []
 
@@ -433,6 +481,21 @@ module Demo =
                 toEffect DefaultSurfaces.simpleLighting                              
                 ]
 
+        let menuBox = 
+            m.boxes
+            |> AList.toASet 
+            |> ASet.map (fun b -> 
+                mkISg m b 
+               )
+            |> Sg.set
+            |> Sg.effect [
+                toEffect DefaultSurfaces.trafo
+                toEffect DefaultSurfaces.vertexColor
+                toEffect DefaultSurfaces.simpleLighting                              
+                ]
+            //Sg.textWithConfig TextConfig.Default m.text
+            |> Sg.noEvents
+
         let menuText = 
             Sg.textWithConfig TextConfig.Default (Mod.constant("Menu"))
             |> Sg.noEvents
@@ -514,6 +577,7 @@ module Demo =
         |> Sg.noEvents
         |> Sg.andAlso deviceSgs
         |> Sg.andAlso a
+        |> Sg.andAlso menuBox
         //|> Sg.andAlso menuText
         //|> Sg.andAlso boxGhost
    
@@ -526,7 +590,7 @@ module Demo =
             do! DefaultSurfaces.simpleLighting
         }
 
-    let newBoxList = OpcUtilities.mkBoxes 2
+    let newBoxList = PList.empty//OpcUtilities.mkBoxes 2
     
     let patchHierarchiesDir = Directory.GetDirectories("C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423") |> Array.head |> Array.singleton
 

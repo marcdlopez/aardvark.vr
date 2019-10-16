@@ -24,7 +24,12 @@ module OpcUtilities =
 
     let mkBoxes (number: int) : plist<VisibleBox> =        
         [0..number-1]
-        |> List.map (fun x -> VisibleBox.createVisibleBox C4b.Red (V3d(0.0, 2.0 * float x, 0.0)))
+        |> List.map (fun x -> VisibleBox.createVisibleBox C4b.Yellow (V3d(0.0, 2.0 * float x, 0.0)))
+        |> PList.ofList
+
+    let mkBoxesMenu (controllerPos : Pose) (number: int) : plist<VisibleBox> =
+        [0..number-1]
+        |> List.map (fun x -> VisibleBox.createVisibleBox C4b.Yellow (controllerPos.deviceToWorld.GetModelOrigin()))
         |> PList.ofList
 
     let getWorldTrafoIfBackPressed index model : Trafo3d = 

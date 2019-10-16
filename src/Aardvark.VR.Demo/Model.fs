@@ -45,6 +45,7 @@ type ControllerInfo = {
     //buttons : ButtonStates
     backButtonPressed : bool
     frontButtonPressed: bool
+    joystickPressed : bool
 }
 
 
@@ -96,7 +97,7 @@ module VisibleBox =
     
     let private initial = 
         {
-            geometry  = Box3d.FromCenterAndSize(V3d.Zero, V3d.One)
+            geometry  = Box3d.FromSize(V3d(0.25, 1.0, 0.25))//Box3d.FromCenterAndSize(V3d.Zero, V3d.One)
             color = C4b.Red
             trafo = Trafo3d.Identity
             size = V3d.One

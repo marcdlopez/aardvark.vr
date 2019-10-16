@@ -135,10 +135,12 @@ module Mutable =
         let _pose = Aardvark.Vr.Mutable.MPose.Create(__initial.pose)
         let _backButtonPressed = ResetMod.Create(__initial.backButtonPressed)
         let _frontButtonPressed = ResetMod.Create(__initial.frontButtonPressed)
+        let _joystickPressed = ResetMod.Create(__initial.joystickPressed)
         
         member x.pose = _pose
         member x.backButtonPressed = _backButtonPressed :> IMod<_>
         member x.frontButtonPressed = _frontButtonPressed :> IMod<_>
+        member x.joystickPressed = _joystickPressed :> IMod<_>
         
         member x.Current = __current :> IMod<_>
         member x.Update(v : Demo.ControllerInfo) =
@@ -148,6 +150,7 @@ module Mutable =
                 Aardvark.Vr.Mutable.MPose.Update(_pose, v.pose)
                 ResetMod.Update(_backButtonPressed,v.backButtonPressed)
                 ResetMod.Update(_frontButtonPressed,v.frontButtonPressed)
+                ResetMod.Update(_joystickPressed,v.joystickPressed)
                 
         
         static member Create(__initial : Demo.ControllerInfo) : MControllerInfo = MControllerInfo(__initial)
@@ -181,6 +184,12 @@ module Mutable =
                     override x.Get(r) = r.frontButtonPressed
                     override x.Set(r,v) = { r with frontButtonPressed = v }
                     override x.Update(r,f) = { r with frontButtonPressed = f r.frontButtonPressed }
+                }
+            let joystickPressed =
+                { new Lens<Demo.ControllerInfo, System.Boolean>() with
+                    override x.Get(r) = r.joystickPressed
+                    override x.Set(r,v) = { r with joystickPressed = v }
+                    override x.Update(r,f) = { r with joystickPressed = f r.joystickPressed }
                 }
     
     

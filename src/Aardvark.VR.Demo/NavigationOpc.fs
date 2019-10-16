@@ -39,6 +39,7 @@ module NavigationOpc =
                     //buttons  = ButtonStates.
                     backButtonPressed = false
                     frontButtonPressed = false
+                    joystickPressed = false
                 }
                 Some  newInfo) // creation 
                 
@@ -90,8 +91,8 @@ module NavigationOpc =
                     // coordinate system (rotation axis) should probably be at the center distance of the controllers
                         
                 let newGlobalTrafo = newModel.initGlobalTrafo * newRotationTrafo * scaleControllerCenter//* Trafo3d.Scale (newControllerDistance) 
-                printfn "global trafo position : %A" (newGlobalTrafo.GetModelOrigin())
-                printfn "rotation coordinate system: %A "(newModel.rotationAxis.GetModelOrigin())
+                //printfn "global trafo position : %A" (newGlobalTrafo.GetModelOrigin())
+                //printfn "rotation coordinate system: %A "(newModel.rotationAxis.GetModelOrigin())
                 {newModel with globalTrafo = newGlobalTrafo}
             | _ -> 
                 newModel
