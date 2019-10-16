@@ -66,7 +66,6 @@ module Demo =
         match msg with
         | OpcViewerMsg m -> 
             let newOpcModel = OpcViewer.Base.Picking.PickingApp.update OpcViewer.Base.Picking.PickingModel.initial m
-            
             {model with pickingModel = newOpcModel}
         | SetText t -> 
             { model with text = t }
@@ -97,16 +96,18 @@ module Demo =
                 if buttonPressed then 
                     let controllerPos = model.controllerPositions |> HMap.values |> Seq.item controllerIndex
                     OpcUtilities.mkBoxesMenu controllerPos.pose 1
-                    //failwith""
                 else PList.empty
+            
+            //let model = 
+            //    if buttonPressed then 
+            //        {model with menu = MenuState.InMenu}
+            //    else 
+            //        {model with menu = MenuState.Annotation} 
+                    //This is not good, think about a way to switch menus when stop pressing the joystick
+                    //add a selection variable of type menuState in the model having the last selection of menu mode
                 
             {model with boxes = newBoxList; controllerPositions = updateJoystickButton}
             
-            //if model.menu.Equals(MenuState.Navigation) then
-            //    {model with menu = MenuState.Annotation}
-            //else 
-            //    {model with menu = MenuState.Navigation}
-
         | HoverIn id ->
             match model.boxHovered with 
             | Some oldID when id = oldID -> model
@@ -131,7 +132,11 @@ module Demo =
                 | MenuState.Annotation ->
                     printfn "Annotation"
                     model
-            
+                | MenuState.InMenu ->
+                    printfn "User wants to switch menu mode"
+                    model 
+                    //|> MenuOpc.menuScreen
+                    
             let joystickFilter = 
                 newModel.controllerPositions
                 |> HMap.filter (fun index CI -> 
@@ -150,6 +155,7 @@ module Demo =
                 | _ -> newModel
 
             newModel
+            
         
         | GrabObject (controllerIndex, buttonPress)->
         

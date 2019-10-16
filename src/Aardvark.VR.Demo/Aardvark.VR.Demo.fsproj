@@ -15,6 +15,7 @@
     <Compile Include="OpcViewerFunc.fs" />
     <Compile Include="Model.fs" />
     <Compile Include="OpcUtilities.fs" />
+    <Compile Include="MenuOpc.fs" />
     <Compile Include="NavigationOpc.fs" />
     <Compile Include="AnnotationOpc.fs" />
     <Compile Include="App.fs" />

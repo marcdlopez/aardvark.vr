@@ -38,6 +38,7 @@ type ButtonStates = {
 type MenuState = 
     | Navigation
     | Annotation
+    | InMenu
 
 [<DomainType>]
 type ControllerInfo = {

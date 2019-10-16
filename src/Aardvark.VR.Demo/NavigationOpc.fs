@@ -1,23 +1,7 @@
 ﻿namespace Demo
-open System
-open System.IO
+
 open Aardvark.Base
 open Aardvark.Base.Incremental
-open Aardvark.Base.Rendering
-open Aardvark.Rendering.Text
-open Aardvark.SceneGraph
-open Aardvark.SceneGraph.Opc
-open Aardvark.UI
-open Aardvark.UI.Primitives
-open Aardvark.UI.Trafos
-open Aardvark.UI.Generic
-open FShade
-open Aardvark.Application.OpenVR
-open Aardvark.Vr
-
-open OpcViewer.Base
-open OpcViewer.Base.Picking
-open OpcViewer.Base.Attributes
 
 module NavigationOpc = 
     open Aardvark.Application
