@@ -119,7 +119,7 @@ module Demo =
                 Log.warn "Exit box with ID: %A" model.boxHovered.Value    
                 { model with boxHovered = None}
             else 
-                Log.warn "Nothing hovered"
+                //Log.warn "Nothing hovered"
                 model
         | CameraMessage m -> 
             { model with cameraState = FreeFlyController.update model.cameraState m }   
@@ -154,7 +154,32 @@ module Demo =
                     {newModel with boxes = updateBoxPos}
                 | _ -> newModel
 
-            newModel
+            //newModel
+
+            // store cnotrollers positions in a new variable
+            if newModel.controllerPositions.Count.Equals(5) then
+                // the way to get the controller's positions should be improved
+                let cp0 = newModel.controllerPositions |> HMap.values |> Seq.item 0
+                let cp1 = newModel.controllerPositions |> HMap.values |> Seq.item 1
+                let cp2 = newModel.controllerPositions |> HMap.values |> Seq.item 2
+                let cp3 = newModel.controllerPositions |> HMap.values |> Seq.item 3
+                let cp4 = newModel.controllerPositions |> HMap.values |> Seq.item 4
+            
+                let mayHover = 
+                    newModel.boxes
+                    |> PList.choose (fun b -> 
+                        if (b.geometry.Transformed(b.trafo).Contains(cp2.pose.deviceToWorld.GetModelOrigin()) || b.geometry.Transformed(b.trafo).Contains(cp3.pose.deviceToWorld.GetModelOrigin())) then 
+                            Some b.id
+                        else None)
+                    |> PList.tryFirst
+
+                let newModel = 
+                    match mayHover with 
+                    | Some ID -> update state vr newModel (HoverIn ID)
+                    | None -> update state vr newModel HoverOut
+                newModel 
+            else newModel
+
             
         
         | GrabObject (controllerIndex, buttonPress)->
