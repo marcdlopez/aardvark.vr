@@ -23,7 +23,7 @@ open OpcViewer.Base.Attributes
 type DemoMessage =
     | SetText of string 
     | ToggleVR
-    | ChangeMenu of int*bool
+    | CreateMenu of int*bool
     | Select of string
     | HoverIn of string
     | HoverOut
@@ -73,7 +73,7 @@ module Demo =
             if model.vr then vr.stop()
             else vr.start()
             { model with vr = not model.vr }
-        | ChangeMenu (controllerIndex, buttonPressed) ->
+        | CreateMenu (controllerIndex, buttonPressed) ->
             
             let updateJoystickButton = 
                 model.controllerPositions
@@ -95,7 +95,7 @@ module Demo =
             let newBoxList = 
                 if buttonPressed then 
                     let controllerPos = model.controllerPositions |> HMap.values |> Seq.item controllerIndex
-                    OpcUtilities.mkBoxesMenu controllerPos.pose 1
+                    OpcUtilities.mkBoxesMenu controllerPos.pose 2 //number of menu possibilities should be the number of boxes. So far 2
                 else PList.empty
             
             //let model = 
@@ -143,18 +143,19 @@ module Demo =
                     CI.joystickPressed = true
                 )
             
-            let newModel = 
-                match joystickFilter.Count with 
-                | 1 -> 
-                    let controllerPos = joystickFilter |> HMap.values |> Seq.item 0
-                    let updateBoxPos = 
-                        newModel.boxes
-                        |> PList.map (fun x -> 
-                            {x with trafo = Trafo3d.Translation(controllerPos.pose.deviceToWorld.GetModelOrigin() + V3d(0.0, 0.0, 0.10))})
-                    {newModel with boxes = updateBoxPos}
-                | _ -> newModel
-
+            //let newModel = 
+            //    match joystickFilter.Count with 
+            //    | 1 -> 
+            //        let controllerPos = joystickFilter |> HMap.values |> Seq.item 0
+            //        let updateBoxPos = 
+            //            newModel.boxes
+            //            |> PList.map (fun x -> 
+            //                {x with trafo = Trafo3d.Translation(controllerPos.pose.deviceToWorld.GetModelOrigin() + V3d(0.0, 0.0, 0.10))})
+            //        {newModel with boxes = updateBoxPos}
+            //    | _ -> newModel
             //newModel
+
+            //ASK ABOUT OPINIONS: static menu, moving menu according to controller's position
 
             // store cnotrollers positions in a new variable
             if newModel.controllerPositions.Count.Equals(5) then
@@ -175,13 +176,25 @@ module Demo =
 
                 let newModel = 
                     match mayHover with 
-                    | Some ID -> update state vr newModel (HoverIn ID)
+                    | Some ID -> 
+                        if cp2.backButtonPressed || cp3.backButtonPressed then
+                            //printfn "Change menu"
+                            //newModel
+
+                            let boxID = newModel.boxes |> Seq.item 0
+
+                            if boxID.id.Contains(ID) then 
+                                printfn "Navigation Menu is selected"
+                                newModel
+                            else 
+                                printfn "Annotation Menu is selected"
+                                newModel
+
+                        else update state vr newModel (HoverIn ID)
                     | None -> update state vr newModel HoverOut
                 newModel 
             else newModel
 
-            
-        
         | GrabObject (controllerIndex, buttonPress)->
         
             let updateControllerButtons = 
@@ -275,13 +288,13 @@ module Demo =
         | VrMessage.Press(con,button) -> 
             printfn "%d Button identification %d" con button
             match button with
-            | 0 -> [ChangeMenu(con, true)]
+            | 0 -> [CreateMenu(con, true)]
             | _ -> [GrabObject(con, true)]
             
         | VrMessage.Unpress(con,button) -> 
             printfn "Button unpressed by %d" con
             match button with 
-            | 0 -> [ChangeMenu(con, false)]
+            | 0 -> [CreateMenu(con, false)]
             | _ -> [GrabObject (con, false)]
         | _ -> 
             []
