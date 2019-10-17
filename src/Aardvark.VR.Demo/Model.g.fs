@@ -83,6 +83,79 @@ module Mutable =
                 }
     
     
+    type MVisibleCone(__initial : Demo.VisibleCone) =
+        inherit obj()
+        let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.VisibleCone> = Aardvark.Base.Incremental.EqModRef<Demo.VisibleCone>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.VisibleCone>
+        let _geometryCone = ResetMod.Create(__initial.geometryCone)
+        let _color = ResetMod.Create(__initial.color)
+        let _trafo = ResetMod.Create(__initial.trafo)
+        let _size = ResetMod.Create(__initial.size)
+        let _id = ResetMod.Create(__initial.id)
+        
+        member x.geometryCone = _geometryCone :> IMod<_>
+        member x.color = _color :> IMod<_>
+        member x.trafo = _trafo :> IMod<_>
+        member x.size = _size :> IMod<_>
+        member x.id = _id :> IMod<_>
+        
+        member x.Current = __current :> IMod<_>
+        member x.Update(v : Demo.VisibleCone) =
+            if not (System.Object.ReferenceEquals(__current.Value, v)) then
+                __current.Value <- v
+                
+                ResetMod.Update(_geometryCone,v.geometryCone)
+                ResetMod.Update(_color,v.color)
+                ResetMod.Update(_trafo,v.trafo)
+                ResetMod.Update(_size,v.size)
+                _id.Update(v.id)
+                
+        
+        static member Create(__initial : Demo.VisibleCone) : MVisibleCone = MVisibleCone(__initial)
+        static member Update(m : MVisibleCone, v : Demo.VisibleCone) = m.Update(v)
+        
+        override x.ToString() = __current.Value.ToString()
+        member x.AsString = sprintf "%A" __current.Value
+        interface IUpdatable<Demo.VisibleCone> with
+            member x.Update v = x.Update v
+    
+    
+    
+    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+    module VisibleCone =
+        [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+        module Lens =
+            let geometryCone =
+                { new Lens<Demo.VisibleCone, Aardvark.Base.Cone3d>() with
+                    override x.Get(r) = r.geometryCone
+                    override x.Set(r,v) = { r with geometryCone = v }
+                    override x.Update(r,f) = { r with geometryCone = f r.geometryCone }
+                }
+            let color =
+                { new Lens<Demo.VisibleCone, Aardvark.Base.C4b>() with
+                    override x.Get(r) = r.color
+                    override x.Set(r,v) = { r with color = v }
+                    override x.Update(r,f) = { r with color = f r.color }
+                }
+            let trafo =
+                { new Lens<Demo.VisibleCone, Aardvark.Base.Trafo3d>() with
+                    override x.Get(r) = r.trafo
+                    override x.Set(r,v) = { r with trafo = v }
+                    override x.Update(r,f) = { r with trafo = f r.trafo }
+                }
+            let size =
+                { new Lens<Demo.VisibleCone, Aardvark.Base.V3d>() with
+                    override x.Get(r) = r.size
+                    override x.Set(r,v) = { r with size = v }
+                    override x.Update(r,f) = { r with size = f r.size }
+                }
+            let id =
+                { new Lens<Demo.VisibleCone, System.String>() with
+                    override x.Get(r) = r.id
+                    override x.Set(r,v) = { r with id = v }
+                    override x.Update(r,f) = { r with id = f r.id }
+                }
+    
+    
     type MLine(__initial : Demo.Line) =
         inherit obj()
         let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.Line> = Aardvark.Base.Incremental.EqModRef<Demo.Line>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.Line>
@@ -201,6 +274,7 @@ module Mutable =
         let _boxes = MList.Create(__initial.boxes, (fun v -> MVisibleBox.Create(v)), (fun (m,v) -> MVisibleBox.Update(m, v)), (fun v -> v))
         let _boxHovered = MOption.Create(__initial.boxHovered)
         let _boxSelected = MSet.Create(__initial.boxSelected)
+        let _annotationBoxes = MList.Create(__initial.annotationBoxes, (fun v -> MVisibleBox.Create(v)), (fun (m,v) -> MVisibleBox.Update(m, v)), (fun v -> v))
         let _cameraState = Aardvark.UI.Primitives.Mutable.MCameraControllerState.Create(__initial.cameraState)
         let _ControllerPosition = ResetMod.Create(__initial.ControllerPosition)
         let _offsetToCenter = ResetMod.Create(__initial.offsetToCenter)
@@ -231,6 +305,7 @@ module Mutable =
         member x.boxes = _boxes :> alist<_>
         member x.boxHovered = _boxHovered :> IMod<_>
         member x.boxSelected = _boxSelected :> aset<_>
+        member x.annotationBoxes = _annotationBoxes :> alist<_>
         member x.cameraState = _cameraState
         member x.ControllerPosition = _ControllerPosition :> IMod<_>
         member x.offsetToCenter = _offsetToCenter :> IMod<_>
@@ -267,6 +342,7 @@ module Mutable =
                 MList.Update(_boxes, v.boxes)
                 MOption.Update(_boxHovered, v.boxHovered)
                 MSet.Update(_boxSelected, v.boxSelected)
+                MList.Update(_annotationBoxes, v.annotationBoxes)
                 Aardvark.UI.Primitives.Mutable.MCameraControllerState.Update(_cameraState, v.cameraState)
                 ResetMod.Update(_ControllerPosition,v.ControllerPosition)
                 ResetMod.Update(_offsetToCenter,v.offsetToCenter)
@@ -336,6 +412,12 @@ module Mutable =
                     override x.Get(r) = r.boxSelected
                     override x.Set(r,v) = { r with boxSelected = v }
                     override x.Update(r,f) = { r with boxSelected = f r.boxSelected }
+                }
+            let annotationBoxes =
+                { new Lens<Demo.Model, Aardvark.Base.plist<Demo.VisibleBox>>() with
+                    override x.Get(r) = r.annotationBoxes
+                    override x.Set(r,v) = { r with annotationBoxes = v }
+                    override x.Update(r,f) = { r with annotationBoxes = f r.annotationBoxes }
                 }
             let cameraState =
                 { new Lens<Demo.Model, Aardvark.UI.Primitives.CameraControllerState>() with

@@ -129,20 +129,20 @@ module Demo =
                 | MenuState.Navigation ->
                     model 
                     |> NavigationOpc.currentSceneInfo controllerIndex p
+                    //the controllers position of this function should go before the match, otherwise opsition is not updates in annotation mode
                 | MenuState.Annotation ->
-                    printfn "Annotation"
                     model
+                    |> AnnotationOpc.annotationMode controllerIndex p
                 | MenuState.InMenu ->
                     printfn "User wants to switch menu mode"
                     model 
                     //|> MenuOpc.menuScreen
                     
-            let joystickFilter = 
-                newModel.controllerPositions
-                |> HMap.filter (fun index CI -> 
-                    CI.joystickPressed = true
-                )
-            
+            //let joystickFilter = 
+            //    newModel.controllerPositions
+            //    |> HMap.filter (fun index CI -> 
+            //        CI.joystickPressed = true
+            //    )
             //let newModel = 
             //    match joystickFilter.Count with 
             //    | 1 -> 
@@ -156,7 +156,7 @@ module Demo =
             //newModel
 
             //ASK ABOUT OPINIONS: static menu, moving menu according to controller's position
-
+        
             // store cnotrollers positions in a new variable
             if newModel.controllerPositions.Count.Equals(5) then
                 // the way to get the controller's positions should be improved
@@ -178,25 +178,24 @@ module Demo =
                     match mayHover with 
                     | Some ID -> 
                         if cp2.backButtonPressed || cp3.backButtonPressed then
-                            //printfn "Change menu"
-                            //newModel
-
                             let boxID = newModel.boxes |> Seq.item 0
 
                             if boxID.id.Contains(ID) then 
-                                printfn "Navigation Menu is selected"
-                                newModel
+                                //printfn "Navigation Menu is selected"
+                                {newModel with menu = MenuState.Navigation}
                             else 
-                                printfn "Annotation Menu is selected"
-                                newModel
+                                //printfn "Annotation Menu is selected"
+                                {newModel with menu = MenuState.Annotation}
 
                         else update state vr newModel (HoverIn ID)
                     | None -> update state vr newModel HoverOut
                 newModel 
             else newModel
-
+            
         | GrabObject (controllerIndex, buttonPress)->
-        
+            
+            printfn "Menu mode is: %s" (model.menu.ToString())
+            
             let updateControllerButtons = 
                 model.controllerPositions
                 |> HMap.alter controllerIndex (fun but ->  
@@ -214,12 +213,16 @@ module Demo =
 
             let model = {model with controllerPositions = updateControllerButtons}
             
-            let newModel : Model = 
+            match model.menu with 
+            | Navigation -> 
                 model
-                |> NavigationOpc.initialSceneInfo 
+                |> NavigationOpc.initialSceneInfo
+            | Annotation -> 
+                model
+                |> AnnotationOpc.createAnnotationBox
+            | InMenu -> 
+                model
                 
-            newModel
-            
         | _ -> model
 
     let mkColor (model : MModel) (box : MVisibleBox) =
@@ -267,7 +270,24 @@ module Demo =
                 //Sg.onClick (fun _  -> GrabObject true)
                 Sg.onEnter (fun _  -> HoverIn  (box.id.ToString()))
                 Sg.onLeave (fun _ -> HoverOut)
-            ]
+            ]     
+    
+    let mkAnnotationISg (model : MModel) (box : MVisibleBox) =
+    
+        let color = C4b.Magenta |> Mod.constant
+        let pos = box.trafo
+        Sg.box color box.geometry
+            //|> Sg.transform (Trafo3d.Translation pos)
+            |> Sg.scale 0.25
+            |> Sg.trafo(pos)
+            |> Sg.shader {
+                do! DefaultSurfaces.trafo
+                do! DefaultSurfaces.vertexColor
+                do! DefaultSurfaces.simpleLighting
+                }                
+            |> Sg.requirePicking
+            |> Sg.noEvents
+            
 
     let threads (model : Model) =
         ThreadPool.empty
@@ -540,11 +560,18 @@ module Demo =
             //Sg.textWithConfig TextConfig.Default m.text
             |> Sg.noEvents
 
-        let menuText = 
-            Sg.textWithConfig TextConfig.Default (Mod.constant("Menu"))
+        let annotationBoxes = 
+            m.annotationBoxes 
+            |> AList.toASet
+            |> ASet.map (fun ab -> 
+                mkAnnotationISg m ab)
+            |> Sg.set
+            |> Sg.effect [
+                toEffect DefaultSurfaces.trafo
+                toEffect DefaultSurfaces.vertexColor
+                toEffect DefaultSurfaces.simpleLighting                              
+                ]
             |> Sg.noEvents
-            |> Sg.trafo (Mod.constant (Trafo3d.Identity))
-            |> Sg.trafo (Mod.constant (Trafo3d.RotationInDegrees(90.0, 0.0, 90.0)))
 
         let deviceSgs = 
             info.state.devices |> AMap.toASet |> ASet.chooseM (fun (_,d) ->
@@ -622,7 +649,7 @@ module Demo =
         |> Sg.andAlso deviceSgs
         |> Sg.andAlso a
         |> Sg.andAlso menuBox
-        //|> Sg.andAlso menuText
+        |> Sg.andAlso annotationBoxes
         //|> Sg.andAlso boxGhost
    
     let pause (info : VrSystemInfo) (m : MModel) =
@@ -635,6 +662,7 @@ module Demo =
         }
 
     let newBoxList = PList.empty//OpcUtilities.mkBoxes 2
+    let newAnnotationBoxList = PList.empty
     
     let patchHierarchiesDir = Directory.GetDirectories("C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423") |> Array.head |> Array.singleton
 
@@ -656,6 +684,8 @@ module Demo =
             boxes = newBoxList
             boxHovered = None
             boxSelected = HSet.empty
+
+            annotationBoxes = newAnnotationBoxList
             //cameraState = FreeFlyController.initial
             ControllerPosition = V3d.OOO
             grabbed = HSet.empty

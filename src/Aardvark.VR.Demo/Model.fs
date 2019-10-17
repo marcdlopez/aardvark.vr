@@ -20,6 +20,16 @@ type VisibleBox = {
 }
 
 [<DomainType>]
+type VisibleCone = {
+    geometryCone : Cone3d
+    color : C4b
+    trafo : Trafo3d
+    size : V3d
+    [<TreatAsValue>]
+    id : string
+}
+
+[<DomainType>]
 type Line = {
     line : Line3d
     color : C4b
@@ -59,6 +69,8 @@ type Model =
         boxes               : plist<VisibleBox> // maybe change to hmap for finding stuff by id...
         boxHovered          : option<string>
         boxSelected         : hset<string>
+
+        annotationBoxes     : plist<VisibleBox>
 
         cameraState         : CameraControllerState
 
@@ -109,6 +121,24 @@ module VisibleBox =
         {   initial 
                 with
                 color = color     
+                trafo = Trafo3d.Translation(position)
+                id = System.Guid.NewGuid().ToString()
+        }
+
+module VisibleCone = 
+    let private initial = 
+        {
+            geometryCone = Cone3d(V3d.Zero, V3d.OOI, 30.0)
+            color = C4b.Red
+            trafo = Trafo3d.Identity
+            size = V3d.One
+            id = ""
+        }
+    let createVisibleCone (color : C4b) (position : V3d) = 
+        {
+            initial 
+                with 
+                color = color 
                 trafo = Trafo3d.Translation(position)
                 id = System.Guid.NewGuid().ToString()
         }
