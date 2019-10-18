@@ -14,7 +14,7 @@ type VisibleBox = {
     color : C4b
     trafo : Trafo3d
     //pos : Pose
-    size : V3d
+    //size : V3d
     [<TreatAsValue>]
     id : string
 }
@@ -88,6 +88,7 @@ type Model =
         controllerPositions : hmap<int, ControllerInfo>
         //controllerButtons : hmap<int, bool>
         controllerDistance  : float 
+        controllerMenuSelector : int
         offsetControllerDistance : float
         //opcModel : OpcSelectionViewer.Model
         [<NonIncremental>]
@@ -110,10 +111,10 @@ module VisibleBox =
     
     let private initial = 
         {
-            geometry  = Box3d.FromSize(V3d(0.25, 1.0, 0.25))//Box3d.FromCenterAndSize(V3d.Zero, V3d.One)
+            geometry  = Box3d.FromSize(V3d(0.10, 0.25, 0.05))//Box3d.FromCenterAndSize(V3d.Zero, V3d.One)
             color = C4b.Red
             trafo = Trafo3d.Identity
-            size = V3d.One
+            //size = V3d.One
             id = ""
         }
 

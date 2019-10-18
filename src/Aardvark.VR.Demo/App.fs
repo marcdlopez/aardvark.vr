@@ -158,39 +158,52 @@ module Demo =
             //ASK ABOUT OPINIONS: static menu, moving menu according to controller's position
         
             // store cnotrollers positions in a new variable
-            if newModel.controllerPositions.Count.Equals(5) then
-                // the way to get the controller's positions should be improved
-                let cp0 = newModel.controllerPositions |> HMap.values |> Seq.item 0
-                let cp1 = newModel.controllerPositions |> HMap.values |> Seq.item 1
-                let cp2 = newModel.controllerPositions |> HMap.values |> Seq.item 2
-                let cp3 = newModel.controllerPositions |> HMap.values |> Seq.item 3
-                let cp4 = newModel.controllerPositions |> HMap.values |> Seq.item 4
+            let newModel = 
+                if newModel.controllerPositions.Count.Equals(5) then
+                    // the way to get the controller's positions should be improved -> not precise
+                    let cp0 = newModel.controllerPositions |> HMap.values |> Seq.item 0
+                    let cp1 = newModel.controllerPositions |> HMap.values |> Seq.item 1
+                    let cp2 = newModel.controllerPositions |> HMap.values |> Seq.item 2
+                    let cp3 = newModel.controllerPositions |> HMap.values |> Seq.item 3
+                    let cp4 = newModel.controllerPositions |> HMap.values |> Seq.item 4
             
-                let mayHover = 
-                    newModel.boxes
-                    |> PList.choose (fun b -> 
-                        if (b.geometry.Transformed(b.trafo).Contains(cp2.pose.deviceToWorld.GetModelOrigin()) || b.geometry.Transformed(b.trafo).Contains(cp3.pose.deviceToWorld.GetModelOrigin())) then 
-                            Some b.id
-                        else None)
-                    |> PList.tryFirst
+                    let mayHover = 
+                        newModel.boxes
+                        |> PList.choose (fun b -> 
+                            if (b.geometry.Transformed(b.trafo).Contains(cp4.pose.deviceToWorld.GetModelOrigin()) || b.geometry.Transformed(b.trafo).Contains(cp3.pose.deviceToWorld.GetModelOrigin())) then 
+                                Some b.id
+                            else None)
+                        |> PList.tryFirst
 
-                let newModel = 
-                    match mayHover with 
-                    | Some ID -> 
-                        if cp2.backButtonPressed || cp3.backButtonPressed then
-                            let boxID = newModel.boxes |> Seq.item 0
+                    let newModel = 
+                        match mayHover with 
+                        | Some ID -> 
+                            if cp4.backButtonPressed || cp3.backButtonPressed then
+                                let boxID = newModel.boxes |> Seq.item 0
+                                let menuSelector = 
+                                    if cp4.backButtonPressed then newModel.controllerPositions |> HMap.keys |> Seq.item 4
+                                    else newModel.controllerPositions |> HMap.keys |> Seq.item 3
 
-                            if boxID.id.Contains(ID) then 
-                                //printfn "Navigation Menu is selected"
-                                {newModel with menu = MenuState.Navigation}
-                            else 
-                                //printfn "Annotation Menu is selected"
-                                {newModel with menu = MenuState.Annotation}
+                                if boxID.id.Contains(ID) then 
+                                    //printfn "Navigation Menu is selected"
+                                    {newModel with menu = MenuState.Navigation}
+                                else 
+                                    //printfn "Annotation Menu is selected"
+                                    {newModel with menu = MenuState.Annotation; controllerMenuSelector = menuSelector}
+                            else update state vr newModel (HoverIn ID)
+                        | None -> update state vr newModel HoverOut
+                    newModel 
+                else newModel
 
-                        else update state vr newModel (HoverIn ID)
-                    | None -> update state vr newModel HoverOut
-                newModel 
-            else newModel
+            let newModel = 
+                let sc = newModel.controllerPositions |> HMap.values |> Seq.item newModel.controllerMenuSelector
+                let updateAnnotationBox = 
+                    newModel.annotationBoxes
+                    |> PList.map (fun ab -> 
+                        {ab with trafo = Trafo3d.Translation(sc.pose.deviceToWorld.GetModelOrigin())}) //missing rotation of the annotation box
+                {newModel with annotationBoxes = updateAnnotationBox}
+
+            newModel
             
         | GrabObject (controllerIndex, buttonPress)->
             
@@ -257,7 +270,7 @@ module Demo =
         let pos = box.trafo
         Sg.box color box.geometry
             //|> Sg.transform (Trafo3d.Translation pos)
-            |> Sg.scale 0.25
+            //|> Sg.scale 0.25
             |> Sg.trafo(pos)
             |> Sg.shader {
                 do! DefaultSurfaces.trafo
@@ -603,26 +616,28 @@ module Demo =
         //        return Trafo3d.Translation(bb.Center) * c0Shift// * c1Shift
         //    }
 
-        //let opcs = 
-        //    m.opcInfos
-        //        |> AMap.toASet
-        //        |> ASet.map(fun info -> 
-        //            Sg.createSingleOpcSg m.opcAttributes.selectedScalar (Mod.constant false) m.cameraState.view info
-        //            )
-        //        |> Sg.set
-        //        |> Sg.effect [ 
-        //            toEffect Shader.stableTrafo
-        //            toEffect DefaultSurfaces.diffuseTexture  
-        //            toEffect Shader.AttributeShader.falseColorLegend //falseColorLegendGray
-        //        ]
-        //        |> Sg.noEvents
-        //        //|> Sg.translate' (m.boundingBox |> Mod.map (fun p -> - p.Center))
-        //opcs
-        //|> Sg.map OpcViewerMsg
-        //|> Sg.noEvents
-        //|> Sg.trafo m.globalTrafo 
-        //|> Sg.andAlso deviceSgs
-        //|> Sg.andAlso a
+        let opcs = 
+            m.opcInfos
+                |> AMap.toASet
+                |> ASet.map(fun info -> 
+                    Sg.createSingleOpcSg m.opcAttributes.selectedScalar (Mod.constant false) m.cameraState.view info
+                    )
+                |> Sg.set
+                |> Sg.effect [ 
+                    toEffect Shader.stableTrafo
+                    toEffect DefaultSurfaces.diffuseTexture  
+                    toEffect Shader.AttributeShader.falseColorLegend //falseColorLegendGray
+                ]
+                |> Sg.noEvents
+                //|> Sg.translate' (m.boundingBox |> Mod.map (fun p -> - p.Center))
+        opcs
+        |> Sg.map OpcViewerMsg
+        |> Sg.noEvents
+        |> Sg.trafo m.globalTrafo 
+        |> Sg.andAlso deviceSgs
+        |> Sg.andAlso a
+        |> Sg.andAlso menuBox
+        |> Sg.andAlso annotationBoxes
 
         //let boxGhost = 
         //    Sg.box (Mod.constant C4b.DarkYellow) (Mod.constant Box3d.Unit)
@@ -635,21 +650,21 @@ module Demo =
         //    |> Sg.noEvents
         //    |> Sg.trafo m.initGlobalTrafo
           
-        let boxTest = 
-            Sg.box (Mod.constant C4b.Red) (Mod.constant Box3d.Unit)
-                |> Sg.shader {
-                    do! DefaultSurfaces.trafo
-                    do! DefaultSurfaces.vertexColor
-                    do! DefaultSurfaces.simpleLighting
-                    }
-                |> Sg.noEvents
-                |> Sg.trafo m.globalTrafo   
-        boxTest 
-        |> Sg.noEvents
-        |> Sg.andAlso deviceSgs
-        |> Sg.andAlso a
-        |> Sg.andAlso menuBox
-        |> Sg.andAlso annotationBoxes
+        //let boxTest = 
+        //    Sg.box (Mod.constant C4b.Red) (Mod.constant Box3d.Unit)
+        //        |> Sg.shader {
+        //            do! DefaultSurfaces.trafo
+        //            do! DefaultSurfaces.vertexColor
+        //            do! DefaultSurfaces.simpleLighting
+        //            }
+        //        |> Sg.noEvents
+        //        |> Sg.trafo m.globalTrafo   
+        //boxTest 
+        //|> Sg.noEvents
+        //|> Sg.andAlso deviceSgs
+        //|> Sg.andAlso a
+        //|> Sg.andAlso menuBox
+        //|> Sg.andAlso annotationBoxes
         //|> Sg.andAlso boxGhost
    
     let pause (info : VrSystemInfo) (m : MModel) =
@@ -708,13 +723,14 @@ module Demo =
             pickingModel = OpcViewer.Base.Picking.PickingModel.initial
             //controllerButtons = hmap.Empty
             controllerDistance = 1.0
-            globalTrafo = Trafo3d.Identity//Trafo3d.Translation -BoundingBoxInit.Center //gloabal trafo for opc, with center in boundingbox center
+            globalTrafo = Trafo3d.Translation -BoundingBoxInit.Center //gloabal trafo for opc, with center in boundingbox center
             offsetControllerDistance = 1.0
             initGlobalTrafo = Trafo3d.Identity
             initControlTrafo = Trafo3d.Identity
             init2ControlTrafo = Trafo3d.Identity
             rotationAxis = Trafo3d.Identity
             menu = MenuState.Navigation
+            controllerMenuSelector = 0
         }
     let app =
         {

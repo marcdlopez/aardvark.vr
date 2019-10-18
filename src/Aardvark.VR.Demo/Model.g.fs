@@ -16,13 +16,11 @@ module Mutable =
         let _geometry = ResetMod.Create(__initial.geometry)
         let _color = ResetMod.Create(__initial.color)
         let _trafo = ResetMod.Create(__initial.trafo)
-        let _size = ResetMod.Create(__initial.size)
         let _id = ResetMod.Create(__initial.id)
         
         member x.geometry = _geometry :> IMod<_>
         member x.color = _color :> IMod<_>
         member x.trafo = _trafo :> IMod<_>
-        member x.size = _size :> IMod<_>
         member x.id = _id :> IMod<_>
         
         member x.Current = __current :> IMod<_>
@@ -33,7 +31,6 @@ module Mutable =
                 ResetMod.Update(_geometry,v.geometry)
                 ResetMod.Update(_color,v.color)
                 ResetMod.Update(_trafo,v.trafo)
-                ResetMod.Update(_size,v.size)
                 _id.Update(v.id)
                 
         
@@ -68,12 +65,6 @@ module Mutable =
                     override x.Get(r) = r.trafo
                     override x.Set(r,v) = { r with trafo = v }
                     override x.Update(r,f) = { r with trafo = f r.trafo }
-                }
-            let size =
-                { new Lens<Demo.VisibleBox, Aardvark.Base.V3d>() with
-                    override x.Get(r) = r.size
-                    override x.Set(r,v) = { r with size = v }
-                    override x.Update(r,f) = { r with size = f r.size }
                 }
             let id =
                 { new Lens<Demo.VisibleBox, System.String>() with
@@ -286,6 +277,7 @@ module Mutable =
         let _grabbed = MSet.Create(__initial.grabbed)
         let _controllerPositions = MMap.Create(__initial.controllerPositions, (fun v -> MControllerInfo.Create(v)), (fun (m,v) -> MControllerInfo.Update(m, v)), (fun v -> v))
         let _controllerDistance = ResetMod.Create(__initial.controllerDistance)
+        let _controllerMenuSelector = ResetMod.Create(__initial.controllerMenuSelector)
         let _offsetControllerDistance = ResetMod.Create(__initial.offsetControllerDistance)
         let _boundingBox = ResetMod.Create(__initial.boundingBox)
         let _globalTrafo = ResetMod.Create(__initial.globalTrafo)
@@ -317,6 +309,7 @@ module Mutable =
         member x.grabbed = _grabbed :> aset<_>
         member x.controllerPositions = _controllerPositions :> amap<_,_>
         member x.controllerDistance = _controllerDistance :> IMod<_>
+        member x.controllerMenuSelector = _controllerMenuSelector :> IMod<_>
         member x.offsetControllerDistance = _offsetControllerDistance :> IMod<_>
         member x.patchHierarchies = __current.Value.patchHierarchies
         member x.boundingBox = _boundingBox :> IMod<_>
@@ -354,6 +347,7 @@ module Mutable =
                 MSet.Update(_grabbed, v.grabbed)
                 MMap.Update(_controllerPositions, v.controllerPositions)
                 ResetMod.Update(_controllerDistance,v.controllerDistance)
+                ResetMod.Update(_controllerMenuSelector,v.controllerMenuSelector)
                 ResetMod.Update(_offsetControllerDistance,v.offsetControllerDistance)
                 ResetMod.Update(_boundingBox,v.boundingBox)
                 ResetMod.Update(_globalTrafo,v.globalTrafo)
@@ -484,6 +478,12 @@ module Mutable =
                     override x.Get(r) = r.controllerDistance
                     override x.Set(r,v) = { r with controllerDistance = v }
                     override x.Update(r,f) = { r with controllerDistance = f r.controllerDistance }
+                }
+            let controllerMenuSelector =
+                { new Lens<Demo.Model, System.Int32>() with
+                    override x.Get(r) = r.controllerMenuSelector
+                    override x.Set(r,v) = { r with controllerMenuSelector = v }
+                    override x.Update(r,f) = { r with controllerMenuSelector = f r.controllerMenuSelector }
                 }
             let offsetControllerDistance =
                 { new Lens<Demo.Model, System.Double>() with
