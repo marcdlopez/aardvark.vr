@@ -3,7 +3,9 @@
 open Aardvark.Base
 open Aardvark.Base.Incremental
 module MenuOpc = 
-    0
+    let selectGeneralMenu model : Model = 
+
+        model
     //let menuScreen newModel : Model = 
         
 

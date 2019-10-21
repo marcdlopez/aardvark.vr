@@ -61,3 +61,11 @@ module OpcUtilities =
         controlTrafo.Decompose(&scale, &rot, &trans)
         Trafo3d.Rotation rot
 
+    let mayHover (boxList : plist<VisibleBox>) (controller1 : ControllerInfo) (controller2 : ControllerInfo) = 
+        boxList
+        |> PList.choose (fun b -> 
+            if (b.geometry.Transformed(b.trafo).Contains(controller1.pose.deviceToWorld.GetModelOrigin()) || b.geometry.Transformed(b.trafo).Contains(controller2.pose.deviceToWorld.GetModelOrigin())) then 
+                Some b.id
+            else None)
+        |> PList.tryFirst
+

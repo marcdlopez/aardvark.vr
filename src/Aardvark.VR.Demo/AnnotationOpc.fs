@@ -24,7 +24,14 @@ module AnnotationOpc =
 
         //update position of annotationBox to be in the controller position
 
+        //add all the different tools and their actions here
+
         newModel
+
+    let selectSubMenu controllerIndex model : Model = 
+        let controllerPos = model.controllerPositions |> HMap.values |> Seq.item controllerIndex
+        let newSubMenuBoxList = OpcUtilities.mkBoxesMenu controllerPos.pose 3 
+        {model with subMenuBoxes = newSubMenuBoxList}
 
     let createAnnotationBox model : Model =
         let newBox = OpcUtilities.mkAnnotationBoxes 1

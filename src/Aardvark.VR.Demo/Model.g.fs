@@ -265,6 +265,7 @@ module Mutable =
         let _boxes = MList.Create(__initial.boxes, (fun v -> MVisibleBox.Create(v)), (fun (m,v) -> MVisibleBox.Update(m, v)), (fun v -> v))
         let _boxHovered = MOption.Create(__initial.boxHovered)
         let _boxSelected = MSet.Create(__initial.boxSelected)
+        let _subMenuBoxes = MList.Create(__initial.subMenuBoxes, (fun v -> MVisibleBox.Create(v)), (fun (m,v) -> MVisibleBox.Update(m, v)), (fun v -> v))
         let _annotationBoxes = MList.Create(__initial.annotationBoxes, (fun v -> MVisibleBox.Create(v)), (fun (m,v) -> MVisibleBox.Update(m, v)), (fun v -> v))
         let _cameraState = Aardvark.UI.Primitives.Mutable.MCameraControllerState.Create(__initial.cameraState)
         let _ControllerPosition = ResetMod.Create(__initial.ControllerPosition)
@@ -291,12 +292,14 @@ module Mutable =
         let _rotateBox = ResetMod.Create(__initial.rotateBox)
         let _pickingModel = OpcViewer.Base.Picking.Mutable.MPickingModel.Create(__initial.pickingModel)
         let _menu = ResetMod.Create(__initial.menu)
+        let _annotationMenu = ResetMod.Create(__initial.annotationMenu)
         
         member x.text = _text :> IMod<_>
         member x.vr = _vr :> IMod<_>
         member x.boxes = _boxes :> alist<_>
         member x.boxHovered = _boxHovered :> IMod<_>
         member x.boxSelected = _boxSelected :> aset<_>
+        member x.subMenuBoxes = _subMenuBoxes :> alist<_>
         member x.annotationBoxes = _annotationBoxes :> alist<_>
         member x.cameraState = _cameraState
         member x.ControllerPosition = _ControllerPosition :> IMod<_>
@@ -324,6 +327,7 @@ module Mutable =
         member x.rotateBox = _rotateBox :> IMod<_>
         member x.pickingModel = _pickingModel
         member x.menu = _menu :> IMod<_>
+        member x.annotationMenu = _annotationMenu :> IMod<_>
         
         member x.Current = __current :> IMod<_>
         member x.Update(v : Demo.Model) =
@@ -335,6 +339,7 @@ module Mutable =
                 MList.Update(_boxes, v.boxes)
                 MOption.Update(_boxHovered, v.boxHovered)
                 MSet.Update(_boxSelected, v.boxSelected)
+                MList.Update(_subMenuBoxes, v.subMenuBoxes)
                 MList.Update(_annotationBoxes, v.annotationBoxes)
                 Aardvark.UI.Primitives.Mutable.MCameraControllerState.Update(_cameraState, v.cameraState)
                 ResetMod.Update(_ControllerPosition,v.ControllerPosition)
@@ -361,6 +366,7 @@ module Mutable =
                 ResetMod.Update(_rotateBox,v.rotateBox)
                 OpcViewer.Base.Picking.Mutable.MPickingModel.Update(_pickingModel, v.pickingModel)
                 ResetMod.Update(_menu,v.menu)
+                ResetMod.Update(_annotationMenu,v.annotationMenu)
                 
         
         static member Create(__initial : Demo.Model) : MModel = MModel(__initial)
@@ -406,6 +412,12 @@ module Mutable =
                     override x.Get(r) = r.boxSelected
                     override x.Set(r,v) = { r with boxSelected = v }
                     override x.Update(r,f) = { r with boxSelected = f r.boxSelected }
+                }
+            let subMenuBoxes =
+                { new Lens<Demo.Model, Aardvark.Base.plist<Demo.VisibleBox>>() with
+                    override x.Get(r) = r.subMenuBoxes
+                    override x.Set(r,v) = { r with subMenuBoxes = v }
+                    override x.Update(r,f) = { r with subMenuBoxes = f r.subMenuBoxes }
                 }
             let annotationBoxes =
                 { new Lens<Demo.Model, Aardvark.Base.plist<Demo.VisibleBox>>() with
@@ -568,4 +580,10 @@ module Mutable =
                     override x.Get(r) = r.menu
                     override x.Set(r,v) = { r with menu = v }
                     override x.Update(r,f) = { r with menu = f r.menu }
+                }
+            let annotationMenu =
+                { new Lens<Demo.Model, Demo.AnnotationMenuState>() with
+                    override x.Get(r) = r.annotationMenu
+                    override x.Set(r,v) = { r with annotationMenu = v }
+                    override x.Update(r,f) = { r with annotationMenu = f r.annotationMenu }
                 }

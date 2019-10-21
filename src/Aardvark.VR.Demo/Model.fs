@@ -50,6 +50,11 @@ type MenuState =
     | Annotation
     | InMenu
 
+type AnnotationMenuState = 
+    | Flag
+    | Line
+    | DipAndStrike
+
 [<DomainType>]
 type ControllerInfo = {
     pose: Pose
@@ -69,6 +74,7 @@ type Model =
         boxes               : plist<VisibleBox> // maybe change to hmap for finding stuff by id...
         boxHovered          : option<string>
         boxSelected         : hset<string>
+        subMenuBoxes        : plist<VisibleBox> 
 
         annotationBoxes     : plist<VisibleBox>
 
@@ -105,13 +111,14 @@ type Model =
         rotateBox            : bool
         pickingModel         : PickingModel
         menu                 : MenuState
+        annotationMenu       : AnnotationMenuState
     }
 
 module VisibleBox =
     
     let private initial = 
         {
-            geometry  = Box3d.FromSize(V3d(0.10, 0.25, 0.05))//Box3d.FromCenterAndSize(V3d.Zero, V3d.One)
+            geometry  = Box3d.FromSize(V3d(0.25, 0.10, 0.05))//Box3d.FromCenterAndSize(V3d.Zero, V3d.One)
             color = C4b.Red
             trafo = Trafo3d.Identity
             //size = V3d.One
