@@ -4,7 +4,18 @@ module AnnotationOpc =
     open Aardvark.Base
     open Aardvark.Base.IndexedGeometryPrimitives
 
-    let annotationMode controllerIndex p model : Model = 
+    let flagAction newControllersPosition model : Model = 
+        model
+
+    let dipAndStrikeAction newControllersPosition model : Model = 
+        model
+
+    let lineAction newControllersPosition model : Model = 
+        model
+
+    let annotationMode controllerIndex p (annotationSelection : AnnotationMenuState) model : Model = 
+
+
         let newControllersPosition = 
             model.controllerPositions |> HMap.alter controllerIndex (fun old -> 
             match old with 
@@ -24,16 +35,20 @@ module AnnotationOpc =
 
         //update position of annotationBox to be in the controller position
 
-        //add all the different tools and their actions here
-
-        newModel
-
+        match annotationSelection with 
+        | Flag -> 
+            newModel
+            |> flagAction newControllersPosition
+        | DipAndStrike -> 
+            newModel
+            |> dipAndStrikeAction newControllersPosition
+        | Line -> 
+            newModel
+            |> lineAction newControllersPosition
+        
     let selectSubMenu controllerIndex model : Model = 
         let controllerPos = model.controllerPositions |> HMap.values |> Seq.item controllerIndex
         let newSubMenuBoxList = OpcUtilities.mkBoxesMenu controllerPos.pose 3 
         {model with subMenuBoxes = newSubMenuBoxList}
 
-    let createAnnotationBox model : Model =
-        let newBox = OpcUtilities.mkAnnotationBoxes 1
 
-        {model with annotationBoxes = newBox}

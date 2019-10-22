@@ -48,7 +48,6 @@ type ButtonStates = {
 type MenuState = 
     | Navigation
     | Annotation
-    | InMenu
 
 type AnnotationMenuState = 
     | Flag
@@ -75,8 +74,6 @@ type Model =
         boxHovered          : option<string>
         boxSelected         : hset<string>
         subMenuBoxes        : plist<VisibleBox> 
-
-        annotationBoxes     : plist<VisibleBox>
 
         cameraState         : CameraControllerState
 
@@ -112,6 +109,7 @@ type Model =
         pickingModel         : PickingModel
         menu                 : MenuState
         annotationMenu       : AnnotationMenuState
+        initialMenuState     : MenuState
     }
 
 module VisibleBox =

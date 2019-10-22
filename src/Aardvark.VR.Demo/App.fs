@@ -103,21 +103,19 @@ module Demo =
                 | Annotation -> 
                     let newSubMenuBoxes = OpcUtilities.mkBoxesMenu controllerPos.pose 4
                     {newModel with subMenuBoxes = newSubMenuBoxes}
-                | _ -> newModel
             else {newModel with boxes = PList.empty; subMenuBoxes = PList.empty}
             
         | HoverIn id ->
             match model.boxHovered with 
             | Some oldID when id = oldID -> model
             | _ ->
-                Log.warn "Entered box with ID: %A" id
+                //Log.warn "Entered box with ID: %A" id
                 { model with boxHovered = Some id} 
         | HoverOut ->
             if model.boxHovered.IsSome then
-                Log.warn "Exit box with ID: %A" model.boxHovered.Value    
+                //Log.warn "Exit box with ID: %A" model.boxHovered.Value    
                 { model with boxHovered = None}
             else 
-                //Log.warn "Nothing hovered"
                 model
         | CameraMessage m -> 
             { model with cameraState = FreeFlyController.update model.cameraState m }   
@@ -127,18 +125,13 @@ module Demo =
                 | MenuState.Navigation ->
                     model 
                     |> NavigationOpc.currentSceneInfo controllerIndex p
-                    //the controllers position of this function should go before the match, otherwise opsition is not updates in annotation mode
                 | MenuState.Annotation ->
                     let newModel = 
                         model
-                        |> AnnotationOpc.annotationMode controllerIndex p
+                        |> AnnotationOpc.annotationMode controllerIndex p model.annotationMenu
 
                     newModel
-                | MenuState.InMenu ->
-                    printfn "User wants to switch menu mode"
-                    model 
-                    //|> MenuOpc.menuScreen
-                    
+               
             //let joystickFilter = 
             //    newModel.controllerPositions
             //    |> HMap.filter (fun index CI -> 
@@ -161,36 +154,25 @@ module Demo =
             // store cnotrollers positions in a new variable
             let newModel = 
                 if newModel.controllerPositions.Count.Equals(5) then
-                    // the way to get the controller's positions should be improved -> not precise
-                    let cp0 = newModel.controllerPositions |> HMap.values |> Seq.item 0
-                    let cp1 = newModel.controllerPositions |> HMap.values |> Seq.item 1
-                    let cp2 = newModel.controllerPositions |> HMap.values |> Seq.item 2
-                    let cp3 = newModel.controllerPositions |> HMap.values |> Seq.item 3
-                    let cp4 = newModel.controllerPositions |> HMap.values |> Seq.item 4
-            
-                    //let mayHover1 = 
-                    //    newModel.boxes
-                    //    |> PList.choose (fun b -> 
-                    //        if (b.geometry.Transformed(b.trafo).Contains(cp4.pose.deviceToWorld.GetModelOrigin()) || b.geometry.Transformed(b.trafo).Contains(cp3.pose.deviceToWorld.GetModelOrigin())) then 
-                    //            Some b.id
-                    //        else None)
-                    //    |> PList.tryFirst
+                    let controller1, controller2 = 
+                        newModel 
+                        |> OpcUtilities.getControllersInfo 3 4
 
-                    let mayHoverMenu = OpcUtilities.mayHover newModel.boxes cp4 cp3
+                    let mayHoverMenu = OpcUtilities.mayHover newModel.boxes controller1 controller2
 
                     let newModel = 
                         match mayHoverMenu with 
                         | Some ID -> 
-                            if cp4.backButtonPressed || cp3.backButtonPressed then
+                            if controller2.backButtonPressed || controller1.backButtonPressed then
                                 let boxID = newModel.boxes |> Seq.item 0
                                 let menuSelector = 
-                                    if cp4.backButtonPressed then newModel.controllerPositions |> HMap.keys |> Seq.item 4
+                                    if controller2.backButtonPressed then newModel.controllerPositions |> HMap.keys |> Seq.item 4
                                     else newModel.controllerPositions |> HMap.keys |> Seq.item 3
 
                                 if boxID.id.Contains(ID) then 
                                     {newModel with menu = MenuState.Navigation}
                                 else 
-                                    {newModel with menu = MenuState.Annotation; controllerMenuSelector = menuSelector}
+                                    {newModel with menu = MenuState.Annotation; controllerMenuSelector = menuSelector;boxes = PList.empty}
                             else update state vr newModel (HoverIn ID)
                         | None -> update state vr newModel HoverOut
                         
@@ -199,16 +181,14 @@ module Demo =
 
             let newModel = 
                 if newModel.menu.Equals(MenuState.Annotation) && newModel.controllerPositions.Count.Equals(5) then 
-                    let cp0 = newModel.controllerPositions |> HMap.values |> Seq.item 0
-                    let cp1 = newModel.controllerPositions |> HMap.values |> Seq.item 1
-                    let cp2 = newModel.controllerPositions |> HMap.values |> Seq.item 2
-                    let cp3 = newModel.controllerPositions |> HMap.values |> Seq.item 3
-                    let cp4 = newModel.controllerPositions |> HMap.values |> Seq.item 4
-                    let mayHoverSubMenu = OpcUtilities.mayHover newModel.subMenuBoxes cp3 cp4
+                    let controller1, controller2 = 
+                        newModel 
+                        |> OpcUtilities.getControllersInfo 3 4 //these two ints correspond to the id of the controllers
+                    let mayHoverSubMenu = OpcUtilities.mayHover newModel.subMenuBoxes controller1 controller2
 
                     match mayHoverSubMenu with
                     | Some ID -> 
-                        if cp4.backButtonPressed || cp3.backButtonPressed then 
+                        if controller2.backButtonPressed || controller1.backButtonPressed then 
                             let boxID0 = newModel.subMenuBoxes |> Seq.item 0
                             let boxID1 = newModel.subMenuBoxes |> Seq.item 1 
                             let boxID2 = newModel.subMenuBoxes |> Seq.item 2
@@ -217,10 +197,10 @@ module Demo =
                                 {newModel with menu = MenuState.Navigation}
                             else if boxID1.id.Contains(ID) then 
                                 printfn "Dip and Strike mode"
-                                {newModel with annotationMenu = AnnotationMenuState.DipAndStrike}
+                                {newModel with annotationMenu = AnnotationMenuState.Flag}
                             else if boxID2.id.Contains(ID) then
                                 printfn "flag mode"
-                                {newModel with annotationMenu = AnnotationMenuState.Flag}
+                                {newModel with annotationMenu = AnnotationMenuState.DipAndStrike}
                             else 
                                 printfn "Line mode"
                                 {newModel with annotationMenu = AnnotationMenuState.Line}
@@ -228,20 +208,29 @@ module Demo =
                     | None -> update state vr newModel HoverOut
                         
                 else {newModel with subMenuBoxes = PList.empty}
-
-            let newModel = 
-                let sc = newModel.controllerPositions |> HMap.values |> Seq.item newModel.controllerMenuSelector
-                let updateAnnotationBox = 
-                    newModel.annotationBoxes
-                    |> PList.map (fun ab -> 
-                        {ab with trafo = Trafo3d.Translation(sc.pose.deviceToWorld.GetModelOrigin())}) //missing rotation of the annotation box
-                {newModel with annotationBoxes = updateAnnotationBox}
-
+                
+            //let newModel = 
+            //    if newModel.controllerPositions.Count.Equals(5) then 
+            //        let controllerPos = newModel.controllerPositions |> HMap.values |> Seq.item newModel.controllerMenuSelector
+            //        match newModel.menu with
+            //        | Navigation -> 
+            //            if not(newModel.initialMenuState.Equals(newModel.menu)) then 
+            //                printfn "change from annotation to navigation"
+            //                let newSubMenuBoxes = OpcUtilities.mkBoxesMenu controllerPos.pose 2
+            //                {newModel with subMenuBoxes = newSubMenuBoxes; boxes = PList.empty}
+            //            else newModel
+            //        | Annotation -> 
+            //            if not(newModel.initialMenuState.Equals(newModel.menu)) then 
+            //                printfn "change from navigation to annotation"
+            //                let newSubMenuBoxes = OpcUtilities.mkBoxesMenu controllerPos.pose 4 
+            //                {newModel with boxes = newSubMenuBoxes; subMenuBoxes = PList.empty}
+            //            else newModel
+            //    else newModel 
             newModel
             
         | GrabObject (controllerIndex, buttonPress)->
             
-            printfn "Menu mode is: %s" (model.menu.ToString())
+            printfn "Menu mode is: %s when buttonpress is: %s" (model.menu.ToString()) (buttonPress.ToString())
             
             let updateControllerButtons = 
                 model.controllerPositions
@@ -258,20 +247,19 @@ module Demo =
                      }
                     Some newInfo)
 
-            let model = {model with controllerPositions = updateControllerButtons}
+            let newModel = {model with controllerPositions = updateControllerButtons; initialMenuState = model.menu; controllerMenuSelector = controllerIndex}
             
-            match model.menu with 
+            let newModel = 
+                match buttonPress with 
+                | true -> newModel
+                | false -> update state vr newModel (CreateMenu (newModel.controllerMenuSelector, true))
+
+            match newModel.menu with 
             | Navigation -> 
-                model
+                newModel
                 |> NavigationOpc.initialSceneInfo
             | Annotation ->
-                
-                //let newModel = 
-                //    newModel
-                //    |> AnnotationOpc.createAnnotationBox
-                model 
-            | InMenu -> 
-                model
+                newModel 
                 
         | _ -> model
 
@@ -306,8 +294,6 @@ module Demo =
         let color = mkColor model box
         let pos = box.trafo
         Sg.box color box.geometry
-            //|> Sg.transform (Trafo3d.Translation pos)
-            //|> Sg.scale 0.25
             |> Sg.trafo(pos)
             |> Sg.shader {
                 do! DefaultSurfaces.trafo
@@ -327,7 +313,6 @@ module Demo =
         let color = C4b.Magenta |> Mod.constant
         let pos = box.trafo
         Sg.box color box.geometry
-            //|> Sg.transform (Trafo3d.Translation pos)
             |> Sg.scale 0.25
             |> Sg.trafo(pos)
             |> Sg.shader {
@@ -587,7 +572,6 @@ module Demo =
             |> ASet.map (fun boxController -> 
                 let ci_pose = snd boxController
                 mkControllerBox ci_pose.pose)
-                //boxController)//mkControllerBox (snd boxController ))
             |> Sg.set
             |> Sg.effect [
                 toEffect DefaultSurfaces.trafo
@@ -607,7 +591,6 @@ module Demo =
                 toEffect DefaultSurfaces.vertexColor
                 toEffect DefaultSurfaces.simpleLighting                              
                 ]
-            //Sg.textWithConfig TextConfig.Default m.text
             |> Sg.noEvents
 
         let annotationSubMenuBox = 
@@ -616,20 +599,6 @@ module Demo =
             |> ASet.map (fun b -> 
                 mkISg m b 
                )
-            |> Sg.set
-            |> Sg.effect [
-                toEffect DefaultSurfaces.trafo
-                toEffect DefaultSurfaces.vertexColor
-                toEffect DefaultSurfaces.simpleLighting                              
-                ]
-            //Sg.textWithConfig TextConfig.Default m.text
-            |> Sg.noEvents
-
-        let annotationBoxes = 
-            m.annotationBoxes 
-            |> AList.toASet
-            |> ASet.map (fun ab -> 
-                mkAnnotationISg m ab)
             |> Sg.set
             |> Sg.effect [
                 toEffect DefaultSurfaces.trafo
@@ -658,16 +627,7 @@ module Demo =
                 do! DefaultSurfaces.diffuseTexture
                 do! DefaultSurfaces.simpleLighting
             }
-            
-        //let myComplexTrafo (m:MModel)=
-        //    adaptive {
-        //        let! bb = m.boundingBox 
-        //        let! shift = m.controllerPositions.Content
-        //        let! c0Shift = shift |> HMap.tryFind 0 |> Option.map(fun x -> x.deviceToWorld) |> Option.defaultValue (Mod.constant Trafo3d.Identity)
-        //        //let! c1Shift = shift |> HMap.tryFind 1 |> Option.map(fun x -> x.deviceToWorld) |> Option.defaultValue (Mod.constant Trafo3d.Identity)
-        //        return Trafo3d.Translation(bb.Center) * c0Shift// * c1Shift
-        //    }
-
+    
         let opcs = 
             m.opcInfos
                 |> AMap.toASet
@@ -690,7 +650,7 @@ module Demo =
         |> Sg.andAlso a
         |> Sg.andAlso menuBox
         |> Sg.andAlso annotationSubMenuBox
-        //|> Sg.andAlso annotationBoxes
+        
 
         //let boxGhost = 
         //    Sg.box (Mod.constant C4b.DarkYellow) (Mod.constant Box3d.Unit)
@@ -731,7 +691,6 @@ module Demo =
 
     let newBoxList = PList.empty//OpcUtilities.mkBoxes 2
     let newSubMenuBoxList = PList.empty
-    let newAnnotationBoxList = PList.empty
     
     let patchHierarchiesDir = Directory.GetDirectories("C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423") |> Array.head |> Array.singleton
 
@@ -755,8 +714,6 @@ module Demo =
             boxSelected = HSet.empty
             subMenuBoxes = newSubMenuBoxList
 
-            annotationBoxes = newAnnotationBoxList
-            //cameraState = FreeFlyController.initial
             ControllerPosition = V3d.OOO
             grabbed = HSet.empty
             controllerPositions = HMap.empty
@@ -768,7 +725,6 @@ module Demo =
             lines = [||]
             cameraState = CameraStateInit
             
-            //opcModel = OpcSelectionViewer.App.createBasicModel "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423" None true
             patchHierarchies = PatchHierarchiesInit
             boundingBox = BoundingBoxInit
             opcInfos = OpcInfosInit
@@ -776,7 +732,6 @@ module Demo =
             mainFrustum = Frustum.perspective 60.0 0.01 1000.0 1.0
             rotateBox = rotateBoxInit
             pickingModel = OpcViewer.Base.Picking.PickingModel.initial
-            //controllerButtons = hmap.Empty
             controllerDistance = 1.0
             globalTrafo = Trafo3d.Translation -BoundingBoxInit.Center //gloabal trafo for opc, with center in boundingbox center
             offsetControllerDistance = 1.0
@@ -787,6 +742,7 @@ module Demo =
             menu = MenuState.Navigation
             controllerMenuSelector = 0
             annotationMenu = AnnotationMenuState.Flag
+            initialMenuState = MenuState.Navigation
         }
     let app =
         {

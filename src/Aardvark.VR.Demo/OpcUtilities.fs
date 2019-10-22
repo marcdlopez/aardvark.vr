@@ -69,3 +69,12 @@ module OpcUtilities =
             else None)
         |> PList.tryFirst
 
+    let getControllersInfo index1 index2 model = 
+        let controller1 = model.controllerPositions |> HMap.values |> Seq.item index1
+        let controller2 = model.controllerPositions |> HMap.values |> Seq.item index2
+
+        controller1, controller2
+        
+
+
+
