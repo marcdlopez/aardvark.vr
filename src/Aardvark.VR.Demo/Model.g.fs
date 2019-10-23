@@ -293,6 +293,7 @@ module Mutable =
         let _menu = ResetMod.Create(__initial.menu)
         let _annotationMenu = ResetMod.Create(__initial.annotationMenu)
         let _initialMenuState = ResetMod.Create(__initial.initialMenuState)
+        let _menuButtonPressed = ResetMod.Create(__initial.menuButtonPressed)
         
         member x.text = _text :> IMod<_>
         member x.vr = _vr :> IMod<_>
@@ -328,6 +329,7 @@ module Mutable =
         member x.menu = _menu :> IMod<_>
         member x.annotationMenu = _annotationMenu :> IMod<_>
         member x.initialMenuState = _initialMenuState :> IMod<_>
+        member x.menuButtonPressed = _menuButtonPressed :> IMod<_>
         
         member x.Current = __current :> IMod<_>
         member x.Update(v : Demo.Model) =
@@ -367,6 +369,7 @@ module Mutable =
                 ResetMod.Update(_menu,v.menu)
                 ResetMod.Update(_annotationMenu,v.annotationMenu)
                 ResetMod.Update(_initialMenuState,v.initialMenuState)
+                ResetMod.Update(_menuButtonPressed,v.menuButtonPressed)
                 
         
         static member Create(__initial : Demo.Model) : MModel = MModel(__initial)
@@ -586,4 +589,10 @@ module Mutable =
                     override x.Get(r) = r.initialMenuState
                     override x.Set(r,v) = { r with initialMenuState = v }
                     override x.Update(r,f) = { r with initialMenuState = f r.initialMenuState }
+                }
+            let menuButtonPressed =
+                { new Lens<Demo.Model, System.Boolean>() with
+                    override x.Get(r) = r.menuButtonPressed
+                    override x.Set(r,v) = { r with menuButtonPressed = v }
+                    override x.Update(r,f) = { r with menuButtonPressed = f r.menuButtonPressed }
                 }

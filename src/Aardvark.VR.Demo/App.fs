@@ -29,7 +29,7 @@ type DemoMessage =
     | HoverOut
     | CameraMessage    of FreeFlyController.Message    
     | SetControllerPosition of int*Pose
-    | GrabObject of int*bool
+    | GrabObject of int*int*bool
     | TranslateObject of V3d
     | AddBox
     | OpcViewerMsg of PickingAction
@@ -75,28 +75,28 @@ module Demo =
             { model with vr = not model.vr }
         | CreateMenu (controllerIndex, buttonPressed) ->
             
-            let updateJoystickButton = 
-                model.controllerPositions
-                |> HMap.alter controllerIndex (fun old -> 
-                match old with 
-                | Some x -> 
-                    Some {x with joystickPressed = buttonPressed}   // update / overwrite
-                | None -> 
-                    let controllerPos = model.controllerPositions |> HMap.values |> Seq.item controllerIndex
-                    let newInfo = {
-                        pose = controllerPos.pose
-                        //buttons  = ButtonStates.
-                        backButtonPressed = false
-                        frontButtonPressed = false
-                        joystickPressed = buttonPressed
-                    }
-                    Some  newInfo) // creation)  
+            //let updateJoystickButton = 
+            //    model.controllerPositions
+            //    |> HMap.alter controllerIndex (fun old -> 
+            //    match old with 
+            //    | Some x -> 
+            //        Some {x with joystickPressed = buttonPressed}   // update / overwrite
+            //    | None -> 
+            //        let controllerPos = model.controllerPositions |> HMap.values |> Seq.item controllerIndex
+            //        let newInfo = {
+            //            pose = controllerPos.pose
+            //            //buttons  = ButtonStates.
+            //            backButtonPressed = false
+            //            frontButtonPressed = false
+            //            joystickPressed = buttonPressed
+            //        }
+            //        Some  newInfo) // creation)  
             
-            let newModel = {model with controllerPositions = updateJoystickButton}
+            //let newModel = {model with controllerPositions = updateJoystickButton}
 
             if buttonPressed then 
-                let controllerPos = newModel.controllerPositions |> HMap.values |> Seq.item controllerIndex
-                match newModel.menu with
+                let controllerPos = model.controllerPositions |> HMap.values |> Seq.item controllerIndex
+                match model.menu with
                 | Navigation ->
                     let newMenuBoxes = OpcUtilities.mkBoxesMenu controllerPos.pose 2 //number of menu possibilities should be the number of boxes. So far 2
                     let box0id = newMenuBoxes |> Seq.item 0
@@ -107,7 +107,7 @@ module Demo =
                             else {idx with id = "Annotation"}
                             )
                     
-                    {newModel with boxes = newMenuBoxes}
+                    {model with boxes = newMenuBoxes; menuButtonPressed = buttonPressed}
                 | Annotation -> 
                     let newSubMenuBoxes = OpcUtilities.mkBoxesMenu controllerPos.pose 4
                     let boxID0 = newSubMenuBoxes |> Seq.item 0
@@ -120,8 +120,8 @@ module Demo =
                             else if idx.id.Equals(boxID1.id) then {idx with id = "Dip and Strike"}
                             else if idx.id.Equals(boxID2.id) then {idx with id = "Flag"}
                             else {idx with id = "Line"})
-                    {newModel with subMenuBoxes = newSubMenuBoxes}
-            else {newModel with boxes = PList.empty; subMenuBoxes = PList.empty}
+                    {model with subMenuBoxes = newSubMenuBoxes; menuButtonPressed = buttonPressed}
+            else {model with boxes = PList.empty; subMenuBoxes = PList.empty; menuButtonPressed = buttonPressed}
             
         | HoverIn id ->
             match model.boxHovered with 
@@ -149,25 +149,6 @@ module Demo =
                         |> AnnotationOpc.annotationMode controllerIndex p model.annotationMenu
 
                     newModel
-               
-            //let joystickFilter = 
-            //    newModel.controllerPositions
-            //    |> HMap.filter (fun index CI -> 
-            //        CI.joystickPressed = true
-            //    )
-            //let newModel = 
-            //    match joystickFilter.Count with 
-            //    | 1 -> 
-            //        let controllerPos = joystickFilter |> HMap.values |> Seq.item 0
-            //        let updateBoxPos = 
-            //            newModel.boxes
-            //            |> PList.map (fun x -> 
-            //                {x with trafo = controllerPos.pose.deviceToWorld * Trafo3d.Translation(V3d(0.0,0.125,0.15))})
-            //        {newModel with boxes = updateBoxPos}
-            //    | _ -> newModel
-            //newModel
-
-            //ASK ABOUT OPINIONS: static menu, moving menu according to controller's position
         
             // store cnotrollers positions in a new variable
             let newModel = 
@@ -181,10 +162,10 @@ module Demo =
                     let newModel = 
                         match mayHoverMenu with 
                         | Some ID -> 
-                            if controller2.backButtonPressed || controller1.backButtonPressed then
+                            if controller2.joystickPressed || controller1.joystickPressed then
                                 let boxID = newModel.boxes |> Seq.item 0
                                 let menuSelector = 
-                                    if controller2.backButtonPressed then newModel.controllerPositions |> HMap.keys |> Seq.item 4
+                                    if controller2.joystickPressed then newModel.controllerPositions |> HMap.keys |> Seq.item 4
                                     else newModel.controllerPositions |> HMap.keys |> Seq.item 3
 
                                 if boxID.id.Contains(ID) then 
@@ -206,22 +187,15 @@ module Demo =
 
                     match mayHoverSubMenu with
                     | Some ID -> 
-                        if controller2.backButtonPressed || controller1.backButtonPressed then 
+                        if controller2.joystickPressed || controller1.joystickPressed then 
                             let boxID0 = newModel.subMenuBoxes |> Seq.item 0
                             let boxID1 = newModel.subMenuBoxes |> Seq.item 1 
                             let boxID2 = newModel.subMenuBoxes |> Seq.item 2
                             
-                            if boxID0.id.Contains(ID) then 
-                                {newModel with menu = MenuState.Navigation}
-                            else if boxID1.id.Contains(ID) then 
-                                printfn "Dip and Strike mode"
-                                {newModel with annotationMenu = AnnotationMenuState.Flag}
-                            else if boxID2.id.Contains(ID) then
-                                printfn "flag mode"
-                                {newModel with annotationMenu = AnnotationMenuState.DipAndStrike}
-                            else 
-                                printfn "Line mode"
-                                {newModel with annotationMenu = AnnotationMenuState.Line}
+                            if boxID0.id.Contains(ID) then {newModel with menu = MenuState.Navigation}
+                            else if boxID1.id.Contains(ID) then {newModel with annotationMenu = AnnotationMenuState.Flag}
+                            else if boxID2.id.Contains(ID) then{newModel with annotationMenu = AnnotationMenuState.DipAndStrike}
+                            else {newModel with annotationMenu = AnnotationMenuState.Line}
                         else update state vr newModel (HoverIn ID)
                     | None -> update state vr newModel HoverOut
                         
@@ -229,7 +203,7 @@ module Demo =
                 
             newModel
             
-        | GrabObject (controllerIndex, buttonPress)->
+        | GrabObject (controllerIndex, buttonPressed, buttonPress)->
             
             printfn "Menu mode is: %s when buttonpress is: %s" (model.menu.ToString()) (buttonPress.ToString())
             
@@ -237,30 +211,47 @@ module Demo =
                 model.controllerPositions
                 |> HMap.alter controllerIndex (fun but ->  
                 match but with
-                | Some x -> Some {x with backButtonPressed = buttonPress}
+                | Some x -> 
+                    match buttonPressed with 
+                    | 0 -> Some {x with joystickPressed = buttonPress}
+                    | 1 -> Some {x with backButtonPressed = buttonPress}
                 | None -> 
-                    let newInfo = {
-                        pose = Pose.none
-                        //buttons  = ButtonStates.
-                        backButtonPressed = buttonPress
-                        frontButtonPressed = false
-                        joystickPressed = false
-                     }
-                    Some newInfo)
+                    match buttonPressed with 
+                    | 1 -> 
+                        let newInfo = {
+                            pose = Pose.none
+                            //buttons  = ButtonStates.
+                            frontButtonPressed = false
+                            backButtonPressed = buttonPress
+                            joystickPressed = false
+                         }
+                        Some newInfo
+                    | 0 -> 
+                        let newInfo = {
+                            pose = Pose.none
+                            //buttons  = ButtonStates.
+                            frontButtonPressed = false
+                            backButtonPressed = false
+                            joystickPressed = buttonPress
+                         }
+                        Some newInfo)
 
             let newModel = {model with controllerPositions = updateControllerButtons; initialMenuState = model.menu; controllerMenuSelector = controllerIndex}
             
-            let newModel = 
-                match buttonPress with 
-                | true -> newModel
-                | false -> update state vr newModel (CreateMenu (newModel.controllerMenuSelector, true))
+            let newModel =  
+                match newModel.menuButtonPressed with 
+                | true -> 
+                    if not(buttonPress) then 
+                        update state vr newModel (CreateMenu (newModel.controllerMenuSelector, true))
+                    else newModel
+                | false -> newModel
 
             match newModel.menu with 
             | Navigation -> 
                 newModel
                 |> NavigationOpc.initialSceneInfo
             | Annotation ->
-                newModel 
+                newModel
                 
         | _ -> model
 
@@ -348,6 +339,14 @@ module Demo =
     let input (msg : VrMessage) =
         match msg with
         // buttons identifications: sensitive = 0, backButton = 1, sideButtons = 2
+        | VrMessage.Touch(con,button) -> 
+            match button with 
+            | 0 -> [CreateMenu(con, true)]
+            | _ -> []
+        | VrMessage.Untouch(con,button) -> 
+            match button with 
+            | 0 -> [CreateMenu(con, false)]
+            | _ -> []
         | VrMessage.PressButton(_,2) ->
             //printfn "Button identification %d" button
             [ToggleVR]
@@ -357,18 +356,16 @@ module Demo =
                 //printfn "%d changed pos= %A" cn pos
                 [SetControllerPosition (cn, p)]
             else []
-            
         | VrMessage.Press(con,button) -> 
             printfn "%d Button identification %d" con button
             match button with
-            | 0 -> [CreateMenu(con, true)]
-            | _ -> [GrabObject(con, true)]
-            
+            //| 0 -> [CreateMenu(con, true)]
+            | _ -> [GrabObject(con, button, true)]
         | VrMessage.Unpress(con,button) -> 
             printfn "Button unpressed by %d" con
             match button with 
-            | 0 -> [CreateMenu(con, false)]
-            | _ -> [GrabObject (con, false)]
+            //| 0 -> [CreateMenu(con, false)]
+            | _ -> [GrabObject (con, button, false)]
         | _ -> 
             []
 
@@ -761,6 +758,7 @@ module Demo =
             controllerMenuSelector = 0
             annotationMenu = AnnotationMenuState.Flag
             initialMenuState = MenuState.Navigation
+            menuButtonPressed = false
         }
     let app =
         {

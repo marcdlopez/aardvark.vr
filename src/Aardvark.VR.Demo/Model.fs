@@ -110,6 +110,7 @@ type Model =
         menu                 : MenuState
         annotationMenu       : AnnotationMenuState
         initialMenuState     : MenuState
+        menuButtonPressed    : bool
     }
 
 module VisibleBox =
@@ -131,23 +132,17 @@ module VisibleBox =
                 id = System.Guid.NewGuid().ToString()
         }
 
-module VisibleCone = 
-    let private initial = 
-        {
-            geometryCone = Cone3d(V3d.Zero, V3d.OOI, 30.0)
-            color = C4b.Red
-            trafo = Trafo3d.Identity
-            size = V3d.One
-            id = ""
-        }
-    let createVisibleCone (color : C4b) (position : V3d) = 
+    let createFlag (color : C4b) (position : V3d) = 
         {
             initial 
-                with 
-                color = color 
+                with
+                color = color
                 trafo = Trafo3d.Translation(position)
                 id = System.Guid.NewGuid().ToString()
+                geometry = Box3d.FromSize(V3d(0.15, 0.05, 0.05))
         }
+
+
 
 
 
