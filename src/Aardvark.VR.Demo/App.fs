@@ -99,9 +99,27 @@ module Demo =
                 match newModel.menu with
                 | Navigation ->
                     let newMenuBoxes = OpcUtilities.mkBoxesMenu controllerPos.pose 2 //number of menu possibilities should be the number of boxes. So far 2
+                    let box0id = newMenuBoxes |> Seq.item 0
+                    let newMenuBoxes = 
+                        newMenuBoxes 
+                        |> PList.map (fun idx -> 
+                            if idx.id.Equals(box0id.id) then {idx with id = "Navigation"}
+                            else {idx with id = "Annotation"}
+                            )
+                    
                     {newModel with boxes = newMenuBoxes}
                 | Annotation -> 
                     let newSubMenuBoxes = OpcUtilities.mkBoxesMenu controllerPos.pose 4
+                    let boxID0 = newSubMenuBoxes |> Seq.item 0
+                    let boxID1 = newSubMenuBoxes |> Seq.item 1 
+                    let boxID2 = newSubMenuBoxes |> Seq.item 2
+                    let newSubMenuBoxes = 
+                        newSubMenuBoxes
+                        |> PList.map (fun idx -> 
+                            if idx.id.Equals(boxID0.id)then {idx with id = "Back"}
+                            else if idx.id.Equals(boxID1.id) then {idx with id = "Dip and Strike"}
+                            else if idx.id.Equals(boxID2.id) then {idx with id = "Flag"}
+                            else {idx with id = "Line"})
                     {newModel with subMenuBoxes = newSubMenuBoxes}
             else {newModel with boxes = PList.empty; subMenuBoxes = PList.empty}
             
@@ -209,23 +227,6 @@ module Demo =
                         
                 else {newModel with subMenuBoxes = PList.empty}
                 
-            //let newModel = 
-            //    if newModel.controllerPositions.Count.Equals(5) then 
-            //        let controllerPos = newModel.controllerPositions |> HMap.values |> Seq.item newModel.controllerMenuSelector
-            //        match newModel.menu with
-            //        | Navigation -> 
-            //            if not(newModel.initialMenuState.Equals(newModel.menu)) then 
-            //                printfn "change from annotation to navigation"
-            //                let newSubMenuBoxes = OpcUtilities.mkBoxesMenu controllerPos.pose 2
-            //                {newModel with subMenuBoxes = newSubMenuBoxes; boxes = PList.empty}
-            //            else newModel
-            //        | Annotation -> 
-            //            if not(newModel.initialMenuState.Equals(newModel.menu)) then 
-            //                printfn "change from navigation to annotation"
-            //                let newSubMenuBoxes = OpcUtilities.mkBoxesMenu controllerPos.pose 4 
-            //                {newModel with boxes = newSubMenuBoxes; subMenuBoxes = PList.empty}
-            //            else newModel
-            //    else newModel 
             newModel
             
         | GrabObject (controllerIndex, buttonPress)->
@@ -293,20 +294,37 @@ module Demo =
     
         let color = mkColor model box
         let pos = box.trafo
-        Sg.box color box.geometry
-            |> Sg.trafo(pos)
-            |> Sg.shader {
-                do! DefaultSurfaces.trafo
-                do! DefaultSurfaces.vertexColor
-                do! DefaultSurfaces.simpleLighting
-                }                
-            |> Sg.requirePicking
-            |> Sg.noEvents
-            |> Sg.withEvents [
-                //Sg.onClick (fun _  -> GrabObject true)
-                Sg.onEnter (fun _  -> HoverIn  (box.id.ToString()))
-                Sg.onLeave (fun _ -> HoverOut)
-            ]     
+        let font = Font.create "Consolas" FontStyle.Regular
+
+        let menuText = 
+            box.geometry |> Mod.map ( fun box1 -> 
+                Sg.text font C4b.White box.id//(Mod.constant "text")
+                    |> Sg.noEvents
+                    |> Sg.trafo(Mod.constant(Trafo3d.RotationInDegrees(V3d(90.0,0.0,90.0))))
+                    |> Sg.scale 0.05
+                    |> Sg.trafo(pos)
+                    |> Sg.pickable (PickShape.Box (box1))
+            )
+                |> Sg.dynamic 
+        
+        let menuBox = 
+            Sg.box color box.geometry
+            //Sg.wireBox color box.geometry
+                |> Sg.noEvents
+                |> Sg.trafo(pos)
+                |> Sg.shader {
+                    do! DefaultSurfaces.trafo
+                    do! DefaultSurfaces.vertexColor
+                    do! DefaultSurfaces.simpleLighting
+                    }                
+                |> Sg.withEvents [
+                    //Sg.onClick (fun _  -> GrabObject true)
+                    Sg.onEnter (fun _  -> HoverIn  (box.id.ToString()))
+                    Sg.onLeave (fun _ -> HoverOut)
+                ]     
+
+        menuText
+        |> Sg.andAlso menuBox
     
     let mkAnnotationISg (model : MModel) (box : MVisibleBox) =
     

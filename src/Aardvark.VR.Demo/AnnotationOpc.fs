@@ -4,15 +4,6 @@ module AnnotationOpc =
     open Aardvark.Base
     open Aardvark.Base.IndexedGeometryPrimitives
 
-    let flagAction newControllersPosition model : Model = 
-        model
-
-    let dipAndStrikeAction newControllersPosition model : Model = 
-        model
-
-    let lineAction newControllersPosition model : Model = 
-        model
-
     let annotationMode controllerIndex p (annotationSelection : AnnotationMenuState) model : Model = 
 
 
@@ -38,13 +29,10 @@ module AnnotationOpc =
         match annotationSelection with 
         | Flag -> 
             newModel
-            |> flagAction newControllersPosition
         | DipAndStrike -> 
             newModel
-            |> dipAndStrikeAction newControllersPosition
         | Line -> 
             newModel
-            |> lineAction newControllersPosition
         
     let selectSubMenu controllerIndex model : Model = 
         let controllerPos = model.controllerPositions |> HMap.values |> Seq.item controllerIndex

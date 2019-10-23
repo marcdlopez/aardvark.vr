@@ -116,7 +116,7 @@ module VisibleBox =
     
     let private initial = 
         {
-            geometry  = Box3d.FromSize(V3d(0.25, 0.10, 0.05))//Box3d.FromCenterAndSize(V3d.Zero, V3d.One)
+            geometry  = Box3d.FromSize(V3d(0.10, 0.5, 0.05))//Box3d.FromCenterAndSize(V3d.Zero, V3d.One)
             color = C4b.Red
             trafo = Trafo3d.Identity
             //size = V3d.One
