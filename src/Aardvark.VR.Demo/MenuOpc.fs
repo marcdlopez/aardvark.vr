@@ -6,7 +6,3 @@ module MenuOpc =
     let selectGeneralMenu model : Model = 
 
         model
-    //let menuScreen newModel : Model = 
-        
-
-

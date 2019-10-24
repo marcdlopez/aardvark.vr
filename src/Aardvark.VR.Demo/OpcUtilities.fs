@@ -33,6 +33,12 @@ module OpcUtilities =
             VisibleBox.createVisibleBox C4b.Yellow (V3d(controllerPos.deviceToWorld.GetModelOrigin().X, controllerPos.deviceToWorld.GetModelOrigin().Y, controllerPos.deviceToWorld.GetModelOrigin().Z + (0.10 * float x))) hmdPos)
         |> PList.ofList
 
+    let mkFlags (controllerPos : Pose) (number : int) : plist<VisibleBox> = 
+        [0..number-1]
+        |> List.map (fun x -> 
+            VisibleBox.createFlag C4b.Magenta (controllerPos.deviceToWorld.GetModelOrigin()))
+        |> PList.ofList
+
     let getWorldTrafoIfBackPressed index model : Trafo3d = 
         let b0 = model.controllerPositions |> HMap.tryFind index
         b0
@@ -70,6 +76,3 @@ module OpcUtilities =
 
         controller1, controller2
         
-
-
-

@@ -70,10 +70,12 @@ type Model =
         text    : string
         vr      : bool
         
-        boxes               : plist<VisibleBox> // maybe change to hmap for finding stuff by id...
+        boxes               : plist<VisibleBox> 
         boxHovered          : option<string>
         boxSelected         : hset<string>
         subMenuBoxes        : plist<VisibleBox> 
+
+
 
         cameraState         : CameraControllerState
 

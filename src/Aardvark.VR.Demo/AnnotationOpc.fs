@@ -5,8 +5,7 @@ module AnnotationOpc =
     open Aardvark.Base.IndexedGeometryPrimitives
 
     let annotationMode controllerIndex p (annotationSelection : AnnotationMenuState) model : Model = 
-
-
+    
         let newControllersPosition = 
             model.controllerPositions |> HMap.alter controllerIndex (fun old -> 
             match old with 
@@ -33,6 +32,3 @@ module AnnotationOpc =
             newModel
         | Line -> 
             newModel
-
-
-

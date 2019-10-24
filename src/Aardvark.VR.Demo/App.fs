@@ -74,26 +74,6 @@ module Demo =
             else vr.start()
             { model with vr = not model.vr }
         | CreateMenu (controllerIndex, buttonPressed) ->
-            
-            //let updateJoystickButton = 
-            //    model.controllerPositions
-            //    |> HMap.alter controllerIndex (fun old -> 
-            //    match old with 
-            //    | Some x -> 
-            //        Some {x with joystickPressed = buttonPressed}   // update / overwrite
-            //    | None -> 
-            //        let controllerPos = model.controllerPositions |> HMap.values |> Seq.item controllerIndex
-            //        let newInfo = {
-            //            pose = controllerPos.pose
-            //            //buttons  = ButtonStates.
-            //            backButtonPressed = false
-            //            frontButtonPressed = false
-            //            joystickPressed = buttonPressed
-            //        }
-            //        Some  newInfo) // creation)  
-            
-            //let newModel = {model with controllerPositions = updateJoystickButton}
-
             if buttonPressed then 
                 let controllerPos = model.controllerPositions |> HMap.values |> Seq.item controllerIndex
                 let hmdPos = model.controllerPositions |> HMap.values |> Seq.item 0
@@ -107,7 +87,6 @@ module Demo =
                             if idx.id.Equals(box0id.id) then {idx with id = "Navigation"}
                             else {idx with id = "Annotation"}
                             )
-                    
                     {model with boxes = newMenuBoxes; menuButtonPressed = buttonPressed}
                 | Annotation -> 
                     let newSubMenuBoxes = OpcUtilities.mkBoxesMenu controllerPos.pose hmdPos.pose 4
@@ -128,11 +107,9 @@ module Demo =
             match model.boxHovered with 
             | Some oldID when id = oldID -> model
             | _ ->
-                //Log.warn "Entered box with ID: %A" id
                 { model with boxHovered = Some id} 
         | HoverOut ->
             if model.boxHovered.IsSome then
-                //Log.warn "Exit box with ID: %A" model.boxHovered.Value    
                 { model with boxHovered = None}
             else 
                 model
@@ -148,9 +125,8 @@ module Demo =
                     let newModel = 
                         model
                         |> AnnotationOpc.annotationMode controllerIndex p model.annotationMenu
-
                     newModel
-        
+
             // store cnotrollers positions in a new variable
             let newModel = 
                 if newModel.controllerPositions.Count.Equals(5) then
@@ -175,7 +151,6 @@ module Demo =
                                     {newModel with menu = MenuState.Annotation; controllerMenuSelector = menuSelector;boxes = PList.empty}
                             else update state vr newModel (HoverIn ID)
                         | None -> update state vr newModel HoverOut
-                        
                     newModel 
                 else newModel
 
@@ -185,7 +160,6 @@ module Demo =
                         newModel 
                         |> OpcUtilities.getControllersInfo 3 4 //these two ints correspond to the id of the controllers
                     let mayHoverSubMenu = OpcUtilities.mayHover newModel.subMenuBoxes controller1 controller2
-
                     match mayHoverSubMenu with
                     | Some ID -> 
                         if controller2.joystickPressed || controller1.joystickPressed then 
@@ -199,9 +173,7 @@ module Demo =
                             else {newModel with annotationMenu = AnnotationMenuState.Line}
                         else update state vr newModel (HoverIn ID)
                     | None -> update state vr newModel HoverOut
-                        
                 else {newModel with subMenuBoxes = PList.empty}
-                
             newModel
             
         | GrabObject (controllerIndex, buttonPressed, buttonPress)->
@@ -221,7 +193,7 @@ module Demo =
                     | 1 -> 
                         let newInfo = {
                             pose = Pose.none
-                            //buttons  = ButtonStates.
+                            //buttons  = ButtonStates
                             frontButtonPressed = false
                             backButtonPressed = buttonPress
                             joystickPressed = false
@@ -230,7 +202,7 @@ module Demo =
                     | 0 -> 
                         let newInfo = {
                             pose = Pose.none
-                            //buttons  = ButtonStates.
+                            //buttons  = ButtonStates
                             frontButtonPressed = false
                             backButtonPressed = false
                             joystickPressed = buttonPress
@@ -252,7 +224,9 @@ module Demo =
                 newModel
                 |> NavigationOpc.initialSceneInfo
             | Annotation ->
-                newModel
+                let controllerPos = newModel.controllerPositions |> HMap.values |> Seq.item controllerIndex
+                let newFlag = VisibleBox.createFlag (C4b.Magenta) (controllerPos.pose.deviceToWorld.GetModelOrigin())
+                newModel 
                 
         | _ -> model
 
@@ -276,14 +250,11 @@ module Demo =
                         | Some k -> if k = s then Mod.constant C4b.Blue else selectedColor
                         | None -> selectedColor
                     )
-
                 hoverColor
             )
-    
         color
     
     let mkISg (model : MModel) (box : MVisibleBox) =
-    
         let color = mkColor model box
         let pos = box.trafo
         let font = Font.create "Consolas" FontStyle.Regular
@@ -310,7 +281,6 @@ module Demo =
                     //do! DefaultSurfaces.simpleLighting
                     }                
                 |> Sg.withEvents [
-                    //Sg.onClick (fun _  -> GrabObject true)
                     Sg.onEnter (fun _  -> HoverIn  (box.id.ToString()))
                     Sg.onLeave (fun _ -> HoverOut)
                 ]     
@@ -318,22 +288,6 @@ module Demo =
 
         menuText
         |> Sg.andAlso menuBox
-    
-    let mkAnnotationISg (model : MModel) (box : MVisibleBox) =
-    
-        let color = C4b.Magenta |> Mod.constant
-        let pos = box.trafo
-        Sg.box color box.geometry
-            |> Sg.scale 0.25
-            |> Sg.trafo(pos)
-            |> Sg.shader {
-                do! DefaultSurfaces.trafo
-                do! DefaultSurfaces.vertexColor
-                do! DefaultSurfaces.simpleLighting
-                }                
-            |> Sg.requirePicking
-            |> Sg.noEvents
-            
 
     let threads (model : Model) =
         ThreadPool.empty
@@ -374,6 +328,7 @@ module Demo =
 
     let mkControllerBox (cp : MPose) =
         Sg.box' C4b.Cyan Box3d.Unit
+        //Sg.cone' 1 C4b.Cyan 5.0 10.0 
             |> Sg.noEvents
             |> Sg.scale 0.01
             |> Sg.trafo cp.deviceToWorld
@@ -615,7 +570,7 @@ module Demo =
             |> AList.toASet 
             |> ASet.map (fun b -> 
                 mkISg m b 
-               )
+                )
             |> Sg.set
             |> Sg.effect [
                 toEffect DefaultSurfaces.trafo
@@ -655,10 +610,10 @@ module Demo =
                 |> Sg.effect [ 
                     toEffect Shader.stableTrafo
                     toEffect DefaultSurfaces.diffuseTexture  
-                    toEffect Shader.AttributeShader.falseColorLegend //falseColorLegendGray
+                    toEffect Shader.AttributeShader.falseColorLegend
                 ]
                 |> Sg.noEvents
-                //|> Sg.translate' (m.boundingBox |> Mod.map (fun p -> - p.Center))
+
         opcs
         |> Sg.map OpcViewerMsg
         |> Sg.noEvents
@@ -667,18 +622,6 @@ module Demo =
         |> Sg.andAlso a
         |> Sg.andAlso menuBox
         |> Sg.andAlso annotationSubMenuBox
-        
-
-        //let boxGhost = 
-        //    Sg.box (Mod.constant C4b.DarkYellow) (Mod.constant Box3d.Unit)
-        //    |> Sg.shader {
-        //        do! DefaultSurfaces.trafo
-        //        //do! DefaultSurfaces.vertexColor
-        //        do! DefaultSurfaces.constantColor (C4f(C3b.DarkYellow, 0.3f))
-        //        //do! DefaultSurfaces.simpleLighting
-        //        }
-        //    |> Sg.noEvents
-        //    |> Sg.trafo m.initGlobalTrafo
           
         //let boxTest = 
         //    Sg.box (Mod.constant C4b.Red) (Mod.constant Box3d.Unit)
@@ -695,7 +638,6 @@ module Demo =
         //|> Sg.andAlso a
         //|> Sg.andAlso menuBox
         //|> Sg.andAlso annotationBoxes
-        //|> Sg.andAlso boxGhost
    
     let pause (info : VrSystemInfo) (m : MModel) =
         Sg.box' C4b.Red Box3d.Unit
@@ -709,7 +651,7 @@ module Demo =
     let newBoxList = PList.empty//OpcUtilities.mkBoxes 2
     let newSubMenuBoxList = PList.empty
     
-    let patchHierarchiesDir = Directory.GetDirectories("C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423") |> Array.head |> Array.singleton
+    //let patchHierarchiesDir = Directory.GetDirectories("C:\Users\lopez\Desktop\20190717_VictoriaCrater\VictoriaCrater_HiRISE") |> Array.head |> Array.singleton
 
     let initial =
         let rotateBoxInit = true
@@ -750,7 +692,7 @@ module Demo =
             rotateBox = rotateBoxInit
             pickingModel = OpcViewer.Base.Picking.PickingModel.initial
             controllerDistance = 1.0
-            globalTrafo = Trafo3d.Translation -BoundingBoxInit.Center //gloabal trafo for opc, with center in boundingbox center
+            globalTrafo = Trafo3d.Translation -BoundingBoxInit.Center //global trafo for opc, with center in boundingbox center
             offsetControllerDistance = 1.0
             initGlobalTrafo = Trafo3d.Identity
             initControlTrafo = Trafo3d.Identity
