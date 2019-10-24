@@ -124,11 +124,15 @@ module VisibleBox =
             id = ""
         }
 
-    let createVisibleBox (color : C4b) (position : V3d) = 
+    let createVisibleBox (color : C4b) (position : V3d) (rotation : Pose) = 
+        let x = (position - rotation.deviceToWorld.GetModelOrigin()).Normalized
+        let y = V3d.Cross(x,V3d.OOI)
+        let z = V3d.Cross(y,x)
+        let newCoordinateSystem = Trafo3d.FromBasis(-x,y,z, position)
         {   initial 
                 with
                 color = color     
-                trafo = Trafo3d.Translation(position)
+                trafo =  newCoordinateSystem
                 id = System.Guid.NewGuid().ToString()
         }
 

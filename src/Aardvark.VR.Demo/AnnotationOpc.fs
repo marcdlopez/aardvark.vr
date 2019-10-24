@@ -33,10 +33,6 @@ module AnnotationOpc =
             newModel
         | Line -> 
             newModel
-        
-    let selectSubMenu controllerIndex model : Model = 
-        let controllerPos = model.controllerPositions |> HMap.values |> Seq.item controllerIndex
-        let newSubMenuBoxList = OpcUtilities.mkBoxesMenu controllerPos.pose 3 
-        {model with subMenuBoxes = newSubMenuBoxList}
+
 
 

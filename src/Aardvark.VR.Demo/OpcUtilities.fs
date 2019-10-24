@@ -22,15 +22,15 @@ open OpcViewer.Base.Attributes
 
 module OpcUtilities = 
 
-    let mkBoxes (number: int) : plist<VisibleBox> =        
-        [0..number-1]
-        |> List.map (fun x -> VisibleBox.createVisibleBox C4b.Yellow (V3d(0.0, 2.0 * float x, 0.0)))
-        |> PList.ofList
+    //let mkBoxes (number: int) : plist<VisibleBox> =        
+    //    [0..number-1]
+    //    |> List.map (fun x -> VisibleBox.createVisibleBox C4b.Yellow (V3d(0.0, 2.0 * float x, 0.0)))
+    //    |> PList.ofList
 
-    let mkBoxesMenu (controllerPos : Pose) (number: int) : plist<VisibleBox> =
+    let mkBoxesMenu (controllerPos : Pose) (hmdPos : Pose) (number: int) : plist<VisibleBox> =
         [0..number-1]
         |> List.map (fun x -> 
-            VisibleBox.createVisibleBox C4b.Yellow (V3d(controllerPos.deviceToWorld.GetModelOrigin().X, controllerPos.deviceToWorld.GetModelOrigin().Y, controllerPos.deviceToWorld.GetModelOrigin().Z + (0.10 * float x))))
+            VisibleBox.createVisibleBox C4b.Yellow (V3d(controllerPos.deviceToWorld.GetModelOrigin().X, controllerPos.deviceToWorld.GetModelOrigin().Y, controllerPos.deviceToWorld.GetModelOrigin().Z + (0.10 * float x))) hmdPos)
         |> PList.ofList
 
     let getWorldTrafoIfBackPressed index model : Trafo3d = 

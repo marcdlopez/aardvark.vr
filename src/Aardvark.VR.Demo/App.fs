@@ -96,9 +96,10 @@ module Demo =
 
             if buttonPressed then 
                 let controllerPos = model.controllerPositions |> HMap.values |> Seq.item controllerIndex
+                let hmdPos = model.controllerPositions |> HMap.values |> Seq.item 0
                 match model.menu with
                 | Navigation ->
-                    let newMenuBoxes = OpcUtilities.mkBoxesMenu controllerPos.pose 2 //number of menu possibilities should be the number of boxes. So far 2
+                    let newMenuBoxes = OpcUtilities.mkBoxesMenu controllerPos.pose hmdPos.pose 2 //number of menu possibilities should be the number of boxes. So far 2
                     let box0id = newMenuBoxes |> Seq.item 0
                     let newMenuBoxes = 
                         newMenuBoxes 
@@ -109,7 +110,7 @@ module Demo =
                     
                     {model with boxes = newMenuBoxes; menuButtonPressed = buttonPressed}
                 | Annotation -> 
-                    let newSubMenuBoxes = OpcUtilities.mkBoxesMenu controllerPos.pose 4
+                    let newSubMenuBoxes = OpcUtilities.mkBoxesMenu controllerPos.pose hmdPos.pose 4
                     let boxID0 = newSubMenuBoxes |> Seq.item 0
                     let boxID1 = newSubMenuBoxes |> Seq.item 1 
                     let boxID2 = newSubMenuBoxes |> Seq.item 2
@@ -306,13 +307,14 @@ module Demo =
                 |> Sg.shader {
                     do! DefaultSurfaces.trafo
                     do! DefaultSurfaces.vertexColor
-                    do! DefaultSurfaces.simpleLighting
+                    //do! DefaultSurfaces.simpleLighting
                     }                
                 |> Sg.withEvents [
                     //Sg.onClick (fun _  -> GrabObject true)
                     Sg.onEnter (fun _  -> HoverIn  (box.id.ToString()))
                     Sg.onLeave (fun _ -> HoverOut)
                 ]     
+                |> Sg.fillMode (Mod.constant FillMode.Line)
 
         menuText
         |> Sg.andAlso menuBox
