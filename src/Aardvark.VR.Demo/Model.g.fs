@@ -294,6 +294,8 @@ module Mutable =
         let _annotationMenu = ResetMod.Create(__initial.annotationMenu)
         let _initialMenuState = ResetMod.Create(__initial.initialMenuState)
         let _menuButtonPressed = ResetMod.Create(__initial.menuButtonPressed)
+        let _initialMenuPosition = Aardvark.Vr.Mutable.MPose.Create(__initial.initialMenuPosition)
+        let _initialMenuPositionBool = ResetMod.Create(__initial.initialMenuPositionBool)
         
         member x.text = _text :> IMod<_>
         member x.vr = _vr :> IMod<_>
@@ -330,6 +332,8 @@ module Mutable =
         member x.annotationMenu = _annotationMenu :> IMod<_>
         member x.initialMenuState = _initialMenuState :> IMod<_>
         member x.menuButtonPressed = _menuButtonPressed :> IMod<_>
+        member x.initialMenuPosition = _initialMenuPosition
+        member x.initialMenuPositionBool = _initialMenuPositionBool :> IMod<_>
         
         member x.Current = __current :> IMod<_>
         member x.Update(v : Demo.Model) =
@@ -370,6 +374,8 @@ module Mutable =
                 ResetMod.Update(_annotationMenu,v.annotationMenu)
                 ResetMod.Update(_initialMenuState,v.initialMenuState)
                 ResetMod.Update(_menuButtonPressed,v.menuButtonPressed)
+                Aardvark.Vr.Mutable.MPose.Update(_initialMenuPosition, v.initialMenuPosition)
+                ResetMod.Update(_initialMenuPositionBool,v.initialMenuPositionBool)
                 
         
         static member Create(__initial : Demo.Model) : MModel = MModel(__initial)
@@ -595,4 +601,16 @@ module Mutable =
                     override x.Get(r) = r.menuButtonPressed
                     override x.Set(r,v) = { r with menuButtonPressed = v }
                     override x.Update(r,f) = { r with menuButtonPressed = f r.menuButtonPressed }
+                }
+            let initialMenuPosition =
+                { new Lens<Demo.Model, Aardvark.Vr.Pose>() with
+                    override x.Get(r) = r.initialMenuPosition
+                    override x.Set(r,v) = { r with initialMenuPosition = v }
+                    override x.Update(r,f) = { r with initialMenuPosition = f r.initialMenuPosition }
+                }
+            let initialMenuPositionBool =
+                { new Lens<Demo.Model, System.Boolean>() with
+                    override x.Get(r) = r.initialMenuPositionBool
+                    override x.Set(r,v) = { r with initialMenuPositionBool = v }
+                    override x.Update(r,f) = { r with initialMenuPositionBool = f r.initialMenuPositionBool }
                 }

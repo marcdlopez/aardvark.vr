@@ -74,12 +74,16 @@ module Demo =
             else vr.start()
             { model with vr = not model.vr }
         | CreateMenu (controllerIndex, buttonPressed) ->
+            let model = 
+                if not(model.initialMenuPositionBool) then 
+                    let controllerPos = model.controllerPositions |> HMap.values |> Seq.item controllerIndex
+                    {model with initialMenuPosition = controllerPos.pose; initialMenuPositionBool = true}
+                else model
             if buttonPressed then 
-                let controllerPos = model.controllerPositions |> HMap.values |> Seq.item controllerIndex
                 let hmdPos = model.controllerPositions |> HMap.values |> Seq.item 0
                 match model.menu with
                 | Navigation ->
-                    let newMenuBoxes = OpcUtilities.mkBoxesMenu controllerPos.pose hmdPos.pose 2 //number of menu possibilities should be the number of boxes. So far 2
+                    let newMenuBoxes = OpcUtilities.mkBoxesMenu model.initialMenuPosition hmdPos.pose 2 //number of menu possibilities should be the number of boxes. So far 2
                     let box0id = newMenuBoxes |> Seq.item 0
                     let newMenuBoxes = 
                         newMenuBoxes 
@@ -89,7 +93,7 @@ module Demo =
                             )
                     {model with boxes = newMenuBoxes; menuButtonPressed = buttonPressed}
                 | Annotation -> 
-                    let newSubMenuBoxes = OpcUtilities.mkBoxesMenu controllerPos.pose hmdPos.pose 4
+                    let newSubMenuBoxes = OpcUtilities.mkBoxesMenu model.initialMenuPosition hmdPos.pose 4
                     let boxID0 = newSubMenuBoxes |> Seq.item 0
                     let boxID1 = newSubMenuBoxes |> Seq.item 1 
                     let boxID2 = newSubMenuBoxes |> Seq.item 2
@@ -101,7 +105,8 @@ module Demo =
                             else if idx.id.Equals(boxID2.id) then {idx with id = "Flag"}
                             else {idx with id = "Line"})
                     {model with subMenuBoxes = newSubMenuBoxes; menuButtonPressed = buttonPressed}
-            else {model with boxes = PList.empty; subMenuBoxes = PList.empty; menuButtonPressed = buttonPressed}
+            else 
+                {model with boxes = PList.empty; subMenuBoxes = PList.empty; menuButtonPressed = buttonPressed; initialMenuPositionBool = false}
             
         | HoverIn id ->
             match model.boxHovered with 
@@ -703,6 +708,8 @@ module Demo =
             annotationMenu = AnnotationMenuState.Flag
             initialMenuState = MenuState.Navigation
             menuButtonPressed = false
+            initialMenuPosition = Pose.none
+            initialMenuPositionBool = false
         }
     let app =
         {

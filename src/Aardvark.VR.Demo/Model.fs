@@ -113,6 +113,8 @@ type Model =
         annotationMenu       : AnnotationMenuState
         initialMenuState     : MenuState
         menuButtonPressed    : bool
+        initialMenuPosition  : Pose
+        initialMenuPositionBool : bool
     }
 
 module VisibleBox =
