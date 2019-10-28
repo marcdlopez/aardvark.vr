@@ -93,16 +93,20 @@ module Demo =
                             )
                     {model with boxes = newMenuBoxes; menuButtonPressed = buttonPressed}
                 | Annotation -> 
-                    let newSubMenuBoxes = OpcUtilities.mkBoxesMenu model.initialMenuPosition hmdPos.pose 4
+                    let newSubMenuBoxes = OpcUtilities.mkBoxesMenu model.initialMenuPosition hmdPos.pose 6
                     let boxID0 = newSubMenuBoxes |> Seq.item 0
                     let boxID1 = newSubMenuBoxes |> Seq.item 1 
                     let boxID2 = newSubMenuBoxes |> Seq.item 2
+                    let boxID3 = newSubMenuBoxes |> Seq.item 3
+                    let boxID4 = newSubMenuBoxes |> Seq.item 4
                     let newSubMenuBoxes = 
                         newSubMenuBoxes
                         |> PList.map (fun idx -> 
                             if idx.id.Equals(boxID0.id)then {idx with id = "Back"}
-                            else if idx.id.Equals(boxID1.id) then {idx with id = "Dip and Strike"}
+                            else if idx.id.Equals(boxID1.id) then {idx with id = "Reset"}
                             else if idx.id.Equals(boxID2.id) then {idx with id = "Flag"}
+                            else if idx.id.Equals(boxID3.id) then {idx with id = "Dip and Strike"}
+                            else if idx.id.Equals(boxID4.id) then {idx with id = "Draw"}
                             else {idx with id = "Line"})
                     {model with subMenuBoxes = newSubMenuBoxes; menuButtonPressed = buttonPressed}
             else 
@@ -121,6 +125,8 @@ module Demo =
         | CameraMessage m -> 
             { model with cameraState = FreeFlyController.update model.cameraState m }   
         | SetControllerPosition (controllerIndex, p) -> 
+            
+            
             let newModel = 
                 match model.menu with
                 | MenuState.Navigation ->
@@ -171,10 +177,14 @@ module Demo =
                             let boxID0 = newModel.subMenuBoxes |> Seq.item 0
                             let boxID1 = newModel.subMenuBoxes |> Seq.item 1 
                             let boxID2 = newModel.subMenuBoxes |> Seq.item 2
+                            let boxID3 = newModel.subMenuBoxes |> Seq.item 3
+                            let boxID4 = newModel.subMenuBoxes |> Seq.item 4
                             
                             if boxID0.id.Contains(ID) then {newModel with menu = MenuState.Navigation}
-                            else if boxID1.id.Contains(ID) then {newModel with annotationMenu = AnnotationMenuState.Flag}
-                            else if boxID2.id.Contains(ID) then{newModel with annotationMenu = AnnotationMenuState.DipAndStrike}
+                            else if boxID1.id.Contains(ID) then {newModel with annotationMenu = AnnotationMenuState.Reset}
+                            else if boxID2.id.Contains(ID) then{newModel with annotationMenu = AnnotationMenuState.Flag}
+                            else if boxID3.id.Contains(ID) then{newModel with annotationMenu = AnnotationMenuState.DipAndStrike}
+                            else if boxID4.id.Contains(ID) then{newModel with annotationMenu = AnnotationMenuState.Draw}
                             else {newModel with annotationMenu = AnnotationMenuState.Line}
                         else update state vr newModel (HoverIn ID)
                     | None -> update state vr newModel HoverOut
@@ -230,8 +240,20 @@ module Demo =
                 |> NavigationOpc.initialSceneInfo
             | Annotation ->
                 let controllerPos = newModel.controllerPositions |> HMap.values |> Seq.item controllerIndex
-                let newFlag = VisibleBox.createFlag (C4b.Magenta) (controllerPos.pose.deviceToWorld.GetModelOrigin())
-                newModel 
+                match newModel.annotationMenu with
+                | Draw -> 
+                    match buttonPressed with 
+                    | 1 -> 
+                        match buttonPress with 
+                        | true -> 
+                            let preDrawBox = OpcUtilities.mkPointDraw controllerPos.pose
+                            let newFirstDrawingPoint = 
+                                newModel.drawingPoint 
+                                |> HMap.add (newModel.drawingPoint.Count + 1) preDrawBox
+                            {newModel with drawingPoint = newFirstDrawingPoint}
+                        | false -> newModel
+                    | _ -> newModel
+                | _ -> newModel
                 
         | _ -> model
 
@@ -277,7 +299,6 @@ module Demo =
         
         let menuBox = 
             Sg.box color box.geometry
-            //Sg.wireBox color box.geometry
                 |> Sg.noEvents
                 |> Sg.trafo(pos)
                 |> Sg.shader {
@@ -293,6 +314,18 @@ module Demo =
 
         menuText
         |> Sg.andAlso menuBox
+
+    let mkDrawingBox (model : MModel) (box : MVisibleBox) =
+        let color = box.color
+        let pos = box.trafo
+        Sg.box color box.geometry
+            |> Sg.noEvents
+            |> Sg.trafo(pos)
+            |> Sg.shader {
+                do! DefaultSurfaces.trafo
+                do! DefaultSurfaces.vertexColor
+                //do! DefaultSurfaces.simpleLighting
+                }                
 
     let threads (model : Model) =
         ThreadPool.empty
@@ -584,6 +617,20 @@ module Demo =
                 ]
             |> Sg.noEvents
 
+        let preDrawingBoxes = 
+            m.drawingPoint
+            |> AMap.toASet
+            |> ASet.map (fun box -> 
+                let visibleBox = snd box
+                mkDrawingBox m visibleBox
+            )
+            |> Sg.set
+            |> Sg.effect [
+                toEffect DefaultSurfaces.trafo
+                toEffect DefaultSurfaces.vertexColor
+                toEffect DefaultSurfaces.simpleLighting                              
+                ]
+
         let deviceSgs = 
             info.state.devices |> AMap.toASet |> ASet.chooseM (fun (_,d) ->
                 d.Model |> Mod.map (fun m ->
@@ -627,6 +674,7 @@ module Demo =
         |> Sg.andAlso a
         |> Sg.andAlso menuBox
         |> Sg.andAlso annotationSubMenuBox
+        |> Sg.andAlso preDrawingBoxes
           
         //let boxTest = 
         //    Sg.box (Mod.constant C4b.Red) (Mod.constant Box3d.Unit)
@@ -710,6 +758,7 @@ module Demo =
             menuButtonPressed = false
             initialMenuPosition = Pose.none
             initialMenuPositionBool = false
+            drawingPoint = hmap.Empty
         }
     let app =
         {

@@ -30,7 +30,7 @@ module OpcUtilities =
     let mkBoxesMenu (controllerPos : Pose) (hmdPos : Pose) (number: int) : plist<VisibleBox> =
         [0..number-1]
         |> List.map (fun x -> 
-            VisibleBox.createVisibleBox C4b.Yellow (V3d(controllerPos.deviceToWorld.GetModelOrigin().X, controllerPos.deviceToWorld.GetModelOrigin().Y, controllerPos.deviceToWorld.GetModelOrigin().Z + (0.10 * float x))) hmdPos)
+            VisibleBox.createVisibleBox C4b.Yellow (V3d(controllerPos.deviceToWorld.GetModelOrigin().X, controllerPos.deviceToWorld.GetModelOrigin().Y + 0.25, controllerPos.deviceToWorld.GetModelOrigin().Z + (0.10 * float x))) hmdPos)
         |> PList.ofList
 
     let mkFlags (controllerPos : Pose) (number : int) : plist<VisibleBox> = 
@@ -38,6 +38,10 @@ module OpcUtilities =
         |> List.map (fun x -> 
             VisibleBox.createFlag C4b.Magenta (controllerPos.deviceToWorld.GetModelOrigin()))
         |> PList.ofList
+
+    let mkPointDraw (controllerPos : Pose) : VisibleBox =
+        VisibleBox.createDrawingPoint C4b.White (controllerPos.deviceToWorld.GetModelOrigin())
+
 
     let getWorldTrafoIfBackPressed index model : Trafo3d = 
         let b0 = model.controllerPositions |> HMap.tryFind index

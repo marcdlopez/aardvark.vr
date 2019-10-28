@@ -7,6 +7,7 @@ open Aardvark.UI.Primitives
 open Aardvark.SceneGraph.Opc
 open OpcViewer.Base.Picking
 open OpcViewer.Base.Attributes
+open Aardvark.Rendering.Vulkan
 
 [<DomainType>]
 type VisibleBox = {
@@ -51,6 +52,8 @@ type MenuState =
 
 type AnnotationMenuState = 
     | Flag
+    | Reset
+    | Draw
     | Line
     | DipAndStrike
 
@@ -115,6 +118,9 @@ type Model =
         menuButtonPressed    : bool
         initialMenuPosition  : Pose
         initialMenuPositionBool : bool
+
+        drawingPoint         : hmap<int, VisibleBox> 
+        
     }
 
 module VisibleBox =
@@ -137,6 +143,16 @@ module VisibleBox =
                 with
                 color = color     
                 trafo =  newCoordinateSystem
+                id = System.Guid.NewGuid().ToString()
+        }
+
+    let createDrawingPoint (color : C4b) (position : V3d)= 
+        {
+            initial 
+                with 
+                geometry = Box3d.FromCenterAndSize(V3d.Zero, V3d(0.01,0.01,0.01))
+                color = color 
+                trafo = Trafo3d.Translation(position) 
                 id = System.Guid.NewGuid().ToString()
         }
 

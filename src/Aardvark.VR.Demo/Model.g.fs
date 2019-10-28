@@ -296,6 +296,7 @@ module Mutable =
         let _menuButtonPressed = ResetMod.Create(__initial.menuButtonPressed)
         let _initialMenuPosition = Aardvark.Vr.Mutable.MPose.Create(__initial.initialMenuPosition)
         let _initialMenuPositionBool = ResetMod.Create(__initial.initialMenuPositionBool)
+        let _drawingPoint = MMap.Create(__initial.drawingPoint, (fun v -> MVisibleBox.Create(v)), (fun (m,v) -> MVisibleBox.Update(m, v)), (fun v -> v))
         
         member x.text = _text :> IMod<_>
         member x.vr = _vr :> IMod<_>
@@ -334,6 +335,7 @@ module Mutable =
         member x.menuButtonPressed = _menuButtonPressed :> IMod<_>
         member x.initialMenuPosition = _initialMenuPosition
         member x.initialMenuPositionBool = _initialMenuPositionBool :> IMod<_>
+        member x.drawingPoint = _drawingPoint :> amap<_,_>
         
         member x.Current = __current :> IMod<_>
         member x.Update(v : Demo.Model) =
@@ -376,6 +378,7 @@ module Mutable =
                 ResetMod.Update(_menuButtonPressed,v.menuButtonPressed)
                 Aardvark.Vr.Mutable.MPose.Update(_initialMenuPosition, v.initialMenuPosition)
                 ResetMod.Update(_initialMenuPositionBool,v.initialMenuPositionBool)
+                MMap.Update(_drawingPoint, v.drawingPoint)
                 
         
         static member Create(__initial : Demo.Model) : MModel = MModel(__initial)
@@ -613,4 +616,10 @@ module Mutable =
                     override x.Get(r) = r.initialMenuPositionBool
                     override x.Set(r,v) = { r with initialMenuPositionBool = v }
                     override x.Update(r,f) = { r with initialMenuPositionBool = f r.initialMenuPositionBool }
+                }
+            let drawingPoint =
+                { new Lens<Demo.Model, Aardvark.Base.hmap<System.Int32,Demo.VisibleBox>>() with
+                    override x.Get(r) = r.drawingPoint
+                    override x.Set(r,v) = { r with drawingPoint = v }
+                    override x.Update(r,f) = { r with drawingPoint = f r.drawingPoint }
                 }

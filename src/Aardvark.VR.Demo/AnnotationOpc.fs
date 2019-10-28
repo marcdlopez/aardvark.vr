@@ -22,9 +22,7 @@ module AnnotationOpc =
                 Some  newInfo) // creation 
                 
         let newModel = { model with controllerPositions = newControllersPosition}
-
-        //update position of annotationBox to be in the controller position
-
+        
         match annotationSelection with 
         | Flag -> 
             newModel
@@ -32,3 +30,20 @@ module AnnotationOpc =
             newModel
         | Line -> 
             newModel
+        | Draw -> 
+            let ci = newModel.controllerPositions |> HMap.values |> Seq.item controllerIndex
+            match ci.backButtonPressed with
+            | true -> 
+                let lastDrawingBox = newModel.drawingPoint |> HMap.values |> Seq.item (newModel.drawingPoint.Count-1)
+                if V3d.Distance(lastDrawingBox.trafo.GetModelOrigin(), ci.pose.deviceToWorld.GetModelOrigin()) >= 0.10 then
+                    let newDrawingBox = OpcUtilities.mkPointDraw ci.pose
+                    let updateDrawingPoint = 
+                        newModel.drawingPoint
+                        |> HMap.add (newModel.drawingPoint.Count + 1) newDrawingBox
+                    {newModel with drawingPoint = updateDrawingPoint}
+                else newModel
+            | false -> newModel
+            
+            
+        | Reset -> 
+            {newModel with globalTrafo = Trafo3d.Translation -model.boundingBox.Center; menu = MenuState.Navigation}
