@@ -251,7 +251,13 @@ module Demo =
                                 newModel.drawingPoint 
                                 |> HMap.add (newModel.drawingPoint.Count + 1) preDrawBox
                             {newModel with drawingPoint = newFirstDrawingPoint}
-                        | false -> newModel
+                        | false -> 
+                            let createLine = 
+                                newModel.drawingPoint
+                                |> HMap.map (fun idx point -> 
+                                    if idx.Equals(1) then Line3d(V3d.Zero, V3d.One)
+                                    else Line3d(V3d.Zero, V3d.One))
+                            newModel
                     | _ -> newModel
                 | _ -> newModel
                 
