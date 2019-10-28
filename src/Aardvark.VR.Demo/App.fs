@@ -332,8 +332,8 @@ module Demo =
 
 
     let mkControllerBox (cp : MPose) =
-        Sg.box' C4b.Cyan Box3d.Unit
-        //Sg.cone' 1 C4b.Cyan 5.0 10.0 
+        //Sg.box' C4b.Cyan Box3d.Unit
+        Sg.cone' 20 C4b.Cyan 2.0 3.0 
             |> Sg.noEvents
             |> Sg.scale 0.01
             |> Sg.trafo cp.deviceToWorld
