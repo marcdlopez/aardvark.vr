@@ -83,12 +83,14 @@ module Demo =
                 let hmdPos = model.controllerPositions |> HMap.values |> Seq.item 0
                 match model.menu with
                 | Navigation ->
-                    let newMenuBoxes = OpcUtilities.mkBoxesMenu model.initialMenuPosition hmdPos.pose 2 //number of menu possibilities should be the number of boxes. So far 2
+                    let newMenuBoxes = OpcUtilities.mkBoxesMenu model.initialMenuPosition hmdPos.pose 3 //number of menu possibilities should be the number of boxes. So far 2
                     let box0id = newMenuBoxes |> Seq.item 0
+                    let box1id = newMenuBoxes |> Seq.item 1
                     let newMenuBoxes = 
                         newMenuBoxes 
                         |> PList.map (fun idx -> 
-                            if idx.id.Equals(box0id.id) then {idx with id = "Navigation"}
+                            if idx.id.Equals(box0id.id) then {idx with id = "Reset"}
+                            else if idx.id.Equals(box1id.id) then {idx with id = "Navigation"}
                             else {idx with id = "Annotation"}
                             )
                     {model with boxes = newMenuBoxes; menuButtonPressed = buttonPressed}
@@ -106,9 +108,11 @@ module Demo =
                             else if idx.id.Equals(boxID1.id) then {idx with id = "Reset"}
                             else if idx.id.Equals(boxID2.id) then {idx with id = "Flag"}
                             else if idx.id.Equals(boxID3.id) then {idx with id = "Dip and Strike"}
-                            else if idx.id.Equals(boxID4.id) then {idx with id = "Draw"}
+                            else if idx.id.Equals(boxID4.id) then {idx with id = "Draw"} //allow different options in the draw mode: freely draw and draw by points
                             else {idx with id = "Line"})
                     {model with subMenuBoxes = newSubMenuBoxes; menuButtonPressed = buttonPressed}
+                | MainReset -> 
+                    model |> OpcUtilities.resetEverything
             else 
                 {model with boxes = PList.empty; subMenuBoxes = PList.empty; menuButtonPressed = buttonPressed; initialMenuPositionBool = false}
             
@@ -126,19 +130,18 @@ module Demo =
             { model with cameraState = FreeFlyController.update model.cameraState m }   
         | SetControllerPosition (controllerIndex, p) -> 
             
-            
             let newModel = 
                 match model.menu with
                 | MenuState.Navigation ->
                     model 
                     |> NavigationOpc.currentSceneInfo controllerIndex p
                 | MenuState.Annotation ->
-                    let newModel = 
-                        model
-                        |> AnnotationOpc.annotationMode controllerIndex p model.annotationMenu
-                    newModel
+                    model
+                    |> AnnotationOpc.annotationMode controllerIndex p model.annotationMenu
+                | MenuState.MainReset -> 
+                    model
 
-            // store cnotrollers positions in a new variable
+            // store controllers positions in a new variable
             let newModel = 
                 if newModel.controllerPositions.Count.Equals(5) then
                     let controller1, controller2 = 
@@ -151,15 +154,16 @@ module Demo =
                         match mayHoverMenu with 
                         | Some ID -> 
                             if controller2.joystickPressed || controller1.joystickPressed then
-                                let boxID = newModel.boxes |> Seq.item 0
+                                let box0ID = newModel.boxes |> Seq.item 0
+                                let box1ID = newModel.boxes |> Seq.item 1
                                 let menuSelector = 
                                     if controller2.joystickPressed then newModel.controllerPositions |> HMap.keys |> Seq.item 4
                                     else newModel.controllerPositions |> HMap.keys |> Seq.item 3
 
-                                if boxID.id.Contains(ID) then 
-                                    {newModel with menu = MenuState.Navigation}
-                                else 
-                                    {newModel with menu = MenuState.Annotation; controllerMenuSelector = menuSelector;boxes = PList.empty}
+                                if box0ID.id.Contains(ID) then {newModel with menu = MenuState.MainReset}
+                                else if box1ID.id.Contains(ID) then {newModel with menu = MenuState.Navigation}
+                                else {newModel with menu = MenuState.Annotation; controllerMenuSelector = menuSelector;boxes = PList.empty}
+                            
                             else update state vr newModel (HoverIn ID)
                         | None -> update state vr newModel HoverOut
                     newModel 
@@ -289,7 +293,7 @@ module Demo =
 
         let menuText = 
             box.geometry |> Mod.map ( fun box1 -> 
-                Sg.text font C4b.White box.id//(Mod.constant "text")
+                Sg.text font C4b.White box.id
                     |> Sg.noEvents
                     |> Sg.trafo(Mod.constant(Trafo3d.RotationInDegrees(V3d(90.0,0.0,90.0))))
                     |> Sg.scale 0.05

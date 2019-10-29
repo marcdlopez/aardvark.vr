@@ -46,4 +46,4 @@ module AnnotationOpc =
             
             
         | Reset -> 
-            {newModel with globalTrafo = Trafo3d.Translation -model.boundingBox.Center; menu = MenuState.Navigation; drawingPoint = HMap.empty}
+            newModel |> OpcUtilities.resetEverything

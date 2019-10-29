@@ -42,6 +42,9 @@ module OpcUtilities =
     let mkPointDraw (controllerPos : Pose) : VisibleBox =
         VisibleBox.createDrawingPoint C4b.White (controllerPos.deviceToWorld.GetModelOrigin())
 
+    let resetEverything (model : Model) : Model = 
+        {model with globalTrafo = Trafo3d.Translation -model.boundingBox.Center; menu = MenuState.Navigation}
+
 
     let getWorldTrafoIfBackPressed index model : Trafo3d = 
         let b0 = model.controllerPositions |> HMap.tryFind index
