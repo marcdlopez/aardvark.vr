@@ -120,6 +120,7 @@ type Model =
         initialMenuPositionBool : bool
 
         drawingPoint         : hmap<int, VisibleBox> 
+        //drawingLine          : hmap<int, Line3d>
         
     }
 

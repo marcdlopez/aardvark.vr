@@ -35,7 +35,7 @@ module AnnotationOpc =
             match ci.backButtonPressed with
             | true -> 
                 let lastDrawingBox = newModel.drawingPoint |> HMap.values |> Seq.item (newModel.drawingPoint.Count-1)
-                if V3d.Distance(lastDrawingBox.trafo.GetModelOrigin(), ci.pose.deviceToWorld.GetModelOrigin()) >= 0.10 then
+                if V3d.Distance(lastDrawingBox.trafo.GetModelOrigin(), ci.pose.deviceToWorld.GetModelOrigin()) >= 0.001 then
                     let newDrawingBox = OpcUtilities.mkPointDraw ci.pose
                     let updateDrawingPoint = 
                         newModel.drawingPoint
@@ -46,4 +46,4 @@ module AnnotationOpc =
             
             
         | Reset -> 
-            {newModel with globalTrafo = Trafo3d.Translation -model.boundingBox.Center; menu = MenuState.Navigation}
+            {newModel with globalTrafo = Trafo3d.Translation -model.boundingBox.Center; menu = MenuState.Navigation; drawingPoint = HMap.empty}

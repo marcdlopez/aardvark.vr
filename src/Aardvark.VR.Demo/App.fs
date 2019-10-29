@@ -252,11 +252,6 @@ module Demo =
                                 |> HMap.add (newModel.drawingPoint.Count + 1) preDrawBox
                             {newModel with drawingPoint = newFirstDrawingPoint}
                         | false -> 
-                            let createLine = 
-                                newModel.drawingPoint
-                                |> HMap.map (fun idx point -> 
-                                    if idx.Equals(1) then Line3d(V3d.Zero, V3d.One)
-                                    else Line3d(V3d.Zero, V3d.One))
                             newModel
                     | _ -> newModel
                 | _ -> newModel
@@ -582,6 +577,29 @@ module Demo =
 
     let vr' (info : VrSystemInfo) (m : MModel)= 
 
+        let points = m.drawingPoint |> AMap.toMod
+
+        let lines = 
+            points |> Mod.map (fun hmap -> 
+                let l = HMap.toArray hmap |> Array.map snd
+                l
+                |> Array.pairwise
+                |> Array.map (fun (a,b) -> new Line3d(a.trafo.GetValue().GetModelOrigin(),b.trafo.GetValue().GetModelOrigin()))                
+            )
+
+        let drawLines = 
+            lines 
+                |> Sg.lines (Mod.constant C4b.White)
+                |> Sg.noEvents
+                |> Sg.uniform "LineWidth" (Mod.constant 5) 
+                |> Sg.effect [
+                    toEffect DefaultSurfaces.trafo
+                    toEffect DefaultSurfaces.vertexColor
+                    toEffect DefaultSurfaces.thickLine
+                    ]
+                |> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
+                |> Sg.depthTest (Mod.constant DepthTestMode.None)
+            
         let a = 
             m.controllerPositions
             |> AMap.toASet
@@ -680,7 +698,8 @@ module Demo =
         |> Sg.andAlso a
         |> Sg.andAlso menuBox
         |> Sg.andAlso annotationSubMenuBox
-        |> Sg.andAlso preDrawingBoxes
+        //|> Sg.andAlso preDrawingBoxes
+        |> Sg.andAlso drawLines
           
         //let boxTest = 
         //    Sg.box (Mod.constant C4b.Red) (Mod.constant Box3d.Unit)
@@ -759,12 +778,13 @@ module Demo =
             rotationAxis = Trafo3d.Identity
             menu = MenuState.Navigation
             controllerMenuSelector = 0
-            annotationMenu = AnnotationMenuState.Flag
-            initialMenuState = MenuState.Navigation
+            annotationMenu = AnnotationMenuState.Draw
+            initialMenuState = MenuState.Annotation
             menuButtonPressed = false
             initialMenuPosition = Pose.none
             initialMenuPositionBool = false
             drawingPoint = hmap.Empty
+            //drawingLine = hmap.Empty
         }
     let app =
         {
