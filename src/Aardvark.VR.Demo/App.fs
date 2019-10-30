@@ -21,18 +21,18 @@ open OpcViewer.Base.Picking
 open OpcViewer.Base.Attributes
 
 type DemoMessage =
-    | SetText of string 
-    | ToggleVR
-    | CreateMenu of int*bool
-    | Select of string
-    | HoverIn of string
-    | HoverOut
-    | CameraMessage    of FreeFlyController.Message    
-    | SetControllerPosition of int*Pose
-    | GrabObject of int*int*bool
-    | TranslateObject of V3d
-    | AddBox
-    | OpcViewerMsg of PickingAction
+| SetText of string 
+| ToggleVR
+| CreateMenu of ControllerKind*bool
+| Select of string
+| HoverIn of string
+| HoverOut
+| CameraMessage         of FreeFlyController.Message    
+| SetControllerPosition of ControllerKind * Pose
+| GrabObject            of ControllerKind * int * bool
+| TranslateObject       of V3d
+| AddBox
+| OpcViewerMsg of PickingAction
 
 module Demo =
     open Aardvark.Application
@@ -73,14 +73,17 @@ module Demo =
             if model.vr then vr.stop()
             else vr.start()
             { model with vr = not model.vr }
-        | CreateMenu (controllerIndex, buttonPressed) ->
+        | CreateMenu (kind, buttonPressed) ->
             let model = 
                 if not(model.initialMenuPositionBool) then 
-                    let controllerPos = model.controllerPositions |> HMap.values |> Seq.item controllerIndex
-                    {model with initialMenuPosition = controllerPos.pose; initialMenuPositionBool = true}
+                    let controllerPos = model.controllerInfos |> HMap.tryFind kind
+                    match controllerPos with
+                    | Some id -> 
+                        {model with initialMenuPosition = id.pose; initialMenuPositionBool = true}
+                    | None -> model
                 else model
             if buttonPressed then 
-                let hmdPos = model.controllerPositions |> HMap.values |> Seq.item 0
+                let hmdPos = model.controllerInfos |> HMap.values |> Seq.item 0
                 match model.menu with
                 | Navigation ->
                     let newMenuBoxes = OpcUtilities.mkBoxesMenu model.initialMenuPosition hmdPos.pose 3 //number of menu possibilities should be the number of boxes. So far 2
@@ -128,49 +131,56 @@ module Demo =
                 model
         | CameraMessage m -> 
             { model with cameraState = FreeFlyController.update model.cameraState m }   
-        | SetControllerPosition (controllerIndex, p) -> 
-            
+        | SetControllerPosition (kind, p) ->                         
+
             let newModel = 
                 match model.menu with
                 | MenuState.Navigation ->
                     model 
-                    |> NavigationOpc.currentSceneInfo controllerIndex p
+                    |> NavigationOpc.currentSceneInfo kind p
                 | MenuState.Annotation ->
                     model
-                    |> AnnotationOpc.annotationMode controllerIndex p model.annotationMenu
+                    |> AnnotationOpc.annotationMode kind p model.annotationMenu
                 | MenuState.MainReset -> 
                     model
+             
+            //let controllerA = newModel.controllerInfos |> HMap.tryFind 
+            let newModel =
+                 let controllerA = model.controllerInfos |> HMap.tryFind ControllerKind.ControllerA
+                 let controllerB = model.controllerInfos |> HMap.tryFind ControllerKind.ControllerB
+                 
+                 match controllerA, controllerB with
+                 | Some a, Some b -> 
+                    let mayHoverMenu = OpcUtilities.mayHover newModel.boxes a b
+                    match mayHoverMenu with
+                     | Some id  -> //SELECT
+                        if (a.joystickPressed || b.joystickPressed) then
+                            let box0ID = newModel.boxes |> Seq.item 0
+                            let box1ID = newModel.boxes |> Seq.item 1
 
-            // store controllers positions in a new variable
-            let newModel = 
-                if newModel.controllerPositions.Count.Equals(5) then
-                    let controller1, controller2 = 
-                        newModel 
-                        |> OpcUtilities.getControllersInfo 3 4
-
-                    let mayHoverMenu = OpcUtilities.mayHover newModel.boxes controller1 controller2
-
-                    let newModel = 
-                        match mayHoverMenu with 
-                        | Some ID -> 
-                            if controller2.joystickPressed || controller1.joystickPressed then
-                                let box0ID = newModel.boxes |> Seq.item 0
-                                let box1ID = newModel.boxes |> Seq.item 1
-                                let menuSelector = 
-                                    if controller2.joystickPressed then newModel.controllerPositions |> HMap.keys |> Seq.item 4
-                                    else newModel.controllerPositions |> HMap.keys |> Seq.item 3
-
-                                if box0ID.id.Contains(ID) then {newModel with menu = MenuState.MainReset}
-                                else if box1ID.id.Contains(ID) then {newModel with menu = MenuState.Navigation}
-                                else {newModel with menu = MenuState.Annotation; controllerMenuSelector = menuSelector;boxes = PList.empty}
+                            let menuSelector = if a.joystickPressed then a.kind else b.kind
+                                
+                            if box0ID.id = id then 
+                                {   newModel with menu = MenuState.MainReset }
+                            else if box1ID.id = id then 
+                                {   newModel with menu = MenuState.Navigation }
+                            else 
+                                {
+                                    newModel with 
+                                        menu = MenuState.Annotation; 
+                                        controllerMenuSelector = menuSelector; 
+                                        boxes = PList.empty
+                                }
                             
-                            else update state vr newModel (HoverIn ID)
-                        | None -> update state vr newModel HoverOut
-                    newModel 
-                else newModel
+                        else //HOVER
+                            update state vr newModel (HoverIn id)
+                     | _ -> //HOVEROUT
+                         update state vr newModel HoverOut
+                 | _ -> //DEFAULT
+                    newModel
 
             let newModel = 
-                if newModel.menu.Equals(MenuState.Annotation) && newModel.controllerPositions.Count.Equals(5) then 
+                if newModel.menu.Equals(MenuState.Annotation) && newModel.controllerInfos.Count.Equals(5) then 
                     let controller1, controller2 = 
                         newModel 
                         |> OpcUtilities.getControllersInfo 3 4 //these two ints correspond to the id of the controllers
@@ -195,22 +205,25 @@ module Demo =
                 else {newModel with subMenuBoxes = PList.empty}
             newModel
             
-        | GrabObject (controllerIndex, buttonPressed, buttonPress)->
+        | GrabObject (kind, buttonPressed, buttonPress)-> //TODO ML make enumtype for buttons similar to controllerkind
             
             printfn "Menu mode is: %s when buttonpress is: %s" (model.menu.ToString()) (buttonPress.ToString())
             
             let updateControllerButtons = 
-                model.controllerPositions
-                |> HMap.alter controllerIndex (fun but ->  
+                model.controllerInfos
+                |> HMap.alter kind (fun but ->  
                 match but with
                 | Some x -> 
                     match buttonPressed with 
                     | 0 -> Some {x with joystickPressed = buttonPress}
                     | 1 -> Some {x with backButtonPressed = buttonPress}
+                    | _ -> None
+                    
                 | None -> 
                     match buttonPressed with 
                     | 1 -> 
                         let newInfo = {
+                            kind = kind
                             pose = Pose.none
                             //buttons  = ButtonStates
                             frontButtonPressed = false
@@ -220,6 +233,7 @@ module Demo =
                         Some newInfo
                     | 0 -> 
                         let newInfo = {
+                            kind = kind
                             pose = Pose.none
                             //buttons  = ButtonStates
                             frontButtonPressed = false
@@ -228,7 +242,7 @@ module Demo =
                          }
                         Some newInfo)
 
-            let newModel = {model with controllerPositions = updateControllerButtons; initialMenuState = model.menu; controllerMenuSelector = controllerIndex}
+            let newModel = {model with controllerInfos = updateControllerButtons; initialMenuState = model.menu; controllerMenuSelector = kind}
             
             let newModel =  
                 match newModel.menuButtonPressed with 
@@ -243,22 +257,26 @@ module Demo =
                 newModel
                 |> NavigationOpc.initialSceneInfo
             | Annotation ->
-                let controllerPos = newModel.controllerPositions |> HMap.values |> Seq.item controllerIndex
-                match newModel.annotationMenu with
-                | Draw -> 
-                    match buttonPressed with 
-                    | 1 -> 
-                        match buttonPress with 
-                        | true -> 
-                            let preDrawBox = OpcUtilities.mkPointDraw controllerPos.pose
-                            let newFirstDrawingPoint = 
-                                newModel.drawingPoint 
-                                |> HMap.add (newModel.drawingPoint.Count + 1) preDrawBox
-                            {newModel with drawingPoint = newFirstDrawingPoint}
-                        | false -> 
-                            newModel
+                let controllerPos = newModel.controllerInfos |> HMap.tryFind kind
+                match controllerPos with 
+                | Some id -> 
+                    match newModel.annotationMenu with
+                    | Draw -> 
+                        match buttonPressed with 
+                        | 1 -> 
+                            match buttonPress with 
+                            | true -> 
+                                let preDrawBox = OpcUtilities.mkPointDraw id.pose
+                                let newFirstDrawingPoint = 
+                                    newModel.drawingPoint 
+                                    |> HMap.add (newModel.drawingPoint.Count + 1) preDrawBox
+                                {newModel with drawingPoint = newFirstDrawingPoint}
+                            | false -> 
+                                newModel
+                        | _ -> newModel
                     | _ -> newModel
-                | _ -> newModel
+                | None -> newModel
+            | MainReset -> newModel
                 
         | _ -> model
 
@@ -340,11 +358,11 @@ module Demo =
         // buttons identifications: sensitive = 0, backButton = 1, sideButtons = 2
         | VrMessage.Touch(con,button) -> 
             match button with 
-            | 0 -> [CreateMenu(con, true)]
+            | 0 -> [CreateMenu(con |> ControllerKind.fromInt, true)]
             | _ -> []
         | VrMessage.Untouch(con,button) -> 
             match button with 
-            | 0 -> [CreateMenu(con, false)]
+            | 0 -> [CreateMenu(con |> ControllerKind.fromInt, false)]
             | _ -> []
         | VrMessage.PressButton(_,2) ->
             //printfn "Button identification %d" button
@@ -353,18 +371,18 @@ module Demo =
             if p.isValid then 
                 let pos = p.deviceToWorld.Forward.TransformPos(V3d.Zero)
                 //printfn "%d changed pos= %A" cn pos
-                [SetControllerPosition (cn, p)]
+                [SetControllerPosition (cn |> ControllerKind.fromInt, p)]
             else []
         | VrMessage.Press(con,button) -> 
             printfn "%d Button identification %d" con button
             match button with
             //| 0 -> [CreateMenu(con, true)]
-            | _ -> [GrabObject(con, button, true)]
+            | _ -> [GrabObject(con |> ControllerKind.fromInt, button, true)]
         | VrMessage.Unpress(con,button) -> 
             printfn "Button unpressed by %d" con
             match button with 
             //| 0 -> [CreateMenu(con, false)]
-            | _ -> [GrabObject (con, button, false)]
+            | _ -> [GrabObject (con |> ControllerKind.fromInt, button, false)]
         | _ -> 
             []
 
@@ -454,16 +472,16 @@ module Demo =
                     //|> Sg.map OpcViewerMsg
                     //|> Sg.noEvents
                     m.boxes 
-                        |> AList.toASet 
-                        |> ASet.map (function b -> mkISg m b)
-                        |> Sg.set
-                        |> Sg.effect [
-                            toEffect DefaultSurfaces.trafo
-                            toEffect DefaultSurfaces.vertexColor
-                            toEffect DefaultSurfaces.simpleLighting                              
-                            ]
-                        |> Sg.noEvents
-                        |> Sg.andAlso line1
+                    |> AList.toASet 
+                    |> ASet.map (function b -> mkISg m b)
+                    |> Sg.set
+                    |> Sg.effect [
+                        toEffect DefaultSurfaces.trafo
+                        toEffect DefaultSurfaces.vertexColor
+                        toEffect DefaultSurfaces.simpleLighting                              
+                        ]
+                    |> Sg.noEvents
+                    |> Sg.andAlso line1
                 )
             textarea [ style "position: fixed; top: 5px; left: 5px"; onChange SetText ] m.text
             br[]
@@ -605,7 +623,7 @@ module Demo =
                 |> Sg.depthTest (Mod.constant DepthTestMode.None)
             
         let a = 
-            m.controllerPositions
+            m.controllerInfos
             |> AMap.toASet
             |> ASet.map (fun boxController -> 
                 let ci_pose = snd boxController
@@ -736,59 +754,69 @@ module Demo =
     //let patchHierarchiesDir = Directory.GetDirectories("C:\Users\lopez\Desktop\20190717_VictoriaCrater\VictoriaCrater_HiRISE") |> Array.head |> Array.singleton
 
     let initial =
-        let rotateBoxInit = true
-        let PatchHierarchiesInit = 
+        let rotateBoxInit = false
+        let patchHierarchiesInit = 
             OpcViewerFunc.patchHierarchiesImport "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423"
-        let BoundingBoxInit = 
-            OpcViewerFunc.boxImport (PatchHierarchiesInit)
-        let OpcInfosInit = 
-            OpcViewerFunc.opcInfosImport (PatchHierarchiesInit)
-        let upInit =
-            OpcViewerFunc.upImport BoundingBoxInit rotateBoxInit
-        let CameraStateInit = 
-            OpcViewerFunc.restoreCamStateImport BoundingBoxInit upInit
+
+        let boundingBoxInit = 
+            OpcViewerFunc.boxImport (patchHierarchiesInit)
+
+        let opcInfosInit = 
+            OpcViewerFunc.opcInfosImport (patchHierarchiesInit)
+
+        let up =
+            OpcViewerFunc.getUpVector boundingBoxInit rotateBoxInit
+
+        let upRotationTrafo = 
+            Trafo3d.RotateInto(boundingBoxInit.Center.Normalized, V3d.OOI)
+
+        let cameraStateInit = 
+            OpcViewerFunc.restoreCamStateImport boundingBoxInit V3d.OOI
         {
-            text = "some text"
-            vr = false
-            boxes = newBoxList
-            boxHovered = None
+            text        = "some text"
+            vr          = false
+            boxes       = newBoxList
+            boxHovered  = None
             boxSelected = HSet.empty
             subMenuBoxes = newSubMenuBoxList
 
-            ControllerPosition = V3d.OOO
-            grabbed = HSet.empty
-            controllerPositions = HMap.empty
-            isPressed = false
-            offsetToCenter = V3d.One
-            boxDistance = V3d.Zero
-            startingLinePos = V3d.Zero
-            endingLinePos = V3d.Zero
-            lines = [||]
-            cameraState = CameraStateInit
+            ControllerPosition      = V3d.OOO
+            grabbed                 = HSet.empty
+            controllerInfos         = HMap.empty
+            isPressed               = false
+            offsetToCenter          = V3d.One
+            boxDistance             = V3d.Zero
+            startingLinePos         = V3d.Zero
+            endingLinePos           = V3d.Zero
+            lines                   = [||]
+            cameraState             = cameraStateInit
             
-            patchHierarchies = PatchHierarchiesInit
-            boundingBox = BoundingBoxInit
-            opcInfos = OpcInfosInit
-            opcAttributes = SurfaceAttributes.initModel "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423"
-            mainFrustum = Frustum.perspective 60.0 0.01 1000.0 1.0
-            rotateBox = rotateBoxInit
-            pickingModel = OpcViewer.Base.Picking.PickingModel.initial
-            controllerDistance = 1.0
-            globalTrafo = Trafo3d.Translation -BoundingBoxInit.Center //global trafo for opc, with center in boundingbox center
+            patchHierarchies    = patchHierarchiesInit
+            boundingBox         = boundingBoxInit
+            opcInfos            = opcInfosInit
+            opcAttributes       = SurfaceAttributes.initModel "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423"
+            mainFrustum         = Frustum.perspective 60.0 0.01 1000.0 1.0
+            rotateBox           = rotateBoxInit
+            pickingModel        = OpcViewer.Base.Picking.PickingModel.initial
+            controllerDistance  = 1.0
+
+            globalTrafo         = Trafo3d.Translation(-boundingBoxInit.Center) * upRotationTrafo //global trafo for opc, with center in boundingbox center
+
             offsetControllerDistance = 1.0
-            initGlobalTrafo = Trafo3d.Identity
-            initControlTrafo = Trafo3d.Identity
-            init2ControlTrafo = Trafo3d.Identity
-            rotationAxis = Trafo3d.Identity
-            menu = MenuState.Navigation
-            controllerMenuSelector = 0
-            annotationMenu = AnnotationMenuState.Draw
-            initialMenuState = MenuState.Annotation
-            menuButtonPressed = false
-            initialMenuPosition = Pose.none
+
+            initGlobalTrafo     = Trafo3d.Identity
+            initControlTrafo    = Trafo3d.Identity
+            init2ControlTrafo   = Trafo3d.Identity
+            rotationAxis        = Trafo3d.Identity
+
+            menu                    = MenuState.Navigation
+            controllerMenuSelector  = ControllerKind.ControllerA
+            annotationMenu          = AnnotationMenuState.Draw
+            initialMenuState        = MenuState.Annotation
+            menuButtonPressed       = false
+            initialMenuPosition     = Pose.none
             initialMenuPositionBool = false
-            drawingPoint = hmap.Empty
-            //drawingLine = hmap.Empty
+            drawingPoint            = hmap.Empty
         }
     let app =
         {

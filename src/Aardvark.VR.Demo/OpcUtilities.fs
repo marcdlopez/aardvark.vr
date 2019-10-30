@@ -22,11 +22,6 @@ open OpcViewer.Base.Attributes
 
 module OpcUtilities = 
 
-    //let mkBoxes (number: int) : plist<VisibleBox> =        
-    //    [0..number-1]
-    //    |> List.map (fun x -> VisibleBox.createVisibleBox C4b.Yellow (V3d(0.0, 2.0 * float x, 0.0)))
-    //    |> PList.ofList
-
     let mkBoxesMenu (controllerPos : Pose) (hmdPos : Pose) (number: int) : plist<VisibleBox> =
         [0..number-1]
         |> List.map (fun x -> 
@@ -47,7 +42,7 @@ module OpcUtilities =
 
 
     let getWorldTrafoIfBackPressed index model : Trafo3d = 
-        let b0 = model.controllerPositions |> HMap.tryFind index
+        let b0 = model.controllerInfos |> HMap.tryFind index
         b0
         |> Option.bind(fun x -> 
             match x.backButtonPressed with
@@ -56,8 +51,8 @@ module OpcUtilities =
         |> Option.defaultValue Trafo3d.Identity
 
     let getDistanceBetweenControllers index0 index1 model : float = 
-        let b0 = model.controllerPositions |> HMap.find index0
-        let b1 = model.controllerPositions |> HMap.find index1
+        let b0 = model.controllerInfos |> HMap.find index0
+        let b1 = model.controllerInfos |> HMap.find index1
         let v1 = b0.pose.deviceToWorld.GetModelOrigin()
         let v2 = b1.pose.deviceToWorld.GetModelOrigin()
         V3d.Distance(v1, v2)
@@ -78,8 +73,29 @@ module OpcUtilities =
         |> PList.tryFirst
 
     let getControllersInfo index1 index2 model = 
-        let controller1 = model.controllerPositions |> HMap.values |> Seq.item index1
-        let controller2 = model.controllerPositions |> HMap.values |> Seq.item index2
+        let controller1 = model.controllerInfos |> HMap.values |> Seq.item index1
+        let controller2 = model.controllerInfos |> HMap.values |> Seq.item index2
 
-        controller1, controller2
+        controller1, controller2    
+
+    let updateControllersInfo (kind : ControllerKind) (pose : Pose) (model : Model)= 
+        let mkControllerInfo k p = 
+            {
+                kind               = k
+                pose               = p
+                //buttons  = ButtonStates.
+                backButtonPressed  = false
+                frontButtonPressed = false
+                joystickPressed    = false
+            }
+
+        model.controllerInfos 
+        |> HMap.alter kind (fun old -> 
+            match old with 
+            | Some x -> 
+                Some { x with pose = pose; }   // update / overwrite
+            | None -> 
+                mkControllerInfo kind pose |> Some
+        )
+
         

@@ -14,7 +14,7 @@ module OpcViewerFunc =
     let patchHierarchiesImport dir =
         [ 
             for h in Directory.GetDirectories(dir) |> Array.head |> Array.singleton do
-            yield PatchHierarchy.load SerializationOpc.binarySerializer.Pickle SerializationOpc.binarySerializer.UnPickle (h |> OpcPaths)
+                yield PatchHierarchy.load SerializationOpc.binarySerializer.Pickle SerializationOpc.binarySerializer.UnPickle (h |> OpcPaths)
         ]
 
     let boxImport patchHierarchies  = 
@@ -27,20 +27,20 @@ module OpcViewerFunc =
         [
             for h in patchHierarchies do
                 
-            let rootTree = h.tree |> QTree.getRoot
+                let rootTree = h.tree |> QTree.getRoot
     
-            yield {
-                patchHierarchy = h
-                kdTree         = Aardvark.VRVis.Opc.KdTrees.expandKdTreePaths h.opcPaths.Opc_DirAbsPath (KdTrees.loadKdTrees' h Trafo3d.Identity true ViewerModality.XYZ SerializationOpc.binarySerializer)
-                localBB        = rootTree.info.LocalBoundingBox 
-                globalBB       = rootTree.info.GlobalBoundingBox
-                neighborMap    = HMap.empty
-            }
+                yield {
+                    patchHierarchy = h
+                    kdTree         = Aardvark.VRVis.Opc.KdTrees.expandKdTreePaths h.opcPaths.Opc_DirAbsPath (KdTrees.loadKdTrees' h Trafo3d.Identity true ViewerModality.XYZ SerializationOpc.binarySerializer)
+                    localBB        = rootTree.info.LocalBoundingBox 
+                    globalBB       = rootTree.info.GlobalBoundingBox
+                    neighborMap    = HMap.empty
+                }
         ]
         |> List.map (fun info -> info.globalBB, info)
         |> HMap.ofList
 
-    let upImport (box : Box3d) (rotate : bool)= 
+    let getUpVector (box : Box3d) (rotate : bool)= 
       if rotate then (box.Center.Normalized) else V3d.OOI
     
     let restoreCamStateImport (box : Box3d) up: CameraControllerState =

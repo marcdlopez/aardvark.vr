@@ -9,6 +9,19 @@ open OpcViewer.Base.Picking
 open OpcViewer.Base.Attributes
 open Aardvark.Rendering.Vulkan
 
+type ControllerKind =
+| HMD = 0
+| LightHouseA = 1
+| LightHouseB = 2
+| ControllerA = 3
+| ControllerB = 4
+
+module ControllerKind =
+    let fromInt i =
+        i |> enum<ControllerKind>
+    let toInt (vrC : ControllerKind) =
+        vrC |> int
+
 [<DomainType>]
 type VisibleBox = {
     geometry : Box3d
@@ -60,20 +73,20 @@ type AnnotationMenuState =
 
 [<DomainType>]
 type ControllerInfo = {
-    pose: Pose
+    kind              : ControllerKind
+    pose              : Pose
     //buttons : ButtonStates
     backButtonPressed : bool
     frontButtonPressed: bool
-    joystickPressed : bool
+    joystickPressed   : bool
 }
-
 
 [<DomainType>]
 type Model =
     {
         text    : string
-        vr      : bool
-        
+        vr      : bool                
+
         boxes               : plist<VisibleBox> 
         boxHovered          : option<string>
         boxSelected         : hset<string>
@@ -93,34 +106,33 @@ type Model =
         lines               : Line3d[]
 
         //boxes : hmap<string,VisibleBox>
-        grabbed             : hset<string>
-        controllerPositions : hmap<int, ControllerInfo>
-        //controllerButtons : hmap<int, bool>
-        controllerDistance  : float 
-        controllerMenuSelector : int
+        grabbed                  : hset<string>
+        controllerInfos          : hmap<ControllerKind, ControllerInfo>
+        controllerDistance       : float 
+        controllerMenuSelector   : ControllerKind
         offsetControllerDistance : float
         //opcModel : OpcSelectionViewer.Model
         [<NonIncremental>]
-        patchHierarchies     : list<PatchHierarchy> 
-        boundingBox          : Box3d
-        globalTrafo          : Trafo3d
-        initGlobalTrafo      : Trafo3d
-        initControlTrafo     : Trafo3d
-        init2ControlTrafo    : Trafo3d
-        rotationAxis         : Trafo3d
-        opcInfos             : hmap<Box3d, OpcData>
-        opcAttributes        : AttributeModel
-        mainFrustum          : Frustum
-        rotateBox            : bool
-        pickingModel         : PickingModel
-        menu                 : MenuState
-        annotationMenu       : AnnotationMenuState
-        initialMenuState     : MenuState
-        menuButtonPressed    : bool
-        initialMenuPosition  : Pose
-        initialMenuPositionBool : bool
+        patchHierarchies            : list<PatchHierarchy> 
+        boundingBox                 : Box3d
+        globalTrafo                 : Trafo3d
+        initGlobalTrafo             : Trafo3d
+        initControlTrafo            : Trafo3d
+        init2ControlTrafo           : Trafo3d
+        rotationAxis                : Trafo3d
+        opcInfos                    : hmap<Box3d, OpcData>
+        opcAttributes               : AttributeModel
+        mainFrustum                 : Frustum
+        rotateBox                   : bool
+        pickingModel                : PickingModel
+        menu                        : MenuState
+        annotationMenu              : AnnotationMenuState
+        initialMenuState            : MenuState
+        menuButtonPressed           : bool
+        initialMenuPosition         : Pose
+        initialMenuPositionBool     : bool
 
-        drawingPoint         : hmap<int, VisibleBox> 
+        drawingPoint         : hmap<int, VisibleBox> //TODO ML use plist instead
         
     }
 
@@ -167,7 +179,8 @@ module VisibleBox =
                 geometry = Box3d.FromSize(V3d(0.15, 0.05, 0.05))
         }
 
-
+//module Initial =
+//    let boundingBox = 
 
 
 

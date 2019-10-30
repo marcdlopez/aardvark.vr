@@ -196,11 +196,13 @@ module Mutable =
     type MControllerInfo(__initial : Demo.ControllerInfo) =
         inherit obj()
         let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.ControllerInfo> = Aardvark.Base.Incremental.EqModRef<Demo.ControllerInfo>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.ControllerInfo>
+        let _kind = ResetMod.Create(__initial.kind)
         let _pose = Aardvark.Vr.Mutable.MPose.Create(__initial.pose)
         let _backButtonPressed = ResetMod.Create(__initial.backButtonPressed)
         let _frontButtonPressed = ResetMod.Create(__initial.frontButtonPressed)
         let _joystickPressed = ResetMod.Create(__initial.joystickPressed)
         
+        member x.kind = _kind :> IMod<_>
         member x.pose = _pose
         member x.backButtonPressed = _backButtonPressed :> IMod<_>
         member x.frontButtonPressed = _frontButtonPressed :> IMod<_>
@@ -211,6 +213,7 @@ module Mutable =
             if not (System.Object.ReferenceEquals(__current.Value, v)) then
                 __current.Value <- v
                 
+                ResetMod.Update(_kind,v.kind)
                 Aardvark.Vr.Mutable.MPose.Update(_pose, v.pose)
                 ResetMod.Update(_backButtonPressed,v.backButtonPressed)
                 ResetMod.Update(_frontButtonPressed,v.frontButtonPressed)
@@ -231,6 +234,12 @@ module Mutable =
     module ControllerInfo =
         [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
         module Lens =
+            let kind =
+                { new Lens<Demo.ControllerInfo, Demo.ControllerKind>() with
+                    override x.Get(r) = r.kind
+                    override x.Set(r,v) = { r with kind = v }
+                    override x.Update(r,f) = { r with kind = f r.kind }
+                }
             let pose =
                 { new Lens<Demo.ControllerInfo, Aardvark.Vr.Pose>() with
                     override x.Get(r) = r.pose
@@ -275,7 +284,7 @@ module Mutable =
         let _endingLinePos = ResetMod.Create(__initial.endingLinePos)
         let _lines = ResetMod.Create(__initial.lines)
         let _grabbed = MSet.Create(__initial.grabbed)
-        let _controllerPositions = MMap.Create(__initial.controllerPositions, (fun v -> MControllerInfo.Create(v)), (fun (m,v) -> MControllerInfo.Update(m, v)), (fun v -> v))
+        let _controllerInfos = MMap.Create(__initial.controllerInfos, (fun v -> MControllerInfo.Create(v)), (fun (m,v) -> MControllerInfo.Update(m, v)), (fun v -> v))
         let _controllerDistance = ResetMod.Create(__initial.controllerDistance)
         let _controllerMenuSelector = ResetMod.Create(__initial.controllerMenuSelector)
         let _offsetControllerDistance = ResetMod.Create(__initial.offsetControllerDistance)
@@ -313,7 +322,7 @@ module Mutable =
         member x.endingLinePos = _endingLinePos :> IMod<_>
         member x.lines = _lines :> IMod<_>
         member x.grabbed = _grabbed :> aset<_>
-        member x.controllerPositions = _controllerPositions :> amap<_,_>
+        member x.controllerInfos = _controllerInfos :> amap<_,_>
         member x.controllerDistance = _controllerDistance :> IMod<_>
         member x.controllerMenuSelector = _controllerMenuSelector :> IMod<_>
         member x.offsetControllerDistance = _offsetControllerDistance :> IMod<_>
@@ -357,7 +366,7 @@ module Mutable =
                 ResetMod.Update(_endingLinePos,v.endingLinePos)
                 ResetMod.Update(_lines,v.lines)
                 MSet.Update(_grabbed, v.grabbed)
-                MMap.Update(_controllerPositions, v.controllerPositions)
+                MMap.Update(_controllerInfos, v.controllerInfos)
                 ResetMod.Update(_controllerDistance,v.controllerDistance)
                 ResetMod.Update(_controllerMenuSelector,v.controllerMenuSelector)
                 ResetMod.Update(_offsetControllerDistance,v.offsetControllerDistance)
@@ -485,11 +494,11 @@ module Mutable =
                     override x.Set(r,v) = { r with grabbed = v }
                     override x.Update(r,f) = { r with grabbed = f r.grabbed }
                 }
-            let controllerPositions =
-                { new Lens<Demo.Model, Aardvark.Base.hmap<System.Int32,Demo.ControllerInfo>>() with
-                    override x.Get(r) = r.controllerPositions
-                    override x.Set(r,v) = { r with controllerPositions = v }
-                    override x.Update(r,f) = { r with controllerPositions = f r.controllerPositions }
+            let controllerInfos =
+                { new Lens<Demo.Model, Aardvark.Base.hmap<Demo.ControllerKind,Demo.ControllerInfo>>() with
+                    override x.Get(r) = r.controllerInfos
+                    override x.Set(r,v) = { r with controllerInfos = v }
+                    override x.Update(r,f) = { r with controllerInfos = f r.controllerInfos }
                 }
             let controllerDistance =
                 { new Lens<Demo.Model, System.Double>() with
@@ -498,7 +507,7 @@ module Mutable =
                     override x.Update(r,f) = { r with controllerDistance = f r.controllerDistance }
                 }
             let controllerMenuSelector =
-                { new Lens<Demo.Model, System.Int32>() with
+                { new Lens<Demo.Model, Demo.ControllerKind>() with
                     override x.Get(r) = r.controllerMenuSelector
                     override x.Set(r,v) = { r with controllerMenuSelector = v }
                     override x.Update(r,f) = { r with controllerMenuSelector = f r.controllerMenuSelector }

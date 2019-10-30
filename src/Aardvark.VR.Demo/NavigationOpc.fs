@@ -11,27 +11,19 @@ module NavigationOpc =
     open Model
     open OpenTK
 
-    let currentSceneInfo controllerIndex p model : Model = 
+
+    let currentSceneInfo kind p model : Model = 
+
         let newControllersPosition = 
-            model.controllerPositions |> HMap.alter controllerIndex (fun old -> 
-            match old with 
-            | Some x -> 
-                Some {x with pose = p; }   // update / overwrite
-            | None -> 
-                let newInfo = {
-                    pose = p
-                    //buttons  = ButtonStates.
-                    backButtonPressed = false
-                    frontButtonPressed = false
-                    joystickPressed = false
-                }
-                Some  newInfo) // creation 
-                
-        let newModel = { model with controllerPositions = newControllersPosition}
+            model 
+            |> OpcUtilities.updateControllersInfo kind p
+
+        let newModel = 
+            { model with controllerInfos = newControllersPosition}
 
         let newModel : Model = 
             let controllersFiltered = 
-                newModel.controllerPositions
+                newModel.controllerInfos
                 |> HMap.filter (fun index CI -> 
                     CI.backButtonPressed = true
                 )
@@ -85,7 +77,7 @@ module NavigationOpc =
     let initialSceneInfo model : Model = 
         let firstControllerTrafo, secondControllerTrafo, InitialControllerDistance = 
             let controllersFiltered = 
-                model.controllerPositions
+                model.controllerInfos
                 |> HMap.filter (fun index CI -> 
                     CI.backButtonPressed = true
                 )
@@ -110,7 +102,7 @@ module NavigationOpc =
        
         let newRotationCoordinateSystem : Trafo3d = 
             let controllerFilter = 
-                model.controllerPositions
+                model.controllerInfos
                 |> HMap.filter (fun index CI -> 
                     CI.backButtonPressed = true
                 )
@@ -119,9 +111,11 @@ module NavigationOpc =
                 let getFirstControllerTrafo = 
                     model
                     |> OpcUtilities.getWorldTrafoIfBackPressed (controllerFilter |> HMap.keys |> Seq.item 0)
+
                 let getSecondControllerTrafo = 
                     model
                     |> OpcUtilities.getWorldTrafoIfBackPressed (controllerFilter |> HMap.keys |> Seq.item 1)
+
                 let xAxis : V3d = getSecondControllerTrafo.GetModelOrigin() - getFirstControllerTrafo.GetModelOrigin()
                 let newXAxis = xAxis / 2.0
                 let yAxisTrafo : Trafo3d = Trafo3d.Translation (newXAxis) * Trafo3d.RotationInDegrees(newXAxis, 90.0)
