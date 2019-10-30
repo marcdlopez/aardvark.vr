@@ -29,7 +29,7 @@ type DemoMessage =
 | HoverOut
 | CameraMessage         of FreeFlyController.Message    
 | SetControllerPosition of ControllerKind * Pose
-| GrabObject            of ControllerKind * int * bool
+| GrabObject            of ControllerKind * ControllerButtons * bool
 | TranslateObject       of V3d
 | AddBox
 | OpcViewerMsg of PickingAction
@@ -205,7 +205,7 @@ module Demo =
                 else {newModel with subMenuBoxes = PList.empty}
             newModel
             
-        | GrabObject (kind, buttonPressed, buttonPress)-> //TODO ML make enumtype for buttons similar to controllerkind
+        | GrabObject (kind, buttonKind, buttonPress)-> //TODO ML make enumtype for buttons similar to controllerkind
             
             printfn "Menu mode is: %s when buttonpress is: %s" (model.menu.ToString()) (buttonPress.ToString())
             
@@ -214,17 +214,18 @@ module Demo =
                 |> HMap.alter kind (fun but ->  
                 match but with
                 | Some x -> 
-                    match buttonPressed with 
+                    match buttonKind |> ControllerButtons.toInt with 
                     | 0 -> Some {x with joystickPressed = buttonPress}
                     | 1 -> Some {x with backButtonPressed = buttonPress}
                     | _ -> None
                     
                 | None -> 
-                    match buttonPressed with 
+                    match buttonKind |> ControllerButtons.toInt with 
                     | 1 -> 
                         let newInfo = {
                             kind = kind
                             pose = Pose.none
+                            buttonKind = buttonKind
                             //buttons  = ButtonStates
                             frontButtonPressed = false
                             backButtonPressed = buttonPress
@@ -235,6 +236,7 @@ module Demo =
                         let newInfo = {
                             kind = kind
                             pose = Pose.none
+                            buttonKind = buttonKind
                             //buttons  = ButtonStates
                             frontButtonPressed = false
                             backButtonPressed = false
@@ -262,14 +264,15 @@ module Demo =
                 | Some id -> 
                     match newModel.annotationMenu with
                     | Draw -> 
-                        match buttonPressed with 
+                        match buttonKind |> ControllerButtons.toInt with 
                         | 1 -> 
                             match buttonPress with 
                             | true -> 
                                 let preDrawBox = OpcUtilities.mkPointDraw id.pose
                                 let newFirstDrawingPoint = 
-                                    newModel.drawingPoint 
-                                    |> HMap.add (newModel.drawingPoint.Count + 1) preDrawBox
+                                    newModel.drawingPoint
+                                    |> PList.prepend preDrawBox
+                                    
                                 {newModel with drawingPoint = newFirstDrawingPoint}
                             | false -> 
                                 newModel
@@ -377,12 +380,12 @@ module Demo =
             printfn "%d Button identification %d" con button
             match button with
             //| 0 -> [CreateMenu(con, true)]
-            | _ -> [GrabObject(con |> ControllerKind.fromInt, button, true)]
+            | _ -> [GrabObject(con |> ControllerKind.fromInt, button |> ControllerButtons.fromInt, true)]
         | VrMessage.Unpress(con,button) -> 
             printfn "Button unpressed by %d" con
             match button with 
             //| 0 -> [CreateMenu(con, false)]
-            | _ -> [GrabObject (con |> ControllerKind.fromInt, button, false)]
+            | _ -> [GrabObject (con |> ControllerKind.fromInt, button |> ControllerButtons.fromInt, false)]
         | _ -> 
             []
 
@@ -599,11 +602,11 @@ module Demo =
 
     let vr' (info : VrSystemInfo) (m : MModel)= 
 
-        let points = m.drawingPoint |> AMap.toMod
+        let points = m.drawingPoint |> AList.toMod
 
         let lines = 
-            points |> Mod.map (fun hmap -> 
-                let l = HMap.toArray hmap |> Array.map snd
+            points |> Mod.map (fun list -> 
+                let l = PList.toArray list |> Array.map (fun box -> box)
                 l
                 |> Array.pairwise
                 |> Array.map (fun (a,b) -> new Line3d(a.trafo.GetValue().GetModelOrigin(),b.trafo.GetValue().GetModelOrigin()))                
@@ -662,20 +665,6 @@ module Demo =
                 toEffect DefaultSurfaces.simpleLighting                              
                 ]
             |> Sg.noEvents
-
-        let preDrawingBoxes = 
-            m.drawingPoint
-            |> AMap.toASet
-            |> ASet.map (fun box -> 
-                let visibleBox = snd box
-                mkDrawingBox m visibleBox
-            )
-            |> Sg.set
-            |> Sg.effect [
-                toEffect DefaultSurfaces.trafo
-                toEffect DefaultSurfaces.vertexColor
-                toEffect DefaultSurfaces.simpleLighting                              
-                ]
 
         let deviceSgs = 
             info.state.devices |> AMap.toASet |> ASet.chooseM (fun (_,d) ->
@@ -816,7 +805,7 @@ module Demo =
             menuButtonPressed       = false
             initialMenuPosition     = Pose.none
             initialMenuPositionBool = false
-            drawingPoint            = hmap.Empty
+            drawingPoint            = PList.empty
         }
     let app =
         {

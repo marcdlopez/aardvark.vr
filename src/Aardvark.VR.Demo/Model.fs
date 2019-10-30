@@ -22,13 +22,22 @@ module ControllerKind =
     let toInt (vrC : ControllerKind) =
         vrC |> int
 
+type ControllerButtons = 
+| Joystick  = 0
+| Back      = 1
+| Side      = 2
+
+module ControllerButtons = 
+    let fromInt i = 
+        i |> enum<ControllerButtons>
+    let toInt (button : ControllerButtons) = 
+        button |> int
+        
 [<DomainType>]
 type VisibleBox = {
     geometry : Box3d
     color : C4b
     trafo : Trafo3d
-    //pos : Pose
-    //size : V3d
     [<TreatAsValue>]
     id : string
 }
@@ -74,8 +83,8 @@ type AnnotationMenuState =
 [<DomainType>]
 type ControllerInfo = {
     kind              : ControllerKind
+    buttonKind        : ControllerButtons
     pose              : Pose
-    //buttons : ButtonStates
     backButtonPressed : bool
     frontButtonPressed: bool
     joystickPressed   : bool
@@ -105,7 +114,6 @@ type Model =
         endingLinePos       : V3d
         lines               : Line3d[]
 
-        //boxes : hmap<string,VisibleBox>
         grabbed                  : hset<string>
         controllerInfos          : hmap<ControllerKind, ControllerInfo>
         controllerDistance       : float 
@@ -132,7 +140,7 @@ type Model =
         initialMenuPosition         : Pose
         initialMenuPositionBool     : bool
 
-        drawingPoint         : hmap<int, VisibleBox> //TODO ML use plist instead
+        drawingPoint                : plist<VisibleBox> 
         
     }
 
@@ -178,12 +186,3 @@ module VisibleBox =
                 id = System.Guid.NewGuid().ToString()
                 geometry = Box3d.FromSize(V3d(0.15, 0.05, 0.05))
         }
-
-//module Initial =
-//    let boundingBox = 
-
-
-
-
-
-
