@@ -4,7 +4,7 @@ module AnnotationOpc =
      open Aardvark.Base
      open Aardvark.Base.IndexedGeometryPrimitives
 
-     let annotationMode kind p (annotationSelection : AnnotationMenuState) model : Model = 
+     let annotationMode kind p (annotationSelection : subMenuState) model : Model = 
     
         let newControllersPosition = 
             model 

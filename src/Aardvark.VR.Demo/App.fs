@@ -20,6 +20,12 @@ open OpcViewer.Base
 open OpcViewer.Base.Picking
 open OpcViewer.Base.Attributes
 
+type MenuMessages  =
+    | CreateMenu of  ControllerKind*bool
+    | UpdateControllerPosition of Pose
+    | Select of Index
+    | CloseMenu
+
 type DemoMessage =
 | SetText of string 
 | ToggleVR
@@ -28,7 +34,7 @@ type DemoMessage =
 | HoverIn of string
 | HoverOut
 | CameraMessage         of FreeFlyController.Message    
-| SetControllerPosition of ControllerKind * Pose
+| SetControllerPosition of ControllerKind *  Pose
 | GrabObject            of ControllerKind * ControllerButtons * bool
 | TranslateObject       of V3d
 | AddBox
@@ -62,7 +68,7 @@ module Demo =
         subApp' (fun _ _ -> Seq.empty) (fun _ _ -> Seq.empty) [] app
 
 
-    let rec update (state : VrState) (vr : VrActions) (model : Model) (msg : DemoMessage) : Model=
+    let rec update (state : VrState) (vr : VrActions) (model : Model) (msg : DemoMessage) : Model =
         match msg with
         | OpcViewerMsg m -> 
             let newOpcModel = OpcViewer.Base.Picking.PickingApp.update OpcViewer.Base.Picking.PickingModel.initial m
@@ -96,7 +102,7 @@ module Demo =
                             else if idx.id.Equals(box1id.id) then {idx with id = "Navigation"}
                             else {idx with id = "Annotation"}
                             )
-                    {model with boxes = newMenuBoxes; menuButtonPressed = buttonPressed}
+                    {model with mainMenuBoxes = newMenuBoxes; menuButtonPressed = buttonPressed}
                 | Annotation -> 
                     let newSubMenuBoxes = OpcUtilities.mkBoxesMenu model.initialMenuPosition hmdPos.pose 6
                     let boxID0 = newSubMenuBoxes |> Seq.item 0
@@ -117,7 +123,7 @@ module Demo =
                 | MainReset -> 
                     model |> OpcUtilities.resetEverything
             else 
-                {model with boxes = PList.empty; subMenuBoxes = PList.empty; menuButtonPressed = buttonPressed; initialMenuPositionBool = false}
+                {model with mainMenuBoxes = PList.empty; subMenuBoxes = PList.empty; menuButtonPressed = buttonPressed; initialMenuPositionBool = false}
             
         | HoverIn id ->
             match model.boxHovered with 
@@ -151,12 +157,12 @@ module Demo =
                  
                  match controllerA, controllerB with
                  | Some a, Some b -> 
-                    let mayHoverMenu = OpcUtilities.mayHover newModel.boxes a b
+                    let mayHoverMenu = OpcUtilities.mayHover newModel.mainMenuBoxes a b
                     match mayHoverMenu with
                      | Some id  -> //SELECT
                         if (a.joystickPressed || b.joystickPressed) then
-                            let box0ID = newModel.boxes |> Seq.item 0
-                            let box1ID = newModel.boxes |> Seq.item 1
+                            let box0ID = newModel.mainMenuBoxes |> Seq.item 0
+                            let box1ID = newModel.mainMenuBoxes |> Seq.item 1
 
                             let menuSelector = if a.joystickPressed then a.kind else b.kind
                                 
@@ -169,7 +175,7 @@ module Demo =
                                     newModel with 
                                         menu = MenuState.Annotation; 
                                         controllerMenuSelector = menuSelector; 
-                                        boxes = PList.empty
+                                        mainMenuBoxes = PList.empty
                                 }
                             
                         else //HOVER
@@ -195,11 +201,11 @@ module Demo =
                             let boxID4 = newModel.subMenuBoxes |> Seq.item 4
                             
                             if boxID0.id.Contains(ID) then {newModel with menu = MenuState.Navigation}
-                            else if boxID1.id.Contains(ID) then {newModel with annotationMenu = AnnotationMenuState.Reset}
-                            else if boxID2.id.Contains(ID) then{newModel with annotationMenu = AnnotationMenuState.Flag}
-                            else if boxID3.id.Contains(ID) then{newModel with annotationMenu = AnnotationMenuState.DipAndStrike}
-                            else if boxID4.id.Contains(ID) then{newModel with annotationMenu = AnnotationMenuState.Draw}
-                            else {newModel with annotationMenu = AnnotationMenuState.Line}
+                            else if boxID1.id.Contains(ID) then {newModel with annotationMenu = subMenuState.Reset}
+                            else if boxID2.id.Contains(ID) then{newModel with annotationMenu = subMenuState.Flag}
+                            else if boxID3.id.Contains(ID) then{newModel with annotationMenu = subMenuState.DipAndStrike}
+                            else if boxID4.id.Contains(ID) then{newModel with annotationMenu = subMenuState.Draw}
+                            else {newModel with annotationMenu = subMenuState.Line}
                         else update state vr newModel (HoverIn ID)
                     | None -> update state vr newModel HoverOut
                 else {newModel with subMenuBoxes = PList.empty}
@@ -289,19 +295,12 @@ module Demo =
         let color = 
             id
             |> Mod.bind (fun s ->
-                let selectedColor =
-                    model.boxSelected
-                    |> ASet.contains s
-                    |> Mod.bind(function 
-                        | true -> Mod.constant C4b.White
-                        | false -> box.color
-                    )
 
                 let hoverColor =
                     model.boxHovered 
                     |> Mod.bind (function 
-                        | Some k -> if k = s then Mod.constant C4b.Blue else selectedColor
-                        | None -> selectedColor
+                        | Some k -> if k = s then Mod.constant C4b.Blue else box.color
+                        | None -> box.color
                     )
                 hoverColor
             )
@@ -440,16 +439,7 @@ module Demo =
 
         let frustum =
             Mod.constant (Frustum.perspective 60.0 0.1 100.0 1.0)
-        
-        let line1 = 
-            Sg.lines (Mod.constant C4b.Green) m.lines
-            |> Sg.noEvents
-            |> Sg.uniform "LineWidth" (Mod.constant 2.0)
-            |> Sg.effect [
-                toEffect DefaultSurfaces.stableTrafo
-                toEffect DefaultSurfaces.thickLine
-            ]
-
+  
         let opcs = 
             m.opcInfos
               |> AMap.toASet
@@ -474,7 +464,7 @@ module Demo =
                     //|> Sg.map (OpcSelectionViewer.Message.PickingAction)
                     //|> Sg.map OpcViewerMsg
                     //|> Sg.noEvents
-                    m.boxes 
+                    m.mainMenuBoxes 
                     |> AList.toASet 
                     |> ASet.map (function b -> mkISg m b)
                     |> Sg.set
@@ -484,7 +474,6 @@ module Demo =
                         toEffect DefaultSurfaces.simpleLighting                              
                         ]
                     |> Sg.noEvents
-                    |> Sg.andAlso line1
                 )
             textarea [ style "position: fixed; top: 5px; left: 5px"; onChange SetText ] m.text
             br[]
@@ -535,26 +524,6 @@ module Demo =
 
         let color = Mod.constant C4b.Green
 
-        //let line = 
-        //    adaptive{
-        //        let! startPoint = m.startingLinePos
-        //        let! endPoint = m.endingLinePos
-        //        let newLine : Line3d = Line3d(startPoint, endPoint)
-        //        return [| newLine |]
-        //    }
-
-        let line1 = 
-            Sg.lines color m.lines
-            |> Sg.noEvents
-            |> Sg.uniform "LineWidth" (Mod.constant 2.0)
-            |> Sg.effect [
-                toEffect DefaultSurfaces.stableTrafo
-                toEffect DefaultSurfaces.thickLine
-            ]
-            //|> Sg.trafo
-            
-
-
         let a = 
             Sg.box' C4b.Cyan Box3d.Unit
             |> Sg.noEvents
@@ -583,7 +552,7 @@ module Demo =
                 do! DefaultSurfaces.simpleLighting
             }
 
-        m.boxes 
+        m.mainMenuBoxes 
         |> AList.toASet 
         |> ASet.map (fun b -> 
             mkISg m b 
@@ -598,7 +567,6 @@ module Demo =
         //Sg.textWithConfig TextConfig.Default m.text
         |> Sg.noEvents
         |> Sg.andAlso deviceSgs
-        |> Sg.andAlso line1
 
     let vr' (info : VrSystemInfo) (m : MModel)= 
 
@@ -639,7 +607,7 @@ module Demo =
                 ]
 
         let menuBox = 
-            m.boxes
+            m.mainMenuBoxes
             |> AList.toASet 
             |> ASet.map (fun b -> 
                 mkISg m b 
@@ -764,20 +732,13 @@ module Demo =
         {
             text        = "some text"
             vr          = false
-            boxes       = newBoxList
+            mainMenuBoxes       = newBoxList
             boxHovered  = None
-            boxSelected = HSet.empty
             subMenuBoxes = newSubMenuBoxList
 
             ControllerPosition      = V3d.OOO
-            grabbed                 = HSet.empty
             controllerInfos         = HMap.empty
-            isPressed               = false
             offsetToCenter          = V3d.One
-            boxDistance             = V3d.Zero
-            startingLinePos         = V3d.Zero
-            endingLinePos           = V3d.Zero
-            lines                   = [||]
             cameraState             = cameraStateInit
             
             patchHierarchies    = patchHierarchiesInit
@@ -787,7 +748,6 @@ module Demo =
             mainFrustum         = Frustum.perspective 60.0 0.01 1000.0 1.0
             rotateBox           = rotateBoxInit
             pickingModel        = OpcViewer.Base.Picking.PickingModel.initial
-            controllerDistance  = 1.0
 
             globalTrafo         = Trafo3d.Translation(-boundingBoxInit.Center) * upRotationTrafo //global trafo for opc, with center in boundingbox center
 
@@ -800,7 +760,7 @@ module Demo =
 
             menu                    = MenuState.Navigation
             controllerMenuSelector  = ControllerKind.ControllerA
-            annotationMenu          = AnnotationMenuState.Draw
+            annotationMenu          = subMenuState.Draw
             initialMenuState        = MenuState.Annotation
             menuButtonPressed       = false
             initialMenuPosition     = Pose.none

@@ -25,7 +25,7 @@ module OpcUtilities =
     let mkBoxesMenu (controllerPos : Pose) (hmdPos : Pose) (number: int) : plist<VisibleBox> =
         [0..number-1]
         |> List.map (fun x -> 
-            VisibleBox.createVisibleBox C4b.Yellow (V3d(controllerPos.deviceToWorld.GetModelOrigin().X, controllerPos.deviceToWorld.GetModelOrigin().Y + 0.25, controllerPos.deviceToWorld.GetModelOrigin().Z + (0.10 * float x))) hmdPos)
+            VisibleBox.createVisibleBox C4b.Yellow (V3d(controllerPos.deviceToWorld.GetModelOrigin().X, controllerPos.deviceToWorld.GetModelOrigin().Y, controllerPos.deviceToWorld.GetModelOrigin().Z + (0.10 * float x))) hmdPos)
         |> PList.ofList
 
     let mkFlags (controllerPos : Pose) (number : int) : plist<VisibleBox> = 
@@ -83,7 +83,7 @@ module OpcUtilities =
             {
                 kind               = k
                 pose               = p
-                //buttons  = ButtonStates.
+                buttonKind         = ControllerButtons.Back
                 backButtonPressed  = false
                 frontButtonPressed = false
                 joystickPressed    = false
@@ -95,7 +95,7 @@ module OpcUtilities =
             | Some x -> 
                 Some { x with pose = pose; }   // update / overwrite
             | None -> 
-                mkControllerInfo kind pose |> Some
+                mkControllerInfo kind pose |> Some // create
         )
 
         
