@@ -19,10 +19,34 @@ module MenuApp =
     | Select
     | CloseMenu
 
-    let update (state : VrState) (vr : VrActions) (model : MenuModel) (msg : MenuMessage) : MenuModel = 
+    let rec update (state : VrState) (vr : VrActions) (model : MenuModel) (msg : MenuMessage) : MenuModel = 
         match msg with
         | CreateMenu (kind, buttonPressed) -> 
-            model
+            let model = 
+                if not(model.initialMenuPositionBool) then 
+                    let controllerPos = model.controllerInfos |> HMap.tryFind kind
+                    match controllerPos with
+                    | Some id -> 
+                        {model with initialMenuPosition = id.pose; initialMenuPositionBool = true}
+                    | None -> model
+                else model
+
+            if buttonPressed then 
+                let hmdPos = model.controllerInfos |> HMap.values |> Seq.item 0
+                match model.menu with
+                | Navigation ->
+                    let newMenuBoxes = OpcUtilities.mkBoxesMenu model.initialMenuPosition hmdPos.pose 3 //number of menu possibilities should be the number of boxes. So far 2
+                    let box0id = newMenuBoxes |> Seq.item 0
+                    let box1id = newMenuBoxes |> Seq.item 1
+                    let newMenuBoxes = 
+                        newMenuBoxes 
+                        |> PList.map (fun idx -> 
+                            if idx.id.Equals(box0id.id) then {idx with id = "Reset"}
+                            else if idx.id.Equals(box1id.id) then {idx with id = "Navigation"}
+                            else {idx with id = "Annotation"}
+                            )
+                    {model with mainMenuBoxes = newMenuBoxes; menuButtonPressed = buttonPressed}
+            else model
         | UpdateControllerPose p -> model
         | Select -> model 
         | CloseMenu -> model
@@ -79,6 +103,7 @@ module MenuApp =
             menuButtonPressed       = false
             initialMenuPosition     = Pose.none
             initialMenuPositionBool = false
+            controllerInfos         = HMap.empty
         }
     let app =
         {

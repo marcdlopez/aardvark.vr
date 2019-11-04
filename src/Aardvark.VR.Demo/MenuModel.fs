@@ -2,6 +2,7 @@
 
 open Aardvark.Base.Incremental
 open Aardvark.Vr
+open Aardvark.Base
 
 type MenuState = 
 | Navigation
@@ -26,6 +27,7 @@ type MenuModel =
         initialMenuPosition         : Pose
         initialMenuPositionBool     : bool
         controllerMenuSelector      : ControllerKind
+        controllerInfos             : hmap<ControllerKind, ControllerInfo>
 
     }
 

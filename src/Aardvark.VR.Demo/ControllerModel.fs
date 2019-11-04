@@ -41,7 +41,7 @@ type ControllerInfo = {
 [<DomainType>]
 type ControllerModel = 
     {
-        controllerInfos     : hmap<ControllerKind, ControllerInfo>
+        controllerInfos1     : hmap<ControllerKind, ControllerInfo>
     }
 
 //module ControllerModel = 
