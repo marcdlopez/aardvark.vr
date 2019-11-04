@@ -33,14 +33,14 @@ open Aardvark.Rendering.Vulkan
 //    let toInt (button : ControllerButtons) = 
 //        button |> int
         
-[<DomainType>]
-type VisibleBox = {
-    geometry : Box3d
-    color : C4b
-    trafo : Trafo3d
-    [<TreatAsValue>]
-    id : string
-}
+//[<DomainType>]
+//type VisibleBox = {
+//    geometry : Box3d
+//    color : C4b
+//    trafo : Trafo3d
+//    [<TreatAsValue>]
+//    id : string
+//}
 
 [<DomainType>]
 type Line = {
@@ -127,45 +127,45 @@ type Model =
         
     }
 
-module VisibleBox =
+//module VisibleBox =
     
-    let private initial = 
-        {
-            geometry  = Box3d.FromSize(V3d(0.10, 0.5, 0.05))//Box3d.FromCenterAndSize(V3d.Zero, V3d.One)
-            color = C4b.Red
-            trafo = Trafo3d.Identity
-            //size = V3d.One
-            id = ""
-        }
+//    let private initial = 
+//        {
+//            geometry  = Box3d.FromSize(V3d(0.10, 0.5, 0.05))//Box3d.FromCenterAndSize(V3d.Zero, V3d.One)
+//            color = C4b.Red
+//            trafo = Trafo3d.Identity
+//            //size = V3d.One
+//            id = ""
+//        }
 
-    let createVisibleBox (color : C4b) (position : V3d) (rotation : Pose) = 
-        let x = (position - rotation.deviceToWorld.GetModelOrigin()).Normalized
-        let y = V3d.Cross(x,V3d.OOI)
-        let z = V3d.Cross(y,x)
-        let newCoordinateSystem = Trafo3d.FromBasis(-x,y,z, position)
-        {   initial 
-                with
-                color = color     
-                trafo =  newCoordinateSystem
-                id = System.Guid.NewGuid().ToString()
-        }
+//    let createVisibleBox (color : C4b) (position : V3d) (rotation : Pose) = 
+//        let x = (position - rotation.deviceToWorld.GetModelOrigin()).Normalized
+//        let y = V3d.Cross(x,V3d.OOI)
+//        let z = V3d.Cross(y,x)
+//        let newCoordinateSystem = Trafo3d.FromBasis(-x,y,z, position)
+//        {   initial 
+//                with
+//                color = color     
+//                trafo =  newCoordinateSystem
+//                id = System.Guid.NewGuid().ToString()
+//        }
 
-    let createDrawingPoint (color : C4b) (position : V3d)= 
-        {
-            initial 
-                with 
-                geometry = Box3d.FromCenterAndSize(V3d.Zero, V3d(0.01,0.01,0.01))
-                color = color 
-                trafo = Trafo3d.Translation(position) 
-                id = System.Guid.NewGuid().ToString()
-        }
+//    let createDrawingPoint (color : C4b) (position : V3d)= 
+//        {
+//            initial 
+//                with 
+//                geometry = Box3d.FromCenterAndSize(V3d.Zero, V3d(0.01,0.01,0.01))
+//                color = color 
+//                trafo = Trafo3d.Translation(position) 
+//                id = System.Guid.NewGuid().ToString()
+//        }
 
-    let createFlag (color : C4b) (position : V3d) = 
-        {
-            initial 
-                with
-                color = color
-                trafo = Trafo3d.Translation(position)
-                id = System.Guid.NewGuid().ToString()
-                geometry = Box3d.FromSize(V3d(0.15, 0.05, 0.05))
-        }
+//    let createFlag (color : C4b) (position : V3d) = 
+//        {
+//            initial 
+//                with
+//                color = color
+//                trafo = Trafo3d.Translation(position)
+//                id = System.Guid.NewGuid().ToString()
+//                geometry = Box3d.FromSize(V3d(0.15, 0.05, 0.05))
+//        }

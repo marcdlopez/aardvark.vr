@@ -20,6 +20,8 @@ type subMenuState =
 [<DomainType>]
 type MenuModel = 
     {
+        mainMenuBoxes               : plist<VisibleBox>
+        subMenuBoxes                : plist<VisibleBox>
         menu                        : MenuState
         subMenu                     : subMenuState
         initialMenuState            : MenuState
@@ -27,7 +29,6 @@ type MenuModel =
         initialMenuPosition         : Pose
         initialMenuPositionBool     : bool
         controllerMenuSelector      : ControllerKind
-        controllerInfos             : hmap<ControllerKind, ControllerInfo>
 
     }
 

@@ -13,11 +13,11 @@
   <ItemGroup>
     <Compile Include="SerializationOpc.fs" />
     <Compile Include="OpcViewerFunc.fs" />
-    <Compile Include="ControllerModel.fs" />
+    <Compile Include="UtilitiesModel.fs" />
+    <Compile Include="OpcUtilities.fs" />
     <Compile Include="MenuModel.fs" />
     <Compile Include="MenuApp.fs" />
     <Compile Include="Model.fs" />
-    <Compile Include="OpcUtilities.fs" />
     <Compile Include="NavigationOpc.fs" />
     <Compile Include="AnnotationOpc.fs" />
     <Compile Include="App.fs" />

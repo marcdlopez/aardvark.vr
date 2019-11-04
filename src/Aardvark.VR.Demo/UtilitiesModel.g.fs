@@ -92,38 +92,102 @@ module Mutable =
                 }
     
     
-    type MControllerModel(__initial : Demo.ControllerModel) =
+    type MUtilitiesModel(__initial : Demo.UtilitiesModel) =
         inherit obj()
-        let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.ControllerModel> = Aardvark.Base.Incremental.EqModRef<Demo.ControllerModel>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.ControllerModel>
+        let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.UtilitiesModel> = Aardvark.Base.Incremental.EqModRef<Demo.UtilitiesModel>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.UtilitiesModel>
         let _controllerInfos = MMap.Create(__initial.controllerInfos, (fun v -> MControllerInfo.Create(v)), (fun (m,v) -> MControllerInfo.Update(m, v)), (fun v -> v))
         
         member x.controllerInfos = _controllerInfos :> amap<_,_>
         
         member x.Current = __current :> IMod<_>
-        member x.Update(v : Demo.ControllerModel) =
+        member x.Update(v : Demo.UtilitiesModel) =
             if not (System.Object.ReferenceEquals(__current.Value, v)) then
                 __current.Value <- v
                 
                 MMap.Update(_controllerInfos, v.controllerInfos)
                 
         
-        static member Create(__initial : Demo.ControllerModel) : MControllerModel = MControllerModel(__initial)
-        static member Update(m : MControllerModel, v : Demo.ControllerModel) = m.Update(v)
+        static member Create(__initial : Demo.UtilitiesModel) : MUtilitiesModel = MUtilitiesModel(__initial)
+        static member Update(m : MUtilitiesModel, v : Demo.UtilitiesModel) = m.Update(v)
         
         override x.ToString() = __current.Value.ToString()
         member x.AsString = sprintf "%A" __current.Value
-        interface IUpdatable<Demo.ControllerModel> with
+        interface IUpdatable<Demo.UtilitiesModel> with
             member x.Update v = x.Update v
     
     
     
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-    module ControllerModel =
+    module UtilitiesModel =
         [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
         module Lens =
             let controllerInfos =
-                { new Lens<Demo.ControllerModel, Aardvark.Base.hmap<Demo.ControllerKind,Demo.ControllerInfo>>() with
+                { new Lens<Demo.UtilitiesModel, Aardvark.Base.hmap<Demo.ControllerKind,Demo.ControllerInfo>>() with
                     override x.Get(r) = r.controllerInfos
                     override x.Set(r,v) = { r with controllerInfos = v }
                     override x.Update(r,f) = { r with controllerInfos = f r.controllerInfos }
+                }
+    
+    
+    type MVisibleBox(__initial : Demo.VisibleBox) =
+        inherit obj()
+        let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.VisibleBox> = Aardvark.Base.Incremental.EqModRef<Demo.VisibleBox>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.VisibleBox>
+        let _geometry = ResetMod.Create(__initial.geometry)
+        let _color = ResetMod.Create(__initial.color)
+        let _trafo = ResetMod.Create(__initial.trafo)
+        let _id = ResetMod.Create(__initial.id)
+        
+        member x.geometry = _geometry :> IMod<_>
+        member x.color = _color :> IMod<_>
+        member x.trafo = _trafo :> IMod<_>
+        member x.id = _id :> IMod<_>
+        
+        member x.Current = __current :> IMod<_>
+        member x.Update(v : Demo.VisibleBox) =
+            if not (System.Object.ReferenceEquals(__current.Value, v)) then
+                __current.Value <- v
+                
+                ResetMod.Update(_geometry,v.geometry)
+                ResetMod.Update(_color,v.color)
+                ResetMod.Update(_trafo,v.trafo)
+                _id.Update(v.id)
+                
+        
+        static member Create(__initial : Demo.VisibleBox) : MVisibleBox = MVisibleBox(__initial)
+        static member Update(m : MVisibleBox, v : Demo.VisibleBox) = m.Update(v)
+        
+        override x.ToString() = __current.Value.ToString()
+        member x.AsString = sprintf "%A" __current.Value
+        interface IUpdatable<Demo.VisibleBox> with
+            member x.Update v = x.Update v
+    
+    
+    
+    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+    module VisibleBox =
+        [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+        module Lens =
+            let geometry =
+                { new Lens<Demo.VisibleBox, Aardvark.Base.Box3d>() with
+                    override x.Get(r) = r.geometry
+                    override x.Set(r,v) = { r with geometry = v }
+                    override x.Update(r,f) = { r with geometry = f r.geometry }
+                }
+            let color =
+                { new Lens<Demo.VisibleBox, Aardvark.Base.C4b>() with
+                    override x.Get(r) = r.color
+                    override x.Set(r,v) = { r with color = v }
+                    override x.Update(r,f) = { r with color = f r.color }
+                }
+            let trafo =
+                { new Lens<Demo.VisibleBox, Aardvark.Base.Trafo3d>() with
+                    override x.Get(r) = r.trafo
+                    override x.Set(r,v) = { r with trafo = v }
+                    override x.Update(r,f) = { r with trafo = f r.trafo }
+                }
+            let id =
+                { new Lens<Demo.VisibleBox, System.String>() with
+                    override x.Get(r) = r.id
+                    override x.Set(r,v) = { r with id = v }
+                    override x.Update(r,f) = { r with id = f r.id }
                 }

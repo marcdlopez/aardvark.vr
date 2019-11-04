@@ -19,12 +19,12 @@ module MenuApp =
     | Select
     | CloseMenu
 
-    let rec update (state : VrState) (vr : VrActions) (model : MenuModel) (msg : MenuMessage) : MenuModel = 
+    let rec update (state : VrState) (vr : VrActions) (model : MenuModel) (msg : MenuMessage) (cm : UtilitiesModel) : MenuModel = 
         match msg with
         | CreateMenu (kind, buttonPressed) -> 
             let model = 
                 if not(model.initialMenuPositionBool) then 
-                    let controllerPos = model.controllerInfos |> HMap.tryFind kind
+                    let controllerPos = cm.controllerInfos |> HMap.tryFind kind
                     match controllerPos with
                     | Some id -> 
                         {model with initialMenuPosition = id.pose; initialMenuPositionBool = true}
@@ -32,7 +32,7 @@ module MenuApp =
                 else model
 
             if buttonPressed then 
-                let hmdPos = model.controllerInfos |> HMap.values |> Seq.item 0
+                let hmdPos = cm.controllerInfos |> HMap.values |> Seq.item 0
                 match model.menu with
                 | Navigation ->
                     let newMenuBoxes = OpcUtilities.mkBoxesMenu model.initialMenuPosition hmdPos.pose 3 //number of menu possibilities should be the number of boxes. So far 2
@@ -46,7 +46,27 @@ module MenuApp =
                             else {idx with id = "Annotation"}
                             )
                     {model with mainMenuBoxes = newMenuBoxes; menuButtonPressed = buttonPressed}
-            else model
+                | Annotation -> 
+                    let newSubMenuBoxes = OpcUtilities.mkBoxesMenu model.initialMenuPosition hmdPos.pose 6
+                    let boxID0 = newSubMenuBoxes |> Seq.item 0
+                    let boxID1 = newSubMenuBoxes |> Seq.item 1 
+                    let boxID2 = newSubMenuBoxes |> Seq.item 2
+                    let boxID3 = newSubMenuBoxes |> Seq.item 3
+                    let boxID4 = newSubMenuBoxes |> Seq.item 4
+                    let newSubMenuBoxes = 
+                        newSubMenuBoxes
+                        |> PList.map (fun idx -> 
+                            if idx.id.Equals(boxID0.id)then {idx with id = "Back"}
+                            else if idx.id.Equals(boxID1.id) then {idx with id = "Reset"}
+                            else if idx.id.Equals(boxID2.id) then {idx with id = "Flag"}
+                            else if idx.id.Equals(boxID3.id) then {idx with id = "Dip and Strike"}
+                            else if idx.id.Equals(boxID4.id) then {idx with id = "Draw"} //allow different options in the draw mode: freely draw and draw by points
+                            else {idx with id = "Line"})
+                    {model with subMenuBoxes = newSubMenuBoxes; menuButtonPressed = buttonPressed}
+                | MainReset -> 
+                    model |> OpcUtilities.resetEverything
+            else 
+                {model with mainMenuBoxes = PList.empty; subMenuBoxes = PList.empty; menuButtonPressed = buttonPressed; initialMenuPositionBool = false}
         | UpdateControllerPose p -> model
         | Select -> model 
         | CloseMenu -> model
@@ -103,13 +123,14 @@ module MenuApp =
             menuButtonPressed       = false
             initialMenuPosition     = Pose.none
             initialMenuPositionBool = false
-            controllerInfos         = HMap.empty
+            mainMenuBoxes           = PList.empty
+            subMenuBoxes            = PList.empty
         }
     let app =
         {
             unpersist = Unpersist.instance
             initial = initial
-            update = update
+            update = update (UtilitiesModel.initial)
             threads = threads
             input = input 
             ui = ui
