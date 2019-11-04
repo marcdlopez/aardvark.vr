@@ -19,7 +19,7 @@ module MenuApp =
     | Select
     | CloseMenu
 
-    let rec update (state : VrState) (vr : VrActions) (model : MenuModel) (msg : MenuMessage) (cm : UtilitiesModel) : MenuModel = 
+    let update (cm : UtilitiesModel) (state : VrState) (vr : VrActions) (model : MenuModel) (msg : MenuMessage)  : MenuModel = 
         match msg with
         | CreateMenu (kind, buttonPressed) -> 
             let model = 
@@ -35,7 +35,7 @@ module MenuApp =
                 let hmdPos = cm.controllerInfos |> HMap.values |> Seq.item 0
                 match model.menu with
                 | Navigation ->
-                    let newMenuBoxes = OpcUtilities.mkBoxesMenu model.initialMenuPosition hmdPos.pose 3 //number of menu possibilities should be the number of boxes. So far 2
+                    let newMenuBoxes = UtilitiesMenu.mkBoxesMenu model.initialMenuPosition hmdPos.pose 3 //number of menu possibilities should be the number of boxes. So far 2
                     let box0id = newMenuBoxes |> Seq.item 0
                     let box1id = newMenuBoxes |> Seq.item 1
                     let newMenuBoxes = 
@@ -47,7 +47,7 @@ module MenuApp =
                             )
                     {model with mainMenuBoxes = newMenuBoxes; menuButtonPressed = buttonPressed}
                 | Annotation -> 
-                    let newSubMenuBoxes = OpcUtilities.mkBoxesMenu model.initialMenuPosition hmdPos.pose 6
+                    let newSubMenuBoxes = UtilitiesMenu.mkBoxesMenu model.initialMenuPosition hmdPos.pose 6
                     let boxID0 = newSubMenuBoxes |> Seq.item 0
                     let boxID1 = newSubMenuBoxes |> Seq.item 1 
                     let boxID2 = newSubMenuBoxes |> Seq.item 2
@@ -64,7 +64,7 @@ module MenuApp =
                             else {idx with id = "Line"})
                     {model with subMenuBoxes = newSubMenuBoxes; menuButtonPressed = buttonPressed}
                 | MainReset -> 
-                    model |> OpcUtilities.resetEverything
+                    {model with menu = MenuState.Navigation}
             else 
                 {model with mainMenuBoxes = PList.empty; subMenuBoxes = PList.empty; menuButtonPressed = buttonPressed; initialMenuPositionBool = false}
         | UpdateControllerPose p -> model
@@ -98,10 +98,87 @@ module MenuApp =
             []
 
     
-    let ui (info : VrSystemInfo) (m : MMenuModel) : DomNode<MenuMessage> = failwith""
+    let ui (info : VrSystemInfo) (m : MMenuModel) : DomNode<MenuMessage> = DomNode.Empty()
 
-    let vr (info : VrSystemInfo) (m : MMenuModel) : ISg<'a> = failwith ""
+    let mkColor (model : MMenuModel) (box : MVisibleBox) =
+        let id = box.id
+
+        let color = 
+            id
+            |> Mod.bind (fun s ->
+
+                let hoverColor =
+                    model.boxHovered 
+                    |> Mod.bind (function 
+                        | Some k -> if k = s then Mod.constant C4b.Blue else box.color
+                        | None -> box.color
+                    )
+                hoverColor
+            )
+        color
     
+    let mkISg (model : MMenuModel) (box : MVisibleBox) =
+        let color = mkColor model box
+        let pos = box.trafo
+        let font = Font.create "Consolas" FontStyle.Regular
+
+        let menuText = 
+            box.geometry |> Mod.map ( fun box1 -> 
+                Sg.text font C4b.White box.id
+                    |> Sg.noEvents
+                    |> Sg.trafo(Mod.constant(Trafo3d.RotationInDegrees(V3d(90.0,0.0,90.0))))
+                    |> Sg.scale 0.05
+                    |> Sg.trafo(pos)
+                    |> Sg.pickable (PickShape.Box (box1))
+            )
+                |> Sg.dynamic 
+        
+        let menuBox = 
+            Sg.box color box.geometry
+                |> Sg.noEvents
+                |> Sg.trafo(pos)
+                |> Sg.shader {
+                    do! DefaultSurfaces.trafo
+                    do! DefaultSurfaces.vertexColor
+                    //do! DefaultSurfaces.simpleLighting
+                    }                    
+                |> Sg.fillMode (Mod.constant FillMode.Line)
+
+        menuText
+        |> Sg.andAlso menuBox
+
+    let vr (info : VrSystemInfo) (m : MMenuModel) : ISg<'a> = 
+        let menuBox = 
+            m.mainMenuBoxes
+            |> AList.toASet 
+            |> ASet.map (fun b -> 
+                mkISg m b 
+               )
+            |> Sg.set
+            |> Sg.effect [
+                toEffect DefaultSurfaces.trafo
+                toEffect DefaultSurfaces.vertexColor
+                toEffect DefaultSurfaces.simpleLighting                              
+                ]
+            |> Sg.noEvents
+
+        let annotationSubMenuBox = 
+            m.subMenuBoxes
+            |> AList.toASet 
+            |> ASet.map (fun b -> 
+                mkISg m b 
+                )
+            |> Sg.set
+            |> Sg.effect [
+                toEffect DefaultSurfaces.trafo
+                toEffect DefaultSurfaces.vertexColor
+                toEffect DefaultSurfaces.simpleLighting                              
+                ]
+            |> Sg.noEvents
+
+        menuBox
+        |> Sg.andAlso annotationSubMenuBox
+
     let threads (model : MenuModel) = 
         ThreadPool.empty
 
@@ -125,12 +202,13 @@ module MenuApp =
             initialMenuPositionBool = false
             mainMenuBoxes           = PList.empty
             subMenuBoxes            = PList.empty
+            boxHovered              = None
         }
     let app =
         {
             unpersist = Unpersist.instance
             initial = initial
-            update = update (UtilitiesModel.initial)
+            update = update (UtilitiesModel.initial) 
             threads = threads
             input = input 
             ui = ui

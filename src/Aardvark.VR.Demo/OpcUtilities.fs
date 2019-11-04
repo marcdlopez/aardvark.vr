@@ -22,11 +22,11 @@ open OpcViewer.Base.Attributes
 
 module OpcUtilities = 
 
-    let mkBoxesMenu (controllerPos : Pose) (hmdPos : Pose) (number: int) : plist<VisibleBox> =
-        [0..number-1]
-        |> List.map (fun x -> 
-            VisibleBox.createVisibleBox C4b.Yellow (V3d(controllerPos.deviceToWorld.GetModelOrigin().X, controllerPos.deviceToWorld.GetModelOrigin().Y, controllerPos.deviceToWorld.GetModelOrigin().Z + (0.10 * float x))) hmdPos)
-        |> PList.ofList
+    //let mkBoxesMenu (controllerPos : Pose) (hmdPos : Pose) (number: int) : plist<VisibleBox> =
+    //    [0..number-1]
+    //    |> List.map (fun x -> 
+    //        VisibleBox.createVisibleBox C4b.Yellow (V3d(controllerPos.deviceToWorld.GetModelOrigin().X, controllerPos.deviceToWorld.GetModelOrigin().Y, controllerPos.deviceToWorld.GetModelOrigin().Z + (0.10 * float x))) hmdPos)
+    //    |> PList.ofList
 
     let mkFlags (controllerPos : Pose) (number : int) : plist<VisibleBox> = 
         [0..number-1]

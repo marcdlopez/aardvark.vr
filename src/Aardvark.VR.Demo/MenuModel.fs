@@ -21,6 +21,7 @@ type subMenuState =
 type MenuModel = 
     {
         mainMenuBoxes               : plist<VisibleBox>
+        boxHovered                  : option<string>
         subMenuBoxes                : plist<VisibleBox>
         menu                        : MenuState
         subMenu                     : subMenuState
