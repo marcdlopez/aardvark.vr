@@ -92,43 +92,6 @@ module Mutable =
                 }
     
     
-    type MUtilitiesModel(__initial : Demo.UtilitiesModel) =
-        inherit obj()
-        let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.UtilitiesModel> = Aardvark.Base.Incremental.EqModRef<Demo.UtilitiesModel>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.UtilitiesModel>
-        let _controllerInfos = MMap.Create(__initial.controllerInfos, (fun v -> MControllerInfo.Create(v)), (fun (m,v) -> MControllerInfo.Update(m, v)), (fun v -> v))
-        
-        member x.controllerInfos = _controllerInfos :> amap<_,_>
-        
-        member x.Current = __current :> IMod<_>
-        member x.Update(v : Demo.UtilitiesModel) =
-            if not (System.Object.ReferenceEquals(__current.Value, v)) then
-                __current.Value <- v
-                
-                MMap.Update(_controllerInfos, v.controllerInfos)
-                
-        
-        static member Create(__initial : Demo.UtilitiesModel) : MUtilitiesModel = MUtilitiesModel(__initial)
-        static member Update(m : MUtilitiesModel, v : Demo.UtilitiesModel) = m.Update(v)
-        
-        override x.ToString() = __current.Value.ToString()
-        member x.AsString = sprintf "%A" __current.Value
-        interface IUpdatable<Demo.UtilitiesModel> with
-            member x.Update v = x.Update v
-    
-    
-    
-    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-    module UtilitiesModel =
-        [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-        module Lens =
-            let controllerInfos =
-                { new Lens<Demo.UtilitiesModel, Aardvark.Base.hmap<Demo.ControllerKind,Demo.ControllerInfo>>() with
-                    override x.Get(r) = r.controllerInfos
-                    override x.Set(r,v) = { r with controllerInfos = v }
-                    override x.Update(r,f) = { r with controllerInfos = f r.controllerInfos }
-                }
-    
-    
     type MVisibleBox(__initial : Demo.VisibleBox) =
         inherit obj()
         let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.VisibleBox> = Aardvark.Base.Incremental.EqModRef<Demo.VisibleBox>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.VisibleBox>

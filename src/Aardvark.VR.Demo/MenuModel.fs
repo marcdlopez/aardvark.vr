@@ -34,4 +34,16 @@ type MenuModel =
     }
 
 module MenuModel = 
-    0
+    let init = 
+        {
+            mainMenuBoxes               = PList.empty
+            boxHovered                  = None
+            subMenuBoxes                = PList.empty
+            menu                        = MenuState.Navigation
+            subMenu                     = subMenuState.Flag
+            initialMenuState            = MenuState.Navigation
+            menuButtonPressed           = false
+            initialMenuPosition         = Pose.none
+            initialMenuPositionBool     = false
+            controllerMenuSelector      = ControllerKind.ControllerA
+        }

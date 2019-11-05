@@ -37,10 +37,6 @@ module OpcUtilities =
     let mkPointDraw (controllerPos : Pose) : VisibleBox =
         VisibleBox.createDrawingPoint C4b.White (controllerPos.deviceToWorld.GetModelOrigin())
 
-    let resetEverything (model : Model) : Model = 
-        {model with globalTrafo = Trafo3d.Translation -model.boundingBox.Center; menu = MenuState.Navigation}
-
-
     let getWorldTrafoIfBackPressed index model : Trafo3d = 
         let b0 = model.controllerInfos |> HMap.tryFind index
         b0
@@ -64,19 +60,19 @@ module OpcUtilities =
         controlTrafo.Decompose(&scale, &rot, &trans)
         Trafo3d.Rotation rot
 
-    let mayHover (boxList : plist<VisibleBox>) (controller1 : ControllerInfo) (controller2 : ControllerInfo) = 
-        boxList
-        |> PList.choose (fun b -> 
-            if (b.geometry.Transformed(b.trafo).Contains(controller1.pose.deviceToWorld.GetModelOrigin()) || b.geometry.Transformed(b.trafo).Contains(controller2.pose.deviceToWorld.GetModelOrigin())) then 
-                Some b.id
-            else None)
-        |> PList.tryFirst
+    //let mayHover (boxList : plist<VisibleBox>) (controller1 : ControllerInfo) (controller2 : ControllerInfo) = 
+    //    boxList
+    //    |> PList.choose (fun b -> 
+    //        if (b.geometry.Transformed(b.trafo).Contains(controller1.pose.deviceToWorld.GetModelOrigin()) || b.geometry.Transformed(b.trafo).Contains(controller2.pose.deviceToWorld.GetModelOrigin())) then 
+    //            Some b.id
+    //        else None)
+    //    |> PList.tryFirst
 
-    let getControllersInfo index1 index2 model = 
-        let controller1 = model.controllerInfos |> HMap.values |> Seq.item index1
-        let controller2 = model.controllerInfos |> HMap.values |> Seq.item index2
+    //let getControllersInfo index1 index2 model = 
+    //    let controller1 = model.controllerInfos |> HMap.values |> Seq.item index1
+    //    let controller2 = model.controllerInfos |> HMap.values |> Seq.item index2
 
-        controller1, controller2    
+    //    controller1, controller2    
 
     let updateControllersInfo (kind : ControllerKind) (pose : Pose) (model : Model)= 
         let mkControllerInfo k p = 

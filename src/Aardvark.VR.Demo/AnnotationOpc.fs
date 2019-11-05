@@ -40,4 +40,4 @@ module AnnotationOpc =
             | _ -> newModel
             
         | Reset -> 
-            newModel |> OpcUtilities.resetEverything
+            {newModel with globalTrafo = Trafo3d.Translation -model.boundingBox.Center}

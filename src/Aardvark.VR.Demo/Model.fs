@@ -86,9 +86,6 @@ type Model =
         text    : string
         vr      : bool                
 
-        mainMenuBoxes       : plist<VisibleBox> 
-        boxHovered          : option<string>
-        subMenuBoxes        : plist<VisibleBox> 
         
         cameraState         : CameraControllerState
 
@@ -114,14 +111,18 @@ type Model =
         initControlTrafo            : Trafo3d
         init2ControlTrafo           : Trafo3d
 
+        menuModel                   : MenuModel
         // menu model part
-        menu                        : MenuState
-        annotationMenu              : subMenuState
-        initialMenuState            : MenuState
-        menuButtonPressed           : bool
-        initialMenuPosition         : Pose
-        initialMenuPositionBool     : bool
-        controllerMenuSelector      : ControllerKind
+        //mainMenuBoxes       : plist<VisibleBox> 
+        //boxHovered          : option<string>
+        //subMenuBoxes        : plist<VisibleBox> 
+        //menu                        : MenuState
+        //annotationMenu              : subMenuState
+        //initialMenuState            : MenuState
+        //menuButtonPressed           : bool
+        //initialMenuPosition         : Pose
+        //initialMenuPositionBool     : bool
+        //controllerMenuSelector      : ControllerKind
 
         drawingPoint                : plist<VisibleBox> 
         

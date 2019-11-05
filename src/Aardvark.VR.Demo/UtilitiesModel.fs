@@ -38,17 +38,17 @@ type ControllerInfo = {
     joystickPressed   : bool
 }
 
-[<DomainType>]
-type UtilitiesModel = 
-    {
-        controllerInfos     : hmap<ControllerKind, ControllerInfo>
-    }
+//[<DomainType>]
+//type UtilitiesModel = 
+//    {
+//        controllerInfos     : hmap<ControllerKind, ControllerInfo>
+//    }
 
-module UtilitiesModel = 
-    let initial = 
-        {
-            controllerInfos = HMap.empty
-        }
+//module UtilitiesModel = 
+//    let initial = 
+//        {
+//            controllerInfos = HMap.empty
+//        }
 
 [<DomainType>]
 type VisibleBox = {

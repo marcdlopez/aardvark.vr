@@ -20,16 +20,16 @@ open OpcViewer.Base
 open OpcViewer.Base.Picking
 open OpcViewer.Base.Attributes
 
-type MenuMessages  =
-    | CreateMenu of  ControllerKind*bool
-    | UpdateControllerPosition of Pose
-    | Select of Index
-    | CloseMenu
+//type MenuMessages  =
+//    | CreateMenu of  ControllerKind*bool
+//    | UpdateControllerPosition of Pose
+//    | Select of Index
+//    | CloseMenu
 
-type DemoMessage =
+type DemoAction =
 | SetText of string 
 | ToggleVR
-| CreateMenu of ControllerKind*bool
+| MenuMessage of MenuAction
 | Select of string
 | HoverIn of string
 | HoverOut
@@ -68,7 +68,7 @@ module Demo =
         subApp' (fun _ _ -> Seq.empty) (fun _ _ -> Seq.empty) [] app
 
 
-    let rec update (state : VrState) (vr : VrActions) (model : Model) (msg : DemoMessage) : Model =
+    let rec update (state : VrState) (vr : VrActions) (model : Model) (msg : DemoAction) : Model =
         match msg with
         | OpcViewerMsg m -> 
             let newOpcModel = OpcViewer.Base.Picking.PickingApp.update OpcViewer.Base.Picking.PickingModel.initial m
@@ -79,8 +79,14 @@ module Demo =
             if model.vr then vr.stop()
             else vr.start()
             { model with vr = not model.vr }
-        | CreateMenu (kind, buttonPressed) ->
-            model
+        | MenuMessage a ->            
+
+            let newMenuModel = 
+                MenuApp.update HMap.empty state vr model.menuModel a
+            
+            { model with menuModel = newMenuModel }
+
+
             //let model = 
             //    if not(model.initialMenuPositionBool) then 
             //        let controllerPos = model.controllerInfos |> HMap.tryFind kind
@@ -127,93 +133,95 @@ module Demo =
             //    {model with mainMenuBoxes = PList.empty; subMenuBoxes = PList.empty; menuButtonPressed = buttonPressed; initialMenuPositionBool = false}
             
         | HoverIn id ->
-            match model.boxHovered with 
-            | Some oldID when id = oldID -> model
-            | _ ->
-                { model with boxHovered = Some id} 
+            //match model.boxHovered with 
+            //| Some oldID when id = oldID -> model
+            //| _ ->
+            //    { model with boxHovered = Some id} 
+            model
         | HoverOut ->
-            if model.boxHovered.IsSome then
-                { model with boxHovered = None}
-            else 
-                model
+            //if model.boxHovered.IsSome then
+            //    { model with boxHovered = None}
+            //else 
+            //    model
+            model
         | CameraMessage m -> 
             { model with cameraState = FreeFlyController.update model.cameraState m }   
         | SetControllerPosition (kind, p) ->                         
             let newModel = 
-                match model.menu with
+                match model.menuModel.menu with
                 | MenuState.Navigation ->
                     model 
                     |> NavigationOpc.currentSceneInfo kind p
                 | MenuState.Annotation ->
                     model
-                    |> AnnotationOpc.annotationMode kind p model.annotationMenu
+                    |> AnnotationOpc.annotationMode kind p model.menuModel.subMenu
                 | MenuState.MainReset -> 
                     model
-             
-            //let controllerA = newModel.controllerInfos |> HMap.tryFind 
-            let newModel =
-                 let controllerA = model.controllerInfos |> HMap.tryFind ControllerKind.ControllerA
-                 let controllerB = model.controllerInfos |> HMap.tryFind ControllerKind.ControllerB
-                 
-                 match controllerA, controllerB with
-                 | Some a, Some b -> 
-                    let mayHoverMenu = OpcUtilities.mayHover newModel.mainMenuBoxes a b
-                    match mayHoverMenu with
-                     | Some id  -> //SELECT
-                        if (a.joystickPressed || b.joystickPressed) then
-                            let box0ID = newModel.mainMenuBoxes |> Seq.item 0
-                            let box1ID = newModel.mainMenuBoxes |> Seq.item 1
-
-                            let menuSelector = if a.joystickPressed then a.kind else b.kind
-                                
-                            if box0ID.id = id then 
-                                {   newModel with menu = MenuState.MainReset }
-                            else if box1ID.id = id then 
-                                {   newModel with menu = MenuState.Navigation }
-                            else 
-                                {
-                                    newModel with 
-                                        menu = MenuState.Annotation; 
-                                        controllerMenuSelector = menuSelector; 
-                                        mainMenuBoxes = PList.empty
-                                }
-                            
-                        else //HOVER
-                            update state vr newModel (HoverIn id)
-                     | _ -> //HOVEROUT
-                         update state vr newModel HoverOut
-                 | _ -> //DEFAULT
-                    newModel
-
-            let newModel = 
-                if newModel.menu.Equals(MenuState.Annotation) && newModel.controllerInfos.Count.Equals(5) then 
-                    let controller1, controller2 = 
-                        newModel 
-                        |> OpcUtilities.getControllersInfo 3 4 //these two ints correspond to the id of the controllers
-                    let mayHoverSubMenu = OpcUtilities.mayHover newModel.subMenuBoxes controller1 controller2
-                    match mayHoverSubMenu with
-                    | Some ID -> 
-                        if controller2.joystickPressed || controller1.joystickPressed then 
-                            let boxID0 = newModel.subMenuBoxes |> Seq.item 0
-                            let boxID1 = newModel.subMenuBoxes |> Seq.item 1 
-                            let boxID2 = newModel.subMenuBoxes |> Seq.item 2
-                            let boxID3 = newModel.subMenuBoxes |> Seq.item 3
-                            let boxID4 = newModel.subMenuBoxes |> Seq.item 4
-                            
-                            if boxID0.id.Contains(ID) then {newModel with menu = MenuState.Navigation}
-                            else if boxID1.id.Contains(ID) then {newModel with annotationMenu = subMenuState.Reset}
-                            else if boxID2.id.Contains(ID) then{newModel with annotationMenu = subMenuState.Flag}
-                            else if boxID3.id.Contains(ID) then{newModel with annotationMenu = subMenuState.DipAndStrike}
-                            else if boxID4.id.Contains(ID) then{newModel with annotationMenu = subMenuState.Draw}
-                            else {newModel with annotationMenu = subMenuState.Line}
-                        else update state vr newModel (HoverIn ID)
-                    | None -> update state vr newModel HoverOut
-                else {newModel with subMenuBoxes = PList.empty}
             newModel
+             
+            //let newModel =
+            //     let controllerA = model.controllerInfos |> HMap.tryFind ControllerKind.ControllerA
+            //     let controllerB = model.controllerInfos |> HMap.tryFind ControllerKind.ControllerB
+                 
+            //     match controllerA, controllerB with
+            //     | Some a, Some b -> 
+            //        let mayHoverMenu = OpcUtilities.mayHover newModel.mainMenuBoxes a b
+            //        match mayHoverMenu with
+            //         | Some id  -> //SELECT
+            //            if (a.joystickPressed || b.joystickPressed) then
+            //                let box0ID = newModel.mainMenuBoxes |> Seq.item 0
+            //                let box1ID = newModel.mainMenuBoxes |> Seq.item 1
+
+            //                let menuSelector = if a.joystickPressed then a.kind else b.kind
+                                
+            //                if box0ID.id = id then 
+            //                    {   newModel with menu = MenuState.MainReset }
+            //                else if box1ID.id = id then 
+            //                    {   newModel with menu = MenuState.Navigation }
+            //                else 
+            //                    {
+            //                        newModel with 
+            //                            menu = MenuState.Annotation; 
+            //                            controllerMenuSelector = menuSelector; 
+            //                            mainMenuBoxes = PList.empty
+            //                    }
+                            
+            //            else //HOVER
+            //                update state vr newModel (HoverIn id)
+            //         | _ -> //HOVEROUT
+            //             update state vr newModel HoverOut
+            //     | _ -> //DEFAULT
+            //        newModel
+
+            //let newModel = 
+            //    if newModel.menu.Equals(MenuState.Annotation) && newModel.controllerInfos.Count.Equals(5) then 
+            //        let controller1, controller2 = 
+            //            newModel 
+            //            |> OpcUtilities.getControllersInfo 3 4 //these two ints correspond to the id of the controllers
+            //        let mayHoverSubMenu = OpcUtilities.mayHover newModel.subMenuBoxes controller1 controller2
+            //        match mayHoverSubMenu with
+            //        | Some ID -> 
+            //            if controller2.joystickPressed || controller1.joystickPressed then 
+            //                let boxID0 = newModel.subMenuBoxes |> Seq.item 0
+            //                let boxID1 = newModel.subMenuBoxes |> Seq.item 1 
+            //                let boxID2 = newModel.subMenuBoxes |> Seq.item 2
+            //                let boxID3 = newModel.subMenuBoxes |> Seq.item 3
+            //                let boxID4 = newModel.subMenuBoxes |> Seq.item 4
+                            
+            //                if boxID0.id.Contains(ID) then {newModel with menu = MenuState.Navigation}
+            //                else if boxID1.id.Contains(ID) then {newModel with annotationMenu = subMenuState.Reset}
+            //                else if boxID2.id.Contains(ID) then{newModel with annotationMenu = subMenuState.Flag}
+            //                else if boxID3.id.Contains(ID) then{newModel with annotationMenu = subMenuState.DipAndStrike}
+            //                else if boxID4.id.Contains(ID) then{newModel with annotationMenu = subMenuState.Draw}
+            //                else {newModel with annotationMenu = subMenuState.Line}
+            //            else update state vr newModel (HoverIn ID)
+            //        | None -> update state vr newModel HoverOut
+            //    else {newModel with subMenuBoxes = PList.empty}
+            //newModel
             
-        | GrabObject (kind, buttonKind, buttonPress)-> //TODO ML make enumtype for buttons similar to controllerkind
+        | GrabObject (kind, buttonKind, buttonPress)-> 
             
-            printfn "Menu mode is: %s when buttonpress is: %s" (model.menu.ToString()) (buttonPress.ToString())
+            printfn "Menu mode is: %s when buttonpress is: %s" (model.menuModel.menu.ToString()) (buttonPress.ToString())
             
             let updateControllerButtons = 
                 model.controllerInfos
@@ -250,17 +258,17 @@ module Demo =
                          }
                         Some newInfo)
 
-            let newModel = {model with controllerInfos = updateControllerButtons; initialMenuState = model.menu; controllerMenuSelector = kind}
+            let newModel = {model with controllerInfos = updateControllerButtons}//; initialMenuState = model.menu; controllerMenuSelector = kind}
             
-            let newModel =  
-                match newModel.menuButtonPressed with 
-                | true -> 
-                    if not(buttonPress) then 
-                        update state vr newModel (CreateMenu (newModel.controllerMenuSelector, true))
-                    else newModel
-                | false -> newModel
+            //let newModel =  
+            //    match newModel.menuButtonPressed with 
+            //    | true -> 
+            //        if not(buttonPress) then 
+            //            update state vr newModel (CreateMenu )
+            //        else newModel
+            //    | false -> newModel
 
-            match newModel.menu with 
+            match newModel.menuModel.menu with 
             | Navigation -> 
                 newModel
                 |> NavigationOpc.initialSceneInfo
@@ -268,7 +276,7 @@ module Demo =
                 let controllerPos = newModel.controllerInfos |> HMap.tryFind kind
                 match controllerPos with 
                 | Some id -> 
-                    match newModel.annotationMenu with
+                    match newModel.menuModel.subMenu with
                     | Draw -> 
                         match buttonKind |> ControllerButtons.toInt with 
                         | 1 -> 
@@ -297,7 +305,7 @@ module Demo =
             |> Mod.bind (fun s ->
 
                 let hoverColor =
-                    model.boxHovered 
+                    model.menuModel.boxHovered 
                     |> Mod.bind (function 
                         | Some k -> if k = s then Mod.constant C4b.Blue else box.color
                         | None -> box.color
@@ -358,14 +366,14 @@ module Demo =
     let input (msg : VrMessage) =
         match msg with
         // buttons identifications: sensitive = 0, backButton = 1, sideButtons = 2
-        | VrMessage.Touch(con,button) -> 
-            match button with 
-            | 0 -> [CreateMenu(con |> ControllerKind.fromInt, true)]
-            | _ -> []
-        | VrMessage.Untouch(con,button) -> 
-            match button with 
-            | 0 -> [CreateMenu(con |> ControllerKind.fromInt, false)]
-            | _ -> []
+        //| VrMessage.Touch(con,button) -> 
+        //    match button with 
+        //    | 0 -> [CreateMenu(con |> ControllerKind.fromInt, true)]
+        //    | _ -> []
+        //| VrMessage.Untouch(con,button) -> 
+        //    match button with 
+        //    | 0 -> [CreateMenu(con |> ControllerKind.fromInt, false)]
+        //    | _ -> []
         | VrMessage.PressButton(_,2) ->
             //printfn "Button identification %d" button
             [ToggleVR]
@@ -464,7 +472,7 @@ module Demo =
                     //|> Sg.map (OpcSelectionViewer.Message.PickingAction)
                     //|> Sg.map OpcViewerMsg
                     //|> Sg.noEvents
-                    m.mainMenuBoxes 
+                    m.menuModel.mainMenuBoxes 
                     |> AList.toASet 
                     |> ASet.map (function b -> mkISg m b)
                     |> Sg.set
@@ -552,7 +560,7 @@ module Demo =
                 do! DefaultSurfaces.simpleLighting
             }
 
-        m.mainMenuBoxes 
+        m.menuModel.mainMenuBoxes 
         |> AList.toASet 
         |> ASet.map (fun b -> 
             mkISg m b 
@@ -655,6 +663,10 @@ module Demo =
                 do! DefaultSurfaces.simpleLighting
             }
     
+        let menuApp = 
+            MenuApp.vr info m.menuModel
+            |> Sg.map MenuMessage
+
         let opcs = 
             m.opcInfos
                 |> AMap.toASet
@@ -675,6 +687,7 @@ module Demo =
         |> Sg.trafo m.globalTrafo 
         |> Sg.andAlso deviceSgs
         |> Sg.andAlso a
+        |> Sg.andAlso menuApp
         //|> Sg.andAlso menuBox
         //|> Sg.andAlso annotationSubMenuBox
         //|> Sg.andAlso preDrawingBoxes
@@ -727,9 +740,6 @@ module Demo =
         {
             text                = "some text"
             vr                  = false
-            mainMenuBoxes       = PList.empty
-            boxHovered          = None
-            subMenuBoxes        = PList.empty
 
             ControllerPosition      = V3d.OOO
             controllerInfos         = HMap.empty
@@ -753,14 +763,19 @@ module Demo =
             init2ControlTrafo   = Trafo3d.Identity
             rotationAxis        = Trafo3d.Identity
 
-            menu                    = MenuState.Navigation
-            controllerMenuSelector  = ControllerKind.ControllerA
-            annotationMenu          = subMenuState.Draw
-            initialMenuState        = MenuState.Annotation
-            menuButtonPressed       = false
-            initialMenuPosition     = Pose.none
-            initialMenuPositionBool = false
             drawingPoint            = PList.empty
+            menuModel               = MenuModel.init
+            //mainMenuBoxes       = PList.empty
+            //boxHovered          = None
+            //subMenuBoxes        = PList.empty
+            //menu                    = MenuState.Navigation
+            //controllerMenuSelector  = ControllerKind.ControllerA
+            //annotationMenu          = subMenuState.Draw
+            //initialMenuState        = MenuState.Annotation
+            //menuButtonPressed       = false
+            //initialMenuPosition     = Pose.none
+            //initialMenuPositionBool = false
+            //menuModel               = MenuModel.init
         }
     let app =
         {

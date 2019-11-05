@@ -61,9 +61,6 @@ module Mutable =
         let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.Model> = Aardvark.Base.Incremental.EqModRef<Demo.Model>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.Model>
         let _text = ResetMod.Create(__initial.text)
         let _vr = ResetMod.Create(__initial.vr)
-        let _mainMenuBoxes = MList.Create(__initial.mainMenuBoxes, (fun v -> MVisibleBox.Create(v)), (fun (m,v) -> MVisibleBox.Update(m, v)), (fun v -> v))
-        let _boxHovered = MOption.Create(__initial.boxHovered)
-        let _subMenuBoxes = MList.Create(__initial.subMenuBoxes, (fun v -> MVisibleBox.Create(v)), (fun (m,v) -> MVisibleBox.Update(m, v)), (fun v -> v))
         let _cameraState = Aardvark.UI.Primitives.Mutable.MCameraControllerState.Create(__initial.cameraState)
         let _ControllerPosition = ResetMod.Create(__initial.ControllerPosition)
         let _offsetToCenter = ResetMod.Create(__initial.offsetToCenter)
@@ -80,20 +77,11 @@ module Mutable =
         let _initGlobalTrafo = ResetMod.Create(__initial.initGlobalTrafo)
         let _initControlTrafo = ResetMod.Create(__initial.initControlTrafo)
         let _init2ControlTrafo = ResetMod.Create(__initial.init2ControlTrafo)
-        let _menu = ResetMod.Create(__initial.menu)
-        let _annotationMenu = ResetMod.Create(__initial.annotationMenu)
-        let _initialMenuState = ResetMod.Create(__initial.initialMenuState)
-        let _menuButtonPressed = ResetMod.Create(__initial.menuButtonPressed)
-        let _initialMenuPosition = Aardvark.Vr.Mutable.MPose.Create(__initial.initialMenuPosition)
-        let _initialMenuPositionBool = ResetMod.Create(__initial.initialMenuPositionBool)
-        let _controllerMenuSelector = ResetMod.Create(__initial.controllerMenuSelector)
+        let _menuModel = MMenuModel.Create(__initial.menuModel)
         let _drawingPoint = MList.Create(__initial.drawingPoint, (fun v -> MVisibleBox.Create(v)), (fun (m,v) -> MVisibleBox.Update(m, v)), (fun v -> v))
         
         member x.text = _text :> IMod<_>
         member x.vr = _vr :> IMod<_>
-        member x.mainMenuBoxes = _mainMenuBoxes :> alist<_>
-        member x.boxHovered = _boxHovered :> IMod<_>
-        member x.subMenuBoxes = _subMenuBoxes :> alist<_>
         member x.cameraState = _cameraState
         member x.ControllerPosition = _ControllerPosition :> IMod<_>
         member x.offsetToCenter = _offsetToCenter :> IMod<_>
@@ -111,13 +99,7 @@ module Mutable =
         member x.initGlobalTrafo = _initGlobalTrafo :> IMod<_>
         member x.initControlTrafo = _initControlTrafo :> IMod<_>
         member x.init2ControlTrafo = _init2ControlTrafo :> IMod<_>
-        member x.menu = _menu :> IMod<_>
-        member x.annotationMenu = _annotationMenu :> IMod<_>
-        member x.initialMenuState = _initialMenuState :> IMod<_>
-        member x.menuButtonPressed = _menuButtonPressed :> IMod<_>
-        member x.initialMenuPosition = _initialMenuPosition
-        member x.initialMenuPositionBool = _initialMenuPositionBool :> IMod<_>
-        member x.controllerMenuSelector = _controllerMenuSelector :> IMod<_>
+        member x.menuModel = _menuModel
         member x.drawingPoint = _drawingPoint :> alist<_>
         
         member x.Current = __current :> IMod<_>
@@ -127,9 +109,6 @@ module Mutable =
                 
                 ResetMod.Update(_text,v.text)
                 ResetMod.Update(_vr,v.vr)
-                MList.Update(_mainMenuBoxes, v.mainMenuBoxes)
-                MOption.Update(_boxHovered, v.boxHovered)
-                MList.Update(_subMenuBoxes, v.subMenuBoxes)
                 Aardvark.UI.Primitives.Mutable.MCameraControllerState.Update(_cameraState, v.cameraState)
                 ResetMod.Update(_ControllerPosition,v.ControllerPosition)
                 ResetMod.Update(_offsetToCenter,v.offsetToCenter)
@@ -146,13 +125,7 @@ module Mutable =
                 ResetMod.Update(_initGlobalTrafo,v.initGlobalTrafo)
                 ResetMod.Update(_initControlTrafo,v.initControlTrafo)
                 ResetMod.Update(_init2ControlTrafo,v.init2ControlTrafo)
-                ResetMod.Update(_menu,v.menu)
-                ResetMod.Update(_annotationMenu,v.annotationMenu)
-                ResetMod.Update(_initialMenuState,v.initialMenuState)
-                ResetMod.Update(_menuButtonPressed,v.menuButtonPressed)
-                Aardvark.Vr.Mutable.MPose.Update(_initialMenuPosition, v.initialMenuPosition)
-                ResetMod.Update(_initialMenuPositionBool,v.initialMenuPositionBool)
-                ResetMod.Update(_controllerMenuSelector,v.controllerMenuSelector)
+                MMenuModel.Update(_menuModel, v.menuModel)
                 MList.Update(_drawingPoint, v.drawingPoint)
                 
         
@@ -181,24 +154,6 @@ module Mutable =
                     override x.Get(r) = r.vr
                     override x.Set(r,v) = { r with vr = v }
                     override x.Update(r,f) = { r with vr = f r.vr }
-                }
-            let mainMenuBoxes =
-                { new Lens<Demo.Model, Aardvark.Base.plist<Demo.VisibleBox>>() with
-                    override x.Get(r) = r.mainMenuBoxes
-                    override x.Set(r,v) = { r with mainMenuBoxes = v }
-                    override x.Update(r,f) = { r with mainMenuBoxes = f r.mainMenuBoxes }
-                }
-            let boxHovered =
-                { new Lens<Demo.Model, Microsoft.FSharp.Core.Option<System.String>>() with
-                    override x.Get(r) = r.boxHovered
-                    override x.Set(r,v) = { r with boxHovered = v }
-                    override x.Update(r,f) = { r with boxHovered = f r.boxHovered }
-                }
-            let subMenuBoxes =
-                { new Lens<Demo.Model, Aardvark.Base.plist<Demo.VisibleBox>>() with
-                    override x.Get(r) = r.subMenuBoxes
-                    override x.Set(r,v) = { r with subMenuBoxes = v }
-                    override x.Update(r,f) = { r with subMenuBoxes = f r.subMenuBoxes }
                 }
             let cameraState =
                 { new Lens<Demo.Model, Aardvark.UI.Primitives.CameraControllerState>() with
@@ -302,47 +257,11 @@ module Mutable =
                     override x.Set(r,v) = { r with init2ControlTrafo = v }
                     override x.Update(r,f) = { r with init2ControlTrafo = f r.init2ControlTrafo }
                 }
-            let menu =
-                { new Lens<Demo.Model, Demo.MenuState>() with
-                    override x.Get(r) = r.menu
-                    override x.Set(r,v) = { r with menu = v }
-                    override x.Update(r,f) = { r with menu = f r.menu }
-                }
-            let annotationMenu =
-                { new Lens<Demo.Model, Demo.subMenuState>() with
-                    override x.Get(r) = r.annotationMenu
-                    override x.Set(r,v) = { r with annotationMenu = v }
-                    override x.Update(r,f) = { r with annotationMenu = f r.annotationMenu }
-                }
-            let initialMenuState =
-                { new Lens<Demo.Model, Demo.MenuState>() with
-                    override x.Get(r) = r.initialMenuState
-                    override x.Set(r,v) = { r with initialMenuState = v }
-                    override x.Update(r,f) = { r with initialMenuState = f r.initialMenuState }
-                }
-            let menuButtonPressed =
-                { new Lens<Demo.Model, System.Boolean>() with
-                    override x.Get(r) = r.menuButtonPressed
-                    override x.Set(r,v) = { r with menuButtonPressed = v }
-                    override x.Update(r,f) = { r with menuButtonPressed = f r.menuButtonPressed }
-                }
-            let initialMenuPosition =
-                { new Lens<Demo.Model, Aardvark.Vr.Pose>() with
-                    override x.Get(r) = r.initialMenuPosition
-                    override x.Set(r,v) = { r with initialMenuPosition = v }
-                    override x.Update(r,f) = { r with initialMenuPosition = f r.initialMenuPosition }
-                }
-            let initialMenuPositionBool =
-                { new Lens<Demo.Model, System.Boolean>() with
-                    override x.Get(r) = r.initialMenuPositionBool
-                    override x.Set(r,v) = { r with initialMenuPositionBool = v }
-                    override x.Update(r,f) = { r with initialMenuPositionBool = f r.initialMenuPositionBool }
-                }
-            let controllerMenuSelector =
-                { new Lens<Demo.Model, Demo.ControllerKind>() with
-                    override x.Get(r) = r.controllerMenuSelector
-                    override x.Set(r,v) = { r with controllerMenuSelector = v }
-                    override x.Update(r,f) = { r with controllerMenuSelector = f r.controllerMenuSelector }
+            let menuModel =
+                { new Lens<Demo.Model, Demo.MenuModel>() with
+                    override x.Get(r) = r.menuModel
+                    override x.Set(r,v) = { r with menuModel = v }
+                    override x.Update(r,f) = { r with menuModel = f r.menuModel }
                 }
             let drawingPoint =
                 { new Lens<Demo.Model, Aardvark.Base.plist<Demo.VisibleBox>>() with

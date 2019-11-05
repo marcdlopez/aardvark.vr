@@ -11,20 +11,23 @@ open Aardvark.Vr
 
 open OpcViewer.Base
 
+type MenuAction = 
+| CreateMenu of ControllerKind * bool
+| HoverIn of string
+| HoverOut
+| UpdateControllerPose of ControllerKind * Pose
+| Select of ControllerKind * bool 
+| CloseMenu
+
 module MenuApp = 
     
-    type MenuMessage = 
-    | CreateMenu of ControllerKind * bool
-    | UpdateControllerPose of Pose
-    | Select
-    | CloseMenu
 
-    let update (cm : UtilitiesModel) (state : VrState) (vr : VrActions) (model : MenuModel) (msg : MenuMessage)  : MenuModel = 
+    let rec update (controllers : hmap<ControllerKind, ControllerInfo>) (state : VrState) (vr : VrActions) (model : MenuModel) (msg : MenuAction)  : MenuModel = 
         match msg with
         | CreateMenu (kind, buttonPressed) -> 
             let model = 
                 if not(model.initialMenuPositionBool) then 
-                    let controllerPos = cm.controllerInfos |> HMap.tryFind kind
+                    let controllerPos = controllers |> HMap.tryFind kind
                     match controllerPos with
                     | Some id -> 
                         {model with initialMenuPosition = id.pose; initialMenuPositionBool = true}
@@ -32,7 +35,7 @@ module MenuApp =
                 else model
 
             if buttonPressed then 
-                let hmdPos = cm.controllerInfos |> HMap.values |> Seq.item 0
+                let hmdPos = controllers |> HMap.values |> Seq.item 0
                 match model.menu with
                 | Navigation ->
                     let newMenuBoxes = UtilitiesMenu.mkBoxesMenu model.initialMenuPosition hmdPos.pose 3 //number of menu possibilities should be the number of boxes. So far 2
@@ -67,8 +70,82 @@ module MenuApp =
                     {model with menu = MenuState.Navigation}
             else 
                 {model with mainMenuBoxes = PList.empty; subMenuBoxes = PList.empty; menuButtonPressed = buttonPressed; initialMenuPositionBool = false}
-        | UpdateControllerPose p -> model
-        | Select -> model 
+        | HoverIn id -> 
+            match model.boxHovered with 
+            | Some oldID when id = oldID -> model
+            | _ ->
+                { model with boxHovered = Some id}
+        | HoverOut -> 
+            if model.boxHovered.IsSome then
+                { model with boxHovered = None}
+            else 
+                model
+        | UpdateControllerPose (kind, p) -> 
+            let newModel =
+                 let controllerA = controllers |> HMap.tryFind ControllerKind.ControllerA
+                 let controllerB = controllers |> HMap.tryFind ControllerKind.ControllerB
+                 
+                 match controllerA, controllerB with
+                 | Some a, Some b -> 
+                    let mayHoverMenu = UtilitiesMenu.mayHover model.mainMenuBoxes a b
+                    match mayHoverMenu with
+                     | Some id  -> //SELECT
+                        if (a.joystickPressed || b.joystickPressed) then
+                            let box0ID = model.mainMenuBoxes |> Seq.item 0
+                            let box1ID = model.mainMenuBoxes |> Seq.item 1
+
+                            let menuSelector = if a.joystickPressed then a.kind else b.kind
+                                
+                            if box0ID.id = id then 
+                                {   model with menu = MenuState.MainReset }
+                            else if box1ID.id = id then 
+                                {   model with menu = MenuState.Navigation }
+                            else 
+                                {
+                                    model with 
+                                        menu = MenuState.Annotation; 
+                                        controllerMenuSelector = menuSelector; 
+                                        mainMenuBoxes = PList.empty
+                                }
+                            
+                        else //HOVER
+                            update controllers state vr model (HoverIn id)
+                     | _ -> //HOVEROUT
+                         update controllers state vr model HoverOut
+                 | _ -> //DEFAULT
+                    model
+
+            let newModel = 
+                if newModel.menu.Equals(MenuState.Annotation) && controllers.Count.Equals(5) then 
+                    let controller1, controller2 = 
+                        UtilitiesMenu.getControllersInfo 3 4 controllers //these two ints correspond to the id of the controllers
+                    let mayHoverSubMenu = UtilitiesMenu.mayHover newModel.subMenuBoxes controller1 controller2
+                    match mayHoverSubMenu with
+                    | Some ID -> 
+                        if controller2.joystickPressed || controller1.joystickPressed then 
+                            let boxID0 = newModel.subMenuBoxes |> Seq.item 0
+                            let boxID1 = newModel.subMenuBoxes |> Seq.item 1 
+                            let boxID2 = newModel.subMenuBoxes |> Seq.item 2
+                            let boxID3 = newModel.subMenuBoxes |> Seq.item 3
+                            let boxID4 = newModel.subMenuBoxes |> Seq.item 4
+                            
+                            if boxID0.id.Contains(ID) then {newModel with menu = MenuState.Navigation}
+                            else if boxID1.id.Contains(ID) then {newModel with subMenu = subMenuState.Reset}
+                            else if boxID2.id.Contains(ID) then{newModel with subMenu = subMenuState.Flag}
+                            else if boxID3.id.Contains(ID) then{newModel with subMenu = subMenuState.DipAndStrike}
+                            else if boxID4.id.Contains(ID) then{newModel with subMenu = subMenuState.Draw}
+                            else {newModel with subMenu = subMenuState.Line}
+                        else update controllers state vr newModel (HoverIn ID)
+                    | None -> update controllers state vr newModel HoverOut
+                else {newModel with subMenuBoxes = PList.empty}
+            newModel
+        | Select (kind, buttonPressed) -> 
+            match model.menuButtonPressed with 
+            | true -> 
+                if not(buttonPressed) then 
+                    update controllers state vr model (CreateMenu (kind, buttonPressed))
+                else model
+            | false -> model
         | CloseMenu -> model
             
     let input (msg : VrMessage) =
@@ -84,21 +161,21 @@ module MenuApp =
             | _ -> []
         | VrMessage.UpdatePose(cn,p) -> 
             if p.isValid then 
-                [UpdateControllerPose(p)]
+                [UpdateControllerPose(cn |> ControllerKind.fromInt ,p)]
             else []
-        | VrMessage.Press(con,button) -> 
+        | VrMessage.Press(cn,button) -> 
             match button with
-            | 0 -> [Select]
+            | 0 -> [Select(cn |> ControllerKind.fromInt, true)]
             | _ -> []//Select?
-        | VrMessage.Unpress(con,button) -> 
+        | VrMessage.Unpress(cn,button) -> 
             match button with 
-            | 0 -> [Select]
+            | 0 -> [Select(cn |> ControllerKind.fromInt, false)]
             | _ -> []//UnSelect?
         | _ -> 
             []
 
     
-    let ui (info : VrSystemInfo) (m : MMenuModel) : DomNode<MenuMessage> = DomNode.Empty()
+    let ui (info : VrSystemInfo) (m : MMenuModel) : DomNode<MenuAction> = DomNode.Empty()
 
     let mkColor (model : MMenuModel) (box : MVisibleBox) =
         let id = box.id
@@ -208,7 +285,7 @@ module MenuApp =
         {
             unpersist = Unpersist.instance
             initial = initial
-            update = update (UtilitiesModel.initial) 
+            update = update (HMap.empty)
             threads = threads
             input = input 
             ui = ui
