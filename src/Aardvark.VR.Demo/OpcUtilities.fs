@@ -1,5 +1,7 @@
-﻿namespace Demo
+﻿namespace Demo.Main
 
+open Demo
+open Demo.Menu
 open System
 open System.IO
 open Aardvark.Base

@@ -1,4 +1,4 @@
-﻿namespace Demo
+﻿namespace Demo.Main
 
 open System
 open System.IO
@@ -19,12 +19,9 @@ open Aardvark.Vr
 open OpcViewer.Base
 open OpcViewer.Base.Picking
 open OpcViewer.Base.Attributes
+open Demo.Menu
+open Demo
 
-//type MenuMessages  =
-//    | CreateMenu of  ControllerKind*bool
-//    | UpdateControllerPosition of Pose
-//    | Select of Index
-//    | CloseMenu
 
 type DemoAction =
 | SetText of string 
@@ -80,9 +77,10 @@ module Demo =
             else vr.start()
             { model with vr = not model.vr }
         | MenuMessage a ->            
+            let controllers = model.controllerInfos
 
             let newMenuModel = 
-                MenuApp.update HMap.empty state vr model.menuModel a
+                MenuApp.update controllers state vr model.menuModel a
             
             { model with menuModel = newMenuModel }
 
@@ -149,15 +147,19 @@ module Demo =
         | SetControllerPosition (kind, p) ->                         
             let newModel = 
                 match model.menuModel.menu with
-                | MenuState.Navigation ->
+                | Menu.MenuState.Navigation ->
                     model 
                     |> NavigationOpc.currentSceneInfo kind p
-                | MenuState.Annotation ->
+                | Menu.MenuState.Annotation ->
                     model
                     |> AnnotationOpc.annotationMode kind p model.menuModel.subMenu
-                | MenuState.MainReset -> 
+                | Menu.MenuState.MainReset -> 
                     model
-            newModel
+            
+
+            let controllerMenuUpdate = MenuApp.update model.controllerInfos state vr newModel.menuModel (MenuAction.UpdateControllerPose (kind, p))
+
+            {newModel with menuModel = controllerMenuUpdate}
              
             //let newModel =
             //     let controllerA = model.controllerInfos |> HMap.tryFind ControllerKind.ControllerA
@@ -260,6 +262,11 @@ module Demo =
 
             let newModel = {model with controllerInfos = updateControllerButtons}//; initialMenuState = model.menu; controllerMenuSelector = kind}
             
+            let controllerMenuUpdate = MenuApp.update newModel.controllerInfos state vr newModel.menuModel (MenuAction.Select (kind, buttonPress))
+
+            let newModel = {newModel with menuModel = controllerMenuUpdate}
+                
+
             //let newModel =  
             //    match newModel.menuButtonPressed with 
             //    | true -> 
@@ -366,14 +373,14 @@ module Demo =
     let input (msg : VrMessage) =
         match msg with
         // buttons identifications: sensitive = 0, backButton = 1, sideButtons = 2
-        //| VrMessage.Touch(con,button) -> 
-        //    match button with 
-        //    | 0 -> [CreateMenu(con |> ControllerKind.fromInt, true)]
-        //    | _ -> []
-        //| VrMessage.Untouch(con,button) -> 
-        //    match button with 
-        //    | 0 -> [CreateMenu(con |> ControllerKind.fromInt, false)]
-        //    | _ -> []
+        | VrMessage.Touch(con,button) -> 
+            match button with 
+            | 0 -> [MenuMessage (Demo.MenuAction.CreateMenu(con |> ControllerKind.fromInt, true))]
+            | _ -> []
+        | VrMessage.Untouch(con,button) -> 
+            match button with 
+            | 0 -> [MenuMessage (Demo.MenuAction.CreateMenu(con |> ControllerKind.fromInt, false))]
+            | _ -> []
         | VrMessage.PressButton(_,2) ->
             //printfn "Button identification %d" button
             [ToggleVR]
@@ -386,12 +393,12 @@ module Demo =
         | VrMessage.Press(con,button) -> 
             printfn "%d Button identification %d" con button
             match button with
-            //| 0 -> [CreateMenu(con, true)]
+            //| 0 -> [MenuMessage (Demo.MenuAction.Select(con |> ControllerKind.fromInt, true))]
             | _ -> [GrabObject(con |> ControllerKind.fromInt, button |> ControllerButtons.fromInt, true)]
         | VrMessage.Unpress(con,button) -> 
             printfn "Button unpressed by %d" con
             match button with 
-            //| 0 -> [CreateMenu(con, false)]
+            //| 0 -> [MenuMessage (Demo.MenuAction.Select(con |> ControllerKind.fromInt, false))]
             | _ -> [GrabObject (con |> ControllerKind.fromInt, button |> ControllerButtons.fromInt, false)]
         | _ -> 
             []
@@ -764,7 +771,7 @@ module Demo =
             rotationAxis        = Trafo3d.Identity
 
             drawingPoint            = PList.empty
-            menuModel               = MenuModel.init
+            menuModel               = Menu.MenuModel.init
             //mainMenuBoxes       = PList.empty
             //boxHovered          = None
             //subMenuBoxes        = PList.empty

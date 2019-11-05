@@ -1,4 +1,4 @@
-﻿namespace Demo
+﻿namespace Demo.Main
 
 open Aardvark.Base
 open Aardvark.Base.Incremental

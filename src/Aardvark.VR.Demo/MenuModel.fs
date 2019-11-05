@@ -1,8 +1,9 @@
-﻿namespace Demo
+﻿namespace Demo.Menu
 
 open Aardvark.Base.Incremental
 open Aardvark.Vr
 open Aardvark.Base
+open Demo
 
 type MenuState = 
 | Navigation

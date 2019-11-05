@@ -2,7 +2,7 @@
 open Aardvark.UI
 open Aardvark.Vr
 open Aardium
-open Demo
+open Demo.Main
 open Suave
 
 

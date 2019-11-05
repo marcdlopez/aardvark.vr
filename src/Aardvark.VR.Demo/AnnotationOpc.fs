@@ -1,4 +1,7 @@
-﻿namespace Demo
+﻿namespace Demo.Main
+
+open Demo.Menu
+open Demo
 
 module AnnotationOpc = 
      open Aardvark.Base

@@ -1,4 +1,4 @@
-namespace Demo
+namespace Demo.Main
 
 open Aardvark.Vr
 open Aardvark.Base
@@ -8,6 +8,8 @@ open Aardvark.SceneGraph.Opc
 open OpcViewer.Base.Picking
 open OpcViewer.Base.Attributes
 open Aardvark.Rendering.Vulkan
+open Demo.Menu
+open Demo
 
 //type ControllerKind =
 //| HMD = 0

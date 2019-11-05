@@ -10,6 +10,7 @@ open Aardvark.UI.Trafos
 open Aardvark.Vr
 
 open OpcViewer.Base
+open Demo.Menu
 
 type MenuAction = 
 | CreateMenu of ControllerKind * bool
@@ -143,7 +144,8 @@ module MenuApp =
             match model.menuButtonPressed with 
             | true -> 
                 if not(buttonPressed) then 
-                    update controllers state vr model (CreateMenu (kind, buttonPressed))
+                    printfn "button unpressed, going to new mode %s" (model.menu.ToString())
+                    update controllers state vr model (CreateMenu (model.controllerMenuSelector, true))
                 else model
             | false -> model
         | CloseMenu -> model
@@ -183,7 +185,6 @@ module MenuApp =
         let color = 
             id
             |> Mod.bind (fun s ->
-
                 let hoverColor =
                     model.boxHovered 
                     |> Mod.bind (function 
@@ -273,7 +274,7 @@ module MenuApp =
             menu                    = MenuState.Navigation
             controllerMenuSelector  = ControllerKind.ControllerA
             subMenu                 = subMenuState.Draw
-            initialMenuState        = MenuState.Annotation
+            initialMenuState        = MenuState.Navigation
             menuButtonPressed       = false
             initialMenuPosition     = Pose.none
             initialMenuPositionBool = false
