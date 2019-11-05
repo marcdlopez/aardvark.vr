@@ -108,7 +108,6 @@ module MenuApp =
                                         controllerMenuSelector = menuSelector; 
                                         mainMenuBoxes = PList.empty
                                 }
-                            
                         else //HOVER
                             update controllers state vr model (HoverIn id)
                      | _ -> //HOVEROUT

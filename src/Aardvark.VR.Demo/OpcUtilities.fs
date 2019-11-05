@@ -24,12 +24,6 @@ open OpcViewer.Base.Attributes
 
 module OpcUtilities = 
 
-    //let mkBoxesMenu (controllerPos : Pose) (hmdPos : Pose) (number: int) : plist<VisibleBox> =
-    //    [0..number-1]
-    //    |> List.map (fun x -> 
-    //        VisibleBox.createVisibleBox C4b.Yellow (V3d(controllerPos.deviceToWorld.GetModelOrigin().X, controllerPos.deviceToWorld.GetModelOrigin().Y, controllerPos.deviceToWorld.GetModelOrigin().Z + (0.10 * float x))) hmdPos)
-    //    |> PList.ofList
-
     let mkFlags (controllerPos : Pose) (number : int) : plist<VisibleBox> = 
         [0..number-1]
         |> List.map (fun x -> 
@@ -61,20 +55,6 @@ module OpcUtilities =
         let mutable trans = V3d.Zero
         controlTrafo.Decompose(&scale, &rot, &trans)
         Trafo3d.Rotation rot
-
-    //let mayHover (boxList : plist<VisibleBox>) (controller1 : ControllerInfo) (controller2 : ControllerInfo) = 
-    //    boxList
-    //    |> PList.choose (fun b -> 
-    //        if (b.geometry.Transformed(b.trafo).Contains(controller1.pose.deviceToWorld.GetModelOrigin()) || b.geometry.Transformed(b.trafo).Contains(controller2.pose.deviceToWorld.GetModelOrigin())) then 
-    //            Some b.id
-    //        else None)
-    //    |> PList.tryFirst
-
-    //let getControllersInfo index1 index2 model = 
-    //    let controller1 = model.controllerInfos |> HMap.values |> Seq.item index1
-    //    let controller2 = model.controllerInfos |> HMap.values |> Seq.item index2
-
-    //    controller1, controller2    
 
     let updateControllersInfo (kind : ControllerKind) (pose : Pose) (model : Model)= 
         let mkControllerInfo k p = 

@@ -4,8 +4,6 @@ open Aardvark.Base
 
 module UtilitiesMenu = 
     open Aardvark.UI
-    open Aardvark.Rendering.Text
-    open Aardvark.Base.Rendering
 
     let mkBoxesMenu (controllerPos : Pose) (hmdPos : Pose) (number: int) : plist<VisibleBox> =
             [0..number-1]
