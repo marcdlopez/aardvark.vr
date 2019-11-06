@@ -41,6 +41,7 @@ module Demo =
     open OpenTK
     open Valve.VR
     open OpenTK.Input
+    open Aardvark.UI.Extensions
     
     let show  (att : list<string * AttributeValue<_>>) (sg : ISg<_>) =
 
@@ -168,6 +169,9 @@ module Demo =
                     | Flag -> 
                         let newFlag = OpcUtilities.mkFlags id.pose 1
                         {newModel with flagOnController = newFlag}
+                    | Line -> 
+                        let newLine = OpcUtilities.mkSphere id.pose 1 0.02
+                        {newModel with lineOnController = newLine}
                     | _ -> newModel
                 | None -> newModel
             | MainReset -> newModel
@@ -290,7 +294,20 @@ module Demo =
                 do! DefaultSurfaces.trafo
                 do! DefaultSurfaces.vertexColor
                 //do! DefaultSurfaces.simpleLighting
-                }                
+                }      
+                
+    let mkSphere (model : MModel) (sphere : MVisibleSphere) =
+        let color = Mod.constant (C4b.White)
+        let pos = sphere.trafo
+
+        Sg.sphere 10 color sphere.radius
+            |> Sg.noEvents
+            |> Sg.trafo(pos)
+            |> Sg.shader {
+                do! DefaultSurfaces.trafo
+                do! DefaultSurfaces.vertexColor
+                //do! DefaultSurfaces.simpleLighting
+                }  
 
     let ui' (info : VrSystemInfo) (m : MModel) = 
         let text = m.vr |> Mod.map (function true -> "Stop VR" | false -> "Start VR")
@@ -365,7 +382,79 @@ module Demo =
                 toEffect DefaultSurfaces.simpleLighting                              
                 ]
             |> Sg.noEvents
-        
+
+        let spheres = 
+            m.lineOnController
+            |> AList.toASet
+            |> ASet.map (fun b -> 
+                mkSphere m b 
+               )
+            |> Sg.set
+            |> Sg.effect [
+                toEffect DefaultSurfaces.trafo
+                toEffect DefaultSurfaces.vertexColor
+                toEffect DefaultSurfaces.simpleLighting                              
+                ]
+            |> Sg.noEvents
+
+        let sphereOnMars = 
+            m.lineOnMars
+            |> AList.toASet
+            |> ASet.map (fun b -> 
+                mkSphere m b 
+               )
+            |> Sg.set
+            |> Sg.effect [
+                toEffect DefaultSurfaces.trafo
+                toEffect DefaultSurfaces.vertexColor
+                toEffect DefaultSurfaces.simpleLighting                              
+                ]
+            |> Sg.noEvents
+
+        let spherePoints = m.lineOnMars |> AList.toMod
+
+        let sphereLines = 
+            spherePoints |> Mod.map (fun list -> 
+                let sp = PList.toArray list |> Array.map (fun sphere -> sphere)
+                sp
+                |> Array.pairwise
+                |> Array.map (fun (a,b) -> new Line3d(a.trafo.GetValue().GetModelOrigin(), b.trafo.GetValue().GetModelOrigin()))
+            )
+
+        let drawSphereLines = 
+            sphereLines
+                |> Sg.lines (Mod.constant C4b.White)
+                |> Sg.noEvents
+                |> Sg.uniform "LineWidth" (Mod.constant 5) 
+                |> Sg.effect [
+                    toEffect DefaultSurfaces.trafo
+                    toEffect DefaultSurfaces.vertexColor
+                    toEffect DefaultSurfaces.thickLine
+                    ]
+                |> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
+                |> Sg.depthTest (Mod.constant DepthTestMode.None)
+
+        let font = Font.create "Consolas" FontStyle.Regular
+
+        let distanceText = 
+            m.lineOnMars
+            |> AList.toASet
+            |> ASet.map (fun dist -> 
+                Sg.text font C4b.White (Mod.constant(m.lineDistance.ToString()))
+                    |> Sg.noEvents
+                    |> Sg.trafo(Mod.constant(Trafo3d.RotationInDegrees(V3d(90.0,0.0,90.0))))
+                    |> Sg.scale 0.05
+                    |> Sg.trafo(dist.trafo)
+            )
+            |> Sg.set
+            |> Sg.effect [
+                toEffect DefaultSurfaces.trafo
+                toEffect DefaultSurfaces.vertexColor
+                toEffect DefaultSurfaces.simpleLighting                              
+                ]
+            |> Sg.noEvents
+
+
         let flagsOnMars = 
             m.flagOnMars
             |> AList.toASet 
@@ -442,6 +531,10 @@ module Demo =
         |> Sg.andAlso drawLines
         |> Sg.andAlso flags
         |> Sg.andAlso flagsOnMars
+        |> Sg.andAlso spheres
+        |> Sg.andAlso sphereOnMars
+        |> Sg.andAlso drawSphereLines
+        |> Sg.andAlso distanceText
 
     let pause (info : VrSystemInfo) (m : MModel) =
         Sg.box' C4b.Red Box3d.Unit
@@ -497,10 +590,13 @@ module Demo =
             init2ControlTrafo   = Trafo3d.Identity
             rotationAxis        = Trafo3d.Identity
 
-            drawingPoint            = PList.empty
             menuModel               = Menu.MenuModel.init
+            drawingPoint            = PList.empty
             flagOnController        = PList.empty
             flagOnMars              = PList.empty
+            lineOnController        = PList.empty
+            lineOnMars              = PList.empty
+            lineDistance            = 0.0
         }
     let app =
         {

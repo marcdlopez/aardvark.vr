@@ -40,6 +40,7 @@ module AnnotationOpc =
                         let newFlagOnMars = 
                             newModel.flagOnMars
                             |> PList.prepend flag
+
                         {newModel with flagOnController = PList.empty; flagOnMars = newFlagOnMars}
                     | None -> newModel
                 | false -> {newModel with flagOnController = updateFlagPos}
@@ -48,7 +49,40 @@ module AnnotationOpc =
         | DipAndStrike -> 
             newModel
         | Line -> 
-            newModel
+            let controllerPos = newModel.menuModel.controllerMenuSelector
+            let newCP = newModel.controllerInfos |> HMap.tryFind controllerPos
+            
+            match newCP with 
+            | Some id -> 
+                let updateLinePos = 
+                    model.lineOnController
+                    |> PList.map (fun line -> {line with trafo = id.pose.deviceToWorld})
+
+                match id.backButtonPressed with 
+                | true -> 
+                    let lineOnController = 
+                        newModel.lineOnController
+                        |> PList.tryFirst
+
+                    match lineOnController with
+                    | Some line -> 
+                        let newLineOnMars = 
+                            newModel.lineOnMars
+                            |> PList.prepend line
+                        
+                        let newModel = {newModel with lineOnController = PList.empty; lineOnMars = newLineOnMars}
+
+                        let linePointMars = 
+                            newModel.lineOnMars
+                            |> PList.tryLast
+                        match linePointMars with
+                        | Some line1 ->
+                            let newDistanceLine = V3d.Distance(line1.trafo.GetModelOrigin(), line.trafo.GetModelOrigin())
+                            {newModel with lineDistance = newDistanceLine}
+                        | None -> newModel
+                    | None -> newModel 
+                | false -> {newModel with lineOnController = updateLinePos}
+            | None -> newModel 
         | Draw -> 
             match ci with
             | Some c when c.backButtonPressed ->                      
@@ -67,6 +101,6 @@ module AnnotationOpc =
                     else newModel
                 | None -> newModel
             | _ -> newModel
-            
         | Reset -> 
             {newModel with globalTrafo = Trafo3d.Translation -model.boundingBox.Center}
+        | _ -> newModel

@@ -62,8 +62,8 @@ module MenuApp =
                         |> PList.map (fun idx -> 
                             if idx.id.Equals(boxID0.id)then {idx with id = "Back"}
                             else if idx.id.Equals(boxID1.id) then {idx with id = "Reset"}
-                            else if idx.id.Equals(boxID2.id) then {idx with id = "Flag"}
-                            else if idx.id.Equals(boxID3.id) then {idx with id = "Dip and Strike"}
+                            else if idx.id.Equals(boxID2.id) then {idx with id = "Dip and Strike"}
+                            else if idx.id.Equals(boxID3.id) then {idx with id = "Flag"}
                             else if idx.id.Equals(boxID4.id) then {idx with id = "Draw"} //allow different options in the draw mode: freely draw and draw by points
                             else {idx with id = "Line"})
                     {model with subMenuBoxes = newSubMenuBoxes; menuButtonPressed = buttonPressed}
@@ -131,8 +131,8 @@ module MenuApp =
                             
                             if boxID0.id.Contains(ID) then {newModel with menu = MenuState.Navigation}
                             else if boxID1.id.Contains(ID) then {newModel with subMenu = subMenuState.Reset}
-                            else if boxID2.id.Contains(ID) then{newModel with subMenu = subMenuState.Flag}
-                            else if boxID3.id.Contains(ID) then{newModel with subMenu = subMenuState.DipAndStrike}
+                            else if boxID2.id.Contains(ID) then{newModel with subMenu = subMenuState.DipAndStrike}
+                            else if boxID3.id.Contains(ID) then{newModel with subMenu = subMenuState.Flag}
                             else if boxID4.id.Contains(ID) then{newModel with subMenu = subMenuState.Draw}
                             else {newModel with subMenu = subMenuState.Line}
                         else update controllers state vr newModel (HoverIn ID)
@@ -272,7 +272,7 @@ module MenuApp =
         {
             menu                    = MenuState.Navigation
             controllerMenuSelector  = ControllerKind.ControllerA
-            subMenu                 = subMenuState.Draw
+            subMenu                 = subMenuState.Init
             initialMenuState        = MenuState.Navigation
             menuButtonPressed       = false
             initialMenuPosition     = Pose.none

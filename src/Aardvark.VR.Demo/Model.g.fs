@@ -81,6 +81,9 @@ module Mutable =
         let _drawingPoint = MList.Create(__initial.drawingPoint, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
         let _flagOnController = MList.Create(__initial.flagOnController, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
         let _flagOnMars = MList.Create(__initial.flagOnMars, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
+        let _lineOnController = MList.Create(__initial.lineOnController, (fun v -> Demo.Mutable.MVisibleSphere.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleSphere.Update(m, v)), (fun v -> v))
+        let _lineOnMars = MList.Create(__initial.lineOnMars, (fun v -> Demo.Mutable.MVisibleSphere.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleSphere.Update(m, v)), (fun v -> v))
+        let _lineDistance = ResetMod.Create(__initial.lineDistance)
         
         member x.text = _text :> IMod<_>
         member x.vr = _vr :> IMod<_>
@@ -105,6 +108,9 @@ module Mutable =
         member x.drawingPoint = _drawingPoint :> alist<_>
         member x.flagOnController = _flagOnController :> alist<_>
         member x.flagOnMars = _flagOnMars :> alist<_>
+        member x.lineOnController = _lineOnController :> alist<_>
+        member x.lineOnMars = _lineOnMars :> alist<_>
+        member x.lineDistance = _lineDistance :> IMod<_>
         
         member x.Current = __current :> IMod<_>
         member x.Update(v : Demo.Main.Model) =
@@ -133,6 +139,9 @@ module Mutable =
                 MList.Update(_drawingPoint, v.drawingPoint)
                 MList.Update(_flagOnController, v.flagOnController)
                 MList.Update(_flagOnMars, v.flagOnMars)
+                MList.Update(_lineOnController, v.lineOnController)
+                MList.Update(_lineOnMars, v.lineOnMars)
+                ResetMod.Update(_lineDistance,v.lineDistance)
                 
         
         static member Create(__initial : Demo.Main.Model) : MModel = MModel(__initial)
@@ -286,4 +295,22 @@ module Mutable =
                     override x.Get(r) = r.flagOnMars
                     override x.Set(r,v) = { r with flagOnMars = v }
                     override x.Update(r,f) = { r with flagOnMars = f r.flagOnMars }
+                }
+            let lineOnController =
+                { new Lens<Demo.Main.Model, Aardvark.Base.plist<Demo.VisibleSphere>>() with
+                    override x.Get(r) = r.lineOnController
+                    override x.Set(r,v) = { r with lineOnController = v }
+                    override x.Update(r,f) = { r with lineOnController = f r.lineOnController }
+                }
+            let lineOnMars =
+                { new Lens<Demo.Main.Model, Aardvark.Base.plist<Demo.VisibleSphere>>() with
+                    override x.Get(r) = r.lineOnMars
+                    override x.Set(r,v) = { r with lineOnMars = v }
+                    override x.Update(r,f) = { r with lineOnMars = f r.lineOnMars }
+                }
+            let lineDistance =
+                { new Lens<Demo.Main.Model, System.Double>() with
+                    override x.Get(r) = r.lineDistance
+                    override x.Set(r,v) = { r with lineDistance = v }
+                    override x.Update(r,f) = { r with lineDistance = f r.lineDistance }
                 }

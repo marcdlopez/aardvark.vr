@@ -16,6 +16,7 @@ type subMenuState =
 | Draw
 | Line
 | DipAndStrike
+| Init
 
 
 [<DomainType>]
@@ -41,7 +42,7 @@ module MenuModel =
             boxHovered                  = None
             subMenuBoxes                = PList.empty
             menu                        = MenuState.Navigation
-            subMenu                     = subMenuState.Flag
+            subMenu                     = subMenuState.Init
             initialMenuState            = MenuState.Navigation
             menuButtonPressed           = false
             initialMenuPosition         = Pose.none

@@ -62,4 +62,7 @@ type Model =
         drawingPoint                : plist<VisibleBox> 
         flagOnController            : plist<VisibleBox> 
         flagOnMars                  : plist<VisibleBox> 
+        lineOnController            : plist<VisibleSphere>
+        lineOnMars                  : plist<VisibleSphere>
+        lineDistance                : float
     }

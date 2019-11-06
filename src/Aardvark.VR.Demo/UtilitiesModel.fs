@@ -110,6 +110,7 @@ type VisibleSphere = {
     geometry : Sphere3d
     color : C4b
     trafo : Trafo3d
+    radius : float
     [<TreatAsValue>]
     id : string
 }
@@ -121,6 +122,7 @@ module VisibleSphere =
             color = C4b.White
             trafo = Trafo3d.Identity
             id = ""
+            radius = 1.0
         }
 
     let createSphere (color : C4b) (position : V3d) (radius : float) = 
@@ -131,4 +133,5 @@ module VisibleSphere =
                 trafo = Trafo3d.Translation(position)
                 id = System.Guid.NewGuid().ToString()
                 geometry = Sphere3d.FromRadius(radius)
+                radius = radius
         }
