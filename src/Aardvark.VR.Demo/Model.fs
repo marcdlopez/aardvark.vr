@@ -32,7 +32,6 @@ type Model =
     {
         text    : string
         vr      : bool                
-
         
         cameraState         : CameraControllerState
 
@@ -59,6 +58,8 @@ type Model =
         init2ControlTrafo           : Trafo3d
 
         menuModel                   : MenuModel
+        //Annotation tools
         drawingPoint                : plist<VisibleBox> 
-        
+        flagOnController            : plist<VisibleBox> 
+        flagOnMars                  : plist<VisibleBox> 
     }

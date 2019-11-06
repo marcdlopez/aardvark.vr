@@ -79,6 +79,8 @@ module Mutable =
         let _init2ControlTrafo = ResetMod.Create(__initial.init2ControlTrafo)
         let _menuModel = Demo.Menu.Mutable.MMenuModel.Create(__initial.menuModel)
         let _drawingPoint = MList.Create(__initial.drawingPoint, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
+        let _flagOnController = MList.Create(__initial.flagOnController, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
+        let _flagOnMars = MList.Create(__initial.flagOnMars, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
         
         member x.text = _text :> IMod<_>
         member x.vr = _vr :> IMod<_>
@@ -101,6 +103,8 @@ module Mutable =
         member x.init2ControlTrafo = _init2ControlTrafo :> IMod<_>
         member x.menuModel = _menuModel
         member x.drawingPoint = _drawingPoint :> alist<_>
+        member x.flagOnController = _flagOnController :> alist<_>
+        member x.flagOnMars = _flagOnMars :> alist<_>
         
         member x.Current = __current :> IMod<_>
         member x.Update(v : Demo.Main.Model) =
@@ -127,6 +131,8 @@ module Mutable =
                 ResetMod.Update(_init2ControlTrafo,v.init2ControlTrafo)
                 Demo.Menu.Mutable.MMenuModel.Update(_menuModel, v.menuModel)
                 MList.Update(_drawingPoint, v.drawingPoint)
+                MList.Update(_flagOnController, v.flagOnController)
+                MList.Update(_flagOnMars, v.flagOnMars)
                 
         
         static member Create(__initial : Demo.Main.Model) : MModel = MModel(__initial)
@@ -268,4 +274,16 @@ module Mutable =
                     override x.Get(r) = r.drawingPoint
                     override x.Set(r,v) = { r with drawingPoint = v }
                     override x.Update(r,f) = { r with drawingPoint = f r.drawingPoint }
+                }
+            let flagOnController =
+                { new Lens<Demo.Main.Model, Aardvark.Base.plist<Demo.VisibleBox>>() with
+                    override x.Get(r) = r.flagOnController
+                    override x.Set(r,v) = { r with flagOnController = v }
+                    override x.Update(r,f) = { r with flagOnController = f r.flagOnController }
+                }
+            let flagOnMars =
+                { new Lens<Demo.Main.Model, Aardvark.Base.plist<Demo.VisibleBox>>() with
+                    override x.Get(r) = r.flagOnMars
+                    override x.Set(r,v) = { r with flagOnMars = v }
+                    override x.Update(r,f) = { r with flagOnMars = f r.flagOnMars }
                 }

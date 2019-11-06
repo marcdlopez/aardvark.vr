@@ -165,6 +165,9 @@ module Demo =
                             | false -> 
                                 newModel
                         | _ -> newModel
+                    | Flag -> 
+                        let newFlag = OpcUtilities.mkFlags id.pose 1
+                        {newModel with flagOnController = newFlag}
                     | _ -> newModel
                 | None -> newModel
             | MainReset -> newModel
@@ -276,6 +279,19 @@ module Demo =
             |> Sg.scale 0.01
             |> Sg.trafo cp.deviceToWorld
 
+    let mkFlag (model : MModel) (box : MVisibleBox) =
+        let color = mkColor model box
+        let pos = box.trafo
+
+        Sg.box color box.geometry
+            |> Sg.noEvents
+            |> Sg.trafo(pos)
+            |> Sg.shader {
+                do! DefaultSurfaces.trafo
+                do! DefaultSurfaces.vertexColor
+                //do! DefaultSurfaces.simpleLighting
+                }                
+
     let ui' (info : VrSystemInfo) (m : MModel) = 
         let text = m.vr |> Mod.map (function true -> "Stop VR" | false -> "Start VR")
 
@@ -335,7 +351,35 @@ module Demo =
                     ]
                 |> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
                 |> Sg.depthTest (Mod.constant DepthTestMode.None)
-            
+
+        let flags = 
+            m.flagOnController
+            |> AList.toASet 
+            |> ASet.map (fun b -> 
+                mkFlag m b 
+               )
+            |> Sg.set
+            |> Sg.effect [
+                toEffect DefaultSurfaces.trafo
+                toEffect DefaultSurfaces.vertexColor
+                toEffect DefaultSurfaces.simpleLighting                              
+                ]
+            |> Sg.noEvents
+        
+        let flagsOnMars = 
+            m.flagOnMars
+            |> AList.toASet 
+            |> ASet.map (fun b -> 
+                mkFlag m b 
+               )
+            |> Sg.set
+            |> Sg.effect [
+                toEffect DefaultSurfaces.trafo
+                toEffect DefaultSurfaces.vertexColor
+                toEffect DefaultSurfaces.simpleLighting                              
+                ]
+            |> Sg.noEvents
+
         let a = 
             m.controllerInfos
             |> AMap.toASet
@@ -396,6 +440,8 @@ module Demo =
         |> Sg.andAlso a
         |> Sg.andAlso menuApp
         |> Sg.andAlso drawLines
+        |> Sg.andAlso flags
+        |> Sg.andAlso flagsOnMars
 
     let pause (info : VrSystemInfo) (m : MModel) =
         Sg.box' C4b.Red Box3d.Unit
@@ -453,6 +499,8 @@ module Demo =
 
             drawingPoint            = PList.empty
             menuModel               = Menu.MenuModel.init
+            flagOnController        = PList.empty
+            flagOnMars              = PList.empty
         }
     let app =
         {

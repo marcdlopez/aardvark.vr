@@ -30,6 +30,12 @@ module OpcUtilities =
             VisibleBox.createFlag C4b.Magenta (controllerPos.deviceToWorld.GetModelOrigin()))
         |> PList.ofList
 
+    let mkSphere (controllerPos : Pose) (number : int) (radius : float) : plist<VisibleSphere> = 
+        [0..number-1]
+        |> List.map (fun x -> 
+            VisibleSphere.createSphere C4b.Yellow (controllerPos.deviceToWorld.GetModelOrigin()) radius)
+        |> PList.ofList
+
     let mkPointDraw (controllerPos : Pose) : VisibleBox =
         VisibleBox.createDrawingPoint C4b.White (controllerPos.deviceToWorld.GetModelOrigin())
 

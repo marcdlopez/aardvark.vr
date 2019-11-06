@@ -6,6 +6,7 @@ open Demo
 module AnnotationOpc = 
      open Aardvark.Base
      open Aardvark.Base.IndexedGeometryPrimitives
+     open Aardvark.Base
 
      let annotationMode kind p (annotationSelection : subMenuState) model : Model = 
     
@@ -15,15 +16,40 @@ module AnnotationOpc =
         
         let newModel = { model with controllerInfos = newControllersPosition}
         
+        let ci = newModel.controllerInfos |> HMap.tryFind kind
+        
         match annotationSelection with 
         | Flag -> 
-            newModel
+            let controllerPos = newModel.menuModel.controllerMenuSelector
+            let newCP = newModel.controllerInfos |> HMap.tryFind controllerPos
+            
+            match newCP with 
+            | Some id -> 
+                let updateFlagPos = 
+                    model.flagOnController
+                    |> PList.map (fun flag -> {flag with trafo = id.pose.deviceToWorld})
+                
+                match id.backButtonPressed with 
+                | true -> 
+                    let flagOnController = 
+                        newModel.flagOnController
+                        |> PList.tryFirst
+
+                    match flagOnController with 
+                    | Some flag ->
+                        let newFlagOnMars = 
+                            newModel.flagOnMars
+                            |> PList.prepend flag
+                        {newModel with flagOnController = PList.empty; flagOnMars = newFlagOnMars}
+                    | None -> newModel
+                | false -> {newModel with flagOnController = updateFlagPos}
+                
+            | None -> newModel
         | DipAndStrike -> 
             newModel
         | Line -> 
             newModel
         | Draw -> 
-            let ci = newModel.controllerInfos |> HMap.tryFind kind
             match ci with
             | Some c when c.backButtonPressed ->                      
                 let lastDrawingBox = 

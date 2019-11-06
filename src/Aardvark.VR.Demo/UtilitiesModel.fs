@@ -60,6 +60,7 @@ type VisibleBox = {
     id : string
 }
 
+
 module VisibleBox =
     
     let private initial = 
@@ -100,7 +101,34 @@ module VisibleBox =
                 color = color
                 trafo = Trafo3d.Translation(position)
                 id = System.Guid.NewGuid().ToString()
-                geometry = Box3d.FromSize(V3d(0.15, 0.05, 0.05))
+                geometry = Box3d.FromSize(V3d(0.01, 0.01, 0.15))
         }
 
 
+[<DomainType>]
+type VisibleSphere = {
+    geometry : Sphere3d
+    color : C4b
+    trafo : Trafo3d
+    [<TreatAsValue>]
+    id : string
+}
+
+module VisibleSphere = 
+    let initial = 
+        {
+            geometry = Sphere3d.FromRadius(1.0)
+            color = C4b.White
+            trafo = Trafo3d.Identity
+            id = ""
+        }
+
+    let createSphere (color : C4b) (position : V3d) (radius : float) = 
+        {
+            initial 
+                with
+                color = color 
+                trafo = Trafo3d.Translation(position)
+                id = System.Guid.NewGuid().ToString()
+                geometry = Sphere3d.FromRadius(radius)
+        }
