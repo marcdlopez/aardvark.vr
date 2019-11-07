@@ -434,6 +434,56 @@ module Demo =
                 |> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
                 |> Sg.depthTest (Mod.constant DepthTestMode.None)
 
+        let dynamicLineTest = 
+            let conLine = 
+                m.lineOnController
+                |> AList.toMod
+                |> Mod.map (fun cl -> 
+                    cl
+                    |> PList.tryFirst
+                )
+            let conLine1 = 
+                conLine 
+                |> Mod.map (fun sphere -> 
+                    match sphere with 
+                    | Some id -> id.trafo
+                    | None -> Mod.constant Trafo3d.Identity
+                )
+            let marsLine = 
+                m.lineOnMars
+                |> AList.toMod
+                |> Mod.map (fun ml -> 
+                    ml
+                    |> PList.tryFirst
+                )
+            let marsLine1 = 
+                marsLine 
+                |> Mod.map (fun sphere -> 
+                    match sphere with 
+                    | Some id -> id.trafo
+                    | None -> Mod.constant Trafo3d.Identity
+                )
+            adaptive {
+                let! modConLine = conLine1 |> Mod.map (fun t -> t)
+                let! conLineTrafo = modConLine |> Mod.map (fun tt -> tt)
+                let! modMarsLine = marsLine1 |> Mod.map (fun t -> t)
+                let! marsLineTrafo = modMarsLine  |> Mod.map (fun tt -> tt)
+                return [|Line3d(conLineTrafo.GetModelOrigin(), marsLineTrafo.GetModelOrigin())|]
+            }
+
+        let showDynamicLine = 
+            dynamicLineTest
+                |> Sg.lines (Mod.constant C4b.White)
+                |> Sg.noEvents
+                |> Sg.uniform "LineWidth" (Mod.constant 5) 
+                |> Sg.effect [
+                    toEffect DefaultSurfaces.trafo
+                    toEffect DefaultSurfaces.vertexColor
+                    toEffect DefaultSurfaces.thickLine
+                    ]
+                |> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
+                |> Sg.depthTest (Mod.constant DepthTestMode.None)
+
         let font = Font.create "Consolas" FontStyle.Regular
 
         let distanceText = 
@@ -453,7 +503,6 @@ module Demo =
                 toEffect DefaultSurfaces.simpleLighting                              
                 ]
             |> Sg.noEvents
-
 
         let flagsOnMars = 
             m.flagOnMars
@@ -535,6 +584,7 @@ module Demo =
         |> Sg.andAlso sphereOnMars
         |> Sg.andAlso drawSphereLines
         |> Sg.andAlso distanceText
+        |> Sg.andAlso showDynamicLine
 
     let pause (info : VrSystemInfo) (m : MModel) =
         Sg.box' C4b.Red Box3d.Unit
