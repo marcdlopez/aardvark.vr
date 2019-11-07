@@ -322,6 +322,34 @@ module Demo =
                 toEffect DefaultSurfaces.diffuseTexture  
                 toEffect Shader.AttributeShader.falseColorLegend //falseColorLegendGray
                 ]
+
+        let flags = 
+            m.flagOnController
+            |> AList.toASet 
+            |> ASet.map (fun b -> 
+                mkFlag m b 
+               )
+            |> Sg.set
+            |> Sg.effect [
+                toEffect DefaultSurfaces.trafo
+                toEffect DefaultSurfaces.vertexColor
+                toEffect DefaultSurfaces.simpleLighting                              
+                ]
+            |> Sg.noEvents
+
+        let flagsOnMars = 
+            m.flagOnMars
+            |> AList.toASet 
+            |> ASet.map (fun b -> 
+                mkFlag m b 
+               )
+            |> Sg.set
+            |> Sg.effect [
+                toEffect DefaultSurfaces.trafo
+                toEffect DefaultSurfaces.vertexColor
+                toEffect DefaultSurfaces.simpleLighting                              
+                ]
+            |> Sg.noEvents
               
         let frustum =
             Mod.constant (Frustum.perspective 60.0 0.1 100.0 1.0)
@@ -337,9 +365,10 @@ module Demo =
                 ])
                 (
                     opcs
-                    //|> Sg.map (OpcSelectionViewer.Message.PickingAction) 
                     |> Sg.map OpcViewerMsg
                     |> Sg.noEvents
+                    |> Sg.andAlso flags
+                    |> Sg.andAlso flagsOnMars
                 )
             button [ style "position: fixed; bottom: 5px; right: 5px"; onClick (fun () -> ToggleVR) ] text
         ]
@@ -433,8 +462,8 @@ module Demo =
                     ]
                 |> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
                 |> Sg.depthTest (Mod.constant DepthTestMode.None)
-
-        let dynamicLineTest = 
+                
+        let dynamicLine = 
             let conLine = 
                 m.lineOnController
                 |> AList.toMod
@@ -444,11 +473,11 @@ module Demo =
                 )
             let conLine1 = 
                 conLine 
-                |> Mod.map (fun sphere -> 
+                |> Mod.bind (fun sphere -> 
                     match sphere with 
                     | Some id -> id.trafo
-                    | None -> Mod.constant Trafo3d.Identity
-                )
+                    | None -> Mod.constant Trafo3d.Identity)
+                
             let marsLine = 
                 m.lineOnMars
                 |> AList.toMod
@@ -458,21 +487,27 @@ module Demo =
                 )
             let marsLine1 = 
                 marsLine 
-                |> Mod.map (fun sphere -> 
+                |> Mod.bind (fun sphere -> 
                     match sphere with 
                     | Some id -> id.trafo
                     | None -> Mod.constant Trafo3d.Identity
                 )
             adaptive {
-                let! modConLine = conLine1 |> Mod.map (fun t -> t)
-                let! conLineTrafo = modConLine |> Mod.map (fun tt -> tt)
-                let! modMarsLine = marsLine1 |> Mod.map (fun t -> t)
-                let! marsLineTrafo = modMarsLine  |> Mod.map (fun tt -> tt)
-                return [|Line3d(conLineTrafo.GetModelOrigin(), marsLineTrafo.GetModelOrigin())|]
+                let! conLineTest = conLine |> Mod.map (fun tt -> tt)
+                let! marsLineTest = marsLine  |> Mod.map (fun tt -> tt)
+                match conLineTest with 
+                | Some clID -> 
+                    match marsLineTest with 
+                    | Some mlID -> 
+                        let! conLineTrafo = conLine1 |> Mod.map (fun t -> t)
+                        let! marsLineTrafo = marsLine1 |> Mod.map (fun t -> t)
+                        return [|Line3d(conLineTrafo.GetModelOrigin(), marsLineTrafo.GetModelOrigin())|]
+                    | None -> return [|Line3d()|]
+                | None -> return [|Line3d()|]
             }
 
         let showDynamicLine = 
-            dynamicLineTest
+            dynamicLine
                 |> Sg.lines (Mod.constant C4b.White)
                 |> Sg.noEvents
                 |> Sg.uniform "LineWidth" (Mod.constant 5) 
@@ -569,22 +604,32 @@ module Demo =
                     toEffect Shader.AttributeShader.falseColorLegend
                 ]
                 |> Sg.noEvents
+                |> Sg.map OpcViewerMsg
+                |> Sg.noEvents     
+                |> Sg.trafo m.globalTrafo 
+        
+        let transformedSgs =    
+            [
+                opcs
+                drawLines
+                flags
+                flagsOnMars
+                spheres
+                sphereOnMars
+                drawSphereLines
+                distanceText
+                showDynamicLine
+            ]   |> Sg.ofList
 
-        opcs
-        |> Sg.map OpcViewerMsg
-        |> Sg.noEvents
-        |> Sg.trafo m.globalTrafo 
-        |> Sg.andAlso deviceSgs
-        |> Sg.andAlso a
-        |> Sg.andAlso menuApp
-        |> Sg.andAlso drawLines
-        |> Sg.andAlso flags
-        |> Sg.andAlso flagsOnMars
-        |> Sg.andAlso spheres
-        |> Sg.andAlso sphereOnMars
-        |> Sg.andAlso drawSphereLines
-        |> Sg.andAlso distanceText
-        |> Sg.andAlso showDynamicLine
+        let notTransformedSgs =
+            [
+                deviceSgs
+                a
+                menuApp
+            ] |> Sg.ofList
+
+        Sg.ofList [transformedSgs; notTransformedSgs]
+
 
     let pause (info : VrSystemInfo) (m : MModel) =
         Sg.box' C4b.Red Box3d.Unit
