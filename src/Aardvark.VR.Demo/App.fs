@@ -620,6 +620,7 @@ module Demo =
                 distanceText
                 showDynamicLine
             ]   |> Sg.ofList
+                |> Sg.trafo m.controllerGlobalTrafo
 
         let notTransformedSgs =
             [
@@ -676,7 +677,8 @@ module Demo =
             rotateBox           = rotateBoxInit
             pickingModel        = OpcViewer.Base.Picking.PickingModel.initial
 
-            globalTrafo         = Trafo3d.Translation(-boundingBoxInit.Center) * upRotationTrafo //global trafo for opc, with center in boundingbox center
+            globalTrafo             = Trafo3d.Translation(-boundingBoxInit.Center) * upRotationTrafo //global trafo for opc, with center in boundingbox center
+            controllerGlobalTrafo   = Trafo3d.Identity 
 
             offsetControllerDistance = 1.0
 

@@ -74,6 +74,7 @@ module Mutable =
         let _rotateBox = ResetMod.Create(__initial.rotateBox)
         let _pickingModel = OpcViewer.Base.Picking.Mutable.MPickingModel.Create(__initial.pickingModel)
         let _globalTrafo = ResetMod.Create(__initial.globalTrafo)
+        let _controllerGlobalTrafo = ResetMod.Create(__initial.controllerGlobalTrafo)
         let _initGlobalTrafo = ResetMod.Create(__initial.initGlobalTrafo)
         let _initControlTrafo = ResetMod.Create(__initial.initControlTrafo)
         let _init2ControlTrafo = ResetMod.Create(__initial.init2ControlTrafo)
@@ -101,6 +102,7 @@ module Mutable =
         member x.rotateBox = _rotateBox :> IMod<_>
         member x.pickingModel = _pickingModel
         member x.globalTrafo = _globalTrafo :> IMod<_>
+        member x.controllerGlobalTrafo = _controllerGlobalTrafo :> IMod<_>
         member x.initGlobalTrafo = _initGlobalTrafo :> IMod<_>
         member x.initControlTrafo = _initControlTrafo :> IMod<_>
         member x.init2ControlTrafo = _init2ControlTrafo :> IMod<_>
@@ -132,6 +134,7 @@ module Mutable =
                 ResetMod.Update(_rotateBox,v.rotateBox)
                 OpcViewer.Base.Picking.Mutable.MPickingModel.Update(_pickingModel, v.pickingModel)
                 ResetMod.Update(_globalTrafo,v.globalTrafo)
+                ResetMod.Update(_controllerGlobalTrafo,v.controllerGlobalTrafo)
                 ResetMod.Update(_initGlobalTrafo,v.initGlobalTrafo)
                 ResetMod.Update(_initControlTrafo,v.initControlTrafo)
                 ResetMod.Update(_init2ControlTrafo,v.init2ControlTrafo)
@@ -253,6 +256,12 @@ module Mutable =
                     override x.Get(r) = r.globalTrafo
                     override x.Set(r,v) = { r with globalTrafo = v }
                     override x.Update(r,f) = { r with globalTrafo = f r.globalTrafo }
+                }
+            let controllerGlobalTrafo =
+                { new Lens<Demo.Main.Model, Aardvark.Base.Trafo3d>() with
+                    override x.Get(r) = r.controllerGlobalTrafo
+                    override x.Set(r,v) = { r with controllerGlobalTrafo = v }
+                    override x.Update(r,f) = { r with controllerGlobalTrafo = f r.controllerGlobalTrafo }
                 }
             let initGlobalTrafo =
                 { new Lens<Demo.Main.Model, Aardvark.Base.Trafo3d>() with

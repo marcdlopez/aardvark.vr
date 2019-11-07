@@ -33,16 +33,16 @@ module NavigationOpc =
                     newModel
                     |> OpcUtilities.getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
 
+                let newControllerTrafoShift = newModel.initControlTrafo.Inverse * currentControllerTrafo
                 let newTrafoShift = newModel.initGlobalTrafo * newModel.initControlTrafo.Inverse * currentControllerTrafo
-                //printfn "%A" (newTrafoShift.GetModelOrigin())
-                {newModel with globalTrafo = newTrafoShift}
+                {newModel with globalTrafo = newTrafoShift; controllerGlobalTrafo = newControllerTrafoShift}
             | 2 ->
                 let dist = 
                     newModel
                     |> OpcUtilities.getDistanceBetweenControllers (controllersFiltered |> HMap.keys |> Seq.item 0) (controllersFiltered |> HMap.keys |> Seq.item 1)
                     
                 let newControllerDistance = dist - newModel.offsetControllerDistance + newModel.initControlTrafo.GetScale()
-                //printfn "Distance between Controllers: %f" newControllerDistance
+
                 let scaleControllerCenter = Trafo3d.Translation (-newModel.initControlTrafo.GetModelOrigin()) * Trafo3d.Scale (newControllerDistance) * Trafo3d.Translation (newModel.initControlTrafo.GetModelOrigin())
 
                 // Rotation with origin in the controller
@@ -66,10 +66,9 @@ module NavigationOpc =
                     Trafo3d.Translation (-newModel.rotationAxis.GetModelOrigin()) * getRotation * Trafo3d.Translation (newModel.rotationAxis.GetModelOrigin())
                     // coordinate system (rotation axis) should probably be at the center distance of the controllers
                         
-                let newGlobalTrafo = newModel.initGlobalTrafo * newRotationTrafo * scaleControllerCenter//* Trafo3d.Scale (newControllerDistance) 
-                //printfn "global trafo position : %A" (newGlobalTrafo.GetModelOrigin())
-                //printfn "rotation coordinate system: %A "(newModel.rotationAxis.GetModelOrigin())
-                {newModel with globalTrafo = newGlobalTrafo}
+                let newControllerGlobalTrafo = newRotationTrafo * scaleControllerCenter
+                let newGlobalTrafo = newModel.initGlobalTrafo * newRotationTrafo * scaleControllerCenter
+                {newModel with globalTrafo = newGlobalTrafo; controllerGlobalTrafo = newControllerGlobalTrafo}
             | _ -> 
                 newModel
         newModel
