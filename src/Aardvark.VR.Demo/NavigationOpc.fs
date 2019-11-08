@@ -35,7 +35,7 @@ module NavigationOpc =
 
                 let newControllerTrafoShift = newModel.initControlTrafo.Inverse * currentControllerTrafo
                 let newTrafoShift = newModel.initGlobalTrafo * newModel.initControlTrafo.Inverse * currentControllerTrafo
-                {newModel with globalTrafo = newTrafoShift; controllerGlobalTrafo = newControllerTrafoShift}
+                {newModel with globalTrafo = newTrafoShift}//; controllerGlobalTrafo = newControllerTrafoShift}
             | 2 ->
                 let dist = 
                     newModel
@@ -68,7 +68,7 @@ module NavigationOpc =
                         
                 let newControllerGlobalTrafo = newRotationTrafo * scaleControllerCenter
                 let newGlobalTrafo = newModel.initGlobalTrafo * newRotationTrafo * scaleControllerCenter
-                {newModel with globalTrafo = newGlobalTrafo; controllerGlobalTrafo = newControllerGlobalTrafo}
+                {newModel with globalTrafo = newGlobalTrafo}//; controllerGlobalTrafo = newControllerGlobalTrafo}
             | _ -> 
                 newModel
         newModel

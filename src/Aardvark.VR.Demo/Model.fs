@@ -53,7 +53,7 @@ type Model =
         pickingModel                : PickingModel
 
         globalTrafo                 : Trafo3d
-        controllerGlobalTrafo       : Trafo3d
+        //controllerGlobalTrafo       : Trafo3d
         initGlobalTrafo             : Trafo3d
         initControlTrafo            : Trafo3d
         init2ControlTrafo           : Trafo3d
@@ -61,9 +61,11 @@ type Model =
         menuModel                   : MenuModel
         //Annotation tools
         drawingPoint                : plist<VisibleBox> 
+        drawingLine                 : Line3d[]
         flagOnController            : plist<VisibleBox> 
         flagOnMars                  : plist<VisibleBox> 
         lineOnController            : plist<VisibleSphere>
         lineOnMars                  : plist<VisibleSphere>
+        lineMarsDisplay             : Line3d[]
         lineDistance                : float
     }

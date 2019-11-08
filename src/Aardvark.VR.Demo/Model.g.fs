@@ -74,16 +74,17 @@ module Mutable =
         let _rotateBox = ResetMod.Create(__initial.rotateBox)
         let _pickingModel = OpcViewer.Base.Picking.Mutable.MPickingModel.Create(__initial.pickingModel)
         let _globalTrafo = ResetMod.Create(__initial.globalTrafo)
-        let _controllerGlobalTrafo = ResetMod.Create(__initial.controllerGlobalTrafo)
         let _initGlobalTrafo = ResetMod.Create(__initial.initGlobalTrafo)
         let _initControlTrafo = ResetMod.Create(__initial.initControlTrafo)
         let _init2ControlTrafo = ResetMod.Create(__initial.init2ControlTrafo)
         let _menuModel = Demo.Menu.Mutable.MMenuModel.Create(__initial.menuModel)
         let _drawingPoint = MList.Create(__initial.drawingPoint, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
+        let _drawingLine = ResetMod.Create(__initial.drawingLine)
         let _flagOnController = MList.Create(__initial.flagOnController, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
         let _flagOnMars = MList.Create(__initial.flagOnMars, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
         let _lineOnController = MList.Create(__initial.lineOnController, (fun v -> Demo.Mutable.MVisibleSphere.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleSphere.Update(m, v)), (fun v -> v))
         let _lineOnMars = MList.Create(__initial.lineOnMars, (fun v -> Demo.Mutable.MVisibleSphere.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleSphere.Update(m, v)), (fun v -> v))
+        let _lineMarsDisplay = ResetMod.Create(__initial.lineMarsDisplay)
         let _lineDistance = ResetMod.Create(__initial.lineDistance)
         
         member x.text = _text :> IMod<_>
@@ -102,16 +103,17 @@ module Mutable =
         member x.rotateBox = _rotateBox :> IMod<_>
         member x.pickingModel = _pickingModel
         member x.globalTrafo = _globalTrafo :> IMod<_>
-        member x.controllerGlobalTrafo = _controllerGlobalTrafo :> IMod<_>
         member x.initGlobalTrafo = _initGlobalTrafo :> IMod<_>
         member x.initControlTrafo = _initControlTrafo :> IMod<_>
         member x.init2ControlTrafo = _init2ControlTrafo :> IMod<_>
         member x.menuModel = _menuModel
         member x.drawingPoint = _drawingPoint :> alist<_>
+        member x.drawingLine = _drawingLine :> IMod<_>
         member x.flagOnController = _flagOnController :> alist<_>
         member x.flagOnMars = _flagOnMars :> alist<_>
         member x.lineOnController = _lineOnController :> alist<_>
         member x.lineOnMars = _lineOnMars :> alist<_>
+        member x.lineMarsDisplay = _lineMarsDisplay :> IMod<_>
         member x.lineDistance = _lineDistance :> IMod<_>
         
         member x.Current = __current :> IMod<_>
@@ -134,16 +136,17 @@ module Mutable =
                 ResetMod.Update(_rotateBox,v.rotateBox)
                 OpcViewer.Base.Picking.Mutable.MPickingModel.Update(_pickingModel, v.pickingModel)
                 ResetMod.Update(_globalTrafo,v.globalTrafo)
-                ResetMod.Update(_controllerGlobalTrafo,v.controllerGlobalTrafo)
                 ResetMod.Update(_initGlobalTrafo,v.initGlobalTrafo)
                 ResetMod.Update(_initControlTrafo,v.initControlTrafo)
                 ResetMod.Update(_init2ControlTrafo,v.init2ControlTrafo)
                 Demo.Menu.Mutable.MMenuModel.Update(_menuModel, v.menuModel)
                 MList.Update(_drawingPoint, v.drawingPoint)
+                ResetMod.Update(_drawingLine,v.drawingLine)
                 MList.Update(_flagOnController, v.flagOnController)
                 MList.Update(_flagOnMars, v.flagOnMars)
                 MList.Update(_lineOnController, v.lineOnController)
                 MList.Update(_lineOnMars, v.lineOnMars)
+                ResetMod.Update(_lineMarsDisplay,v.lineMarsDisplay)
                 ResetMod.Update(_lineDistance,v.lineDistance)
                 
         
@@ -257,12 +260,6 @@ module Mutable =
                     override x.Set(r,v) = { r with globalTrafo = v }
                     override x.Update(r,f) = { r with globalTrafo = f r.globalTrafo }
                 }
-            let controllerGlobalTrafo =
-                { new Lens<Demo.Main.Model, Aardvark.Base.Trafo3d>() with
-                    override x.Get(r) = r.controllerGlobalTrafo
-                    override x.Set(r,v) = { r with controllerGlobalTrafo = v }
-                    override x.Update(r,f) = { r with controllerGlobalTrafo = f r.controllerGlobalTrafo }
-                }
             let initGlobalTrafo =
                 { new Lens<Demo.Main.Model, Aardvark.Base.Trafo3d>() with
                     override x.Get(r) = r.initGlobalTrafo
@@ -293,6 +290,12 @@ module Mutable =
                     override x.Set(r,v) = { r with drawingPoint = v }
                     override x.Update(r,f) = { r with drawingPoint = f r.drawingPoint }
                 }
+            let drawingLine =
+                { new Lens<Demo.Main.Model, Aardvark.Base.Line3d[]>() with
+                    override x.Get(r) = r.drawingLine
+                    override x.Set(r,v) = { r with drawingLine = v }
+                    override x.Update(r,f) = { r with drawingLine = f r.drawingLine }
+                }
             let flagOnController =
                 { new Lens<Demo.Main.Model, Aardvark.Base.plist<Demo.VisibleBox>>() with
                     override x.Get(r) = r.flagOnController
@@ -316,6 +319,12 @@ module Mutable =
                     override x.Get(r) = r.lineOnMars
                     override x.Set(r,v) = { r with lineOnMars = v }
                     override x.Update(r,f) = { r with lineOnMars = f r.lineOnMars }
+                }
+            let lineMarsDisplay =
+                { new Lens<Demo.Main.Model, Aardvark.Base.Line3d[]>() with
+                    override x.Get(r) = r.lineMarsDisplay
+                    override x.Set(r,v) = { r with lineMarsDisplay = v }
+                    override x.Update(r,f) = { r with lineMarsDisplay = f r.lineMarsDisplay }
                 }
             let lineDistance =
                 { new Lens<Demo.Main.Model, System.Double>() with

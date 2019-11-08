@@ -78,7 +78,9 @@ module Demo =
             let newMenuModel = 
                 MenuApp.update controllers state vr model.menuModel a
             
-            { model with menuModel = newMenuModel }
+            { model with 
+                menuModel = newMenuModel; 
+            }
 
         | CameraMessage m -> 
             { model with cameraState = FreeFlyController.update model.cameraState m }   
@@ -92,7 +94,15 @@ module Demo =
                     model
                     |> AnnotationOpc.annotationMode kind p model.menuModel.subMenu
                 | Menu.MenuState.MainReset -> 
-                    model
+                    {model with 
+                        globalTrafo         = Trafo3d.Translation -model.boundingBox.Center * Trafo3d.RotateInto(model.boundingBox.Center.Normalized, V3d.OOI) 
+                        flagOnController    = PList.empty
+                        flagOnMars          = PList.empty
+                        lineOnController    = PList.empty
+                        lineOnMars          = PList.empty
+                        lineMarsDisplay     = [|Line3d()|]
+                        drawingLine         = [|Line3d()|]
+                    }
             
             let controllerMenuUpdate = MenuApp.update model.controllerInfos state vr newModel.menuModel (MenuAction.UpdateControllerPose (kind, p))
 
@@ -174,7 +184,12 @@ module Demo =
                         {newModel with lineOnController = newLine}
                     | _ -> newModel
                 | None -> newModel
-            | MainReset -> newModel
+            | MainReset -> 
+                {newModel with 
+                        globalTrafo         = Trafo3d.Translation -model.boundingBox.Center; 
+                        flagOnController    = PList.empty
+                        flagOnMars          = PList.empty
+                }
                 
     let mkColor (model : MModel) (box : MVisibleBox) =
         let id = box.id
@@ -374,19 +389,9 @@ module Demo =
         ]
     
     let vr' (info : VrSystemInfo) (m : MModel)= 
-
-        let points = m.drawingPoint |> AList.toMod
-
-        let lines = 
-            points |> Mod.map (fun list -> 
-                let l = PList.toArray list |> Array.map (fun box -> box)
-                l
-                |> Array.pairwise
-                |> Array.map (fun (a,b) -> new Line3d(a.trafo.GetValue().GetModelOrigin(),b.trafo.GetValue().GetModelOrigin()))                
-            )
-
+    
         let drawLines = 
-            lines 
+            m.drawingLine 
                 |> Sg.lines (Mod.constant C4b.White)
                 |> Sg.noEvents
                 |> Sg.uniform "LineWidth" (Mod.constant 5) 
@@ -440,18 +445,8 @@ module Demo =
                 ]
             |> Sg.noEvents
 
-        let spherePoints = m.lineOnMars |> AList.toMod
-
-        let sphereLines = 
-            spherePoints |> Mod.map (fun list -> 
-                let sp = PList.toArray list |> Array.map (fun sphere -> sphere)
-                sp
-                |> Array.pairwise
-                |> Array.map (fun (a,b) -> new Line3d(a.trafo.GetValue().GetModelOrigin(), b.trafo.GetValue().GetModelOrigin()))
-            )
-
         let drawSphereLines = 
-            sphereLines
+            m.lineMarsDisplay
                 |> Sg.lines (Mod.constant C4b.White)
                 |> Sg.noEvents
                 |> Sg.uniform "LineWidth" (Mod.constant 5) 
@@ -476,7 +471,8 @@ module Demo =
                 |> Mod.bind (fun sphere -> 
                     match sphere with 
                     | Some id -> id.trafo
-                    | None -> Mod.constant Trafo3d.Identity)
+                    | None -> Mod.constant (Trafo3d.Translation(V3d(50000.0, 50000.0, 50000.0)))
+                )
                 
             let marsLine = 
                 m.lineOnMars
@@ -490,7 +486,7 @@ module Demo =
                 |> Mod.bind (fun sphere -> 
                     match sphere with 
                     | Some id -> id.trafo
-                    | None -> Mod.constant Trafo3d.Identity
+                    | None -> Mod.constant (Trafo3d.Translation(V3d(50000.0, 50000.0, 50000.0)))
                 )
             adaptive {
                 let! conLineTest = conLine |> Mod.map (fun tt -> tt)
@@ -617,10 +613,10 @@ module Demo =
                 spheres
                 sphereOnMars
                 drawSphereLines
-                distanceText
+                //distanceText
                 showDynamicLine
             ]   |> Sg.ofList
-                |> Sg.trafo m.controllerGlobalTrafo
+                //|> Sg.trafo m.controllerGlobalTrafo
 
         let notTransformedSgs =
             [
@@ -678,7 +674,7 @@ module Demo =
             pickingModel        = OpcViewer.Base.Picking.PickingModel.initial
 
             globalTrafo             = Trafo3d.Translation(-boundingBoxInit.Center) * upRotationTrafo //global trafo for opc, with center in boundingbox center
-            controllerGlobalTrafo   = Trafo3d.Identity 
+            //controllerGlobalTrafo   = Trafo3d.Identity 
 
             offsetControllerDistance = 1.0
 
@@ -689,11 +685,13 @@ module Demo =
 
             menuModel               = Menu.MenuModel.init
             drawingPoint            = PList.empty
+            drawingLine             = [|Line3d()|]
             flagOnController        = PList.empty
             flagOnMars              = PList.empty
             lineOnController        = PList.empty
             lineOnMars              = PList.empty
             lineDistance            = 0.0
+            lineMarsDisplay         = [|Line3d()|]
         }
     let app =
         {

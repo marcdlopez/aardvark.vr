@@ -72,9 +72,22 @@ module AnnotationOpc =
                         
                         let newModel = {newModel with lineOnController = PList.empty; lineOnMars = newLineOnMars}
 
+                        let spherePoint =  
+                            newModel.lineOnMars 
+                            |> PList.toArray 
+                            |> Array.map (fun sphere -> sphere)
+                        
+                        let sphereLine = 
+                            spherePoint 
+                            |> Array.pairwise
+                            |> Array.map (fun (a, b) -> new Line3d(a.trafo.GetModelOrigin(), b.trafo.GetModelOrigin()))
+
+                        let newModel = {newModel with lineMarsDisplay = sphereLine}
+
                         let linePointMars = 
                             newModel.lineOnMars
                             |> PList.tryLast
+
                         match linePointMars with
                         | Some line1 ->
                             let newDistanceLine = V3d.Distance(line1.trafo.GetModelOrigin(), line.trafo.GetModelOrigin())
@@ -97,10 +110,32 @@ module AnnotationOpc =
                         let updateDrawingPoint = 
                             newModel.drawingPoint
                             |> PList.prepend newDrawingBox
-                        { newModel with drawingPoint = updateDrawingPoint }
+
+                        let newModel = { newModel with drawingPoint = updateDrawingPoint }
+
+                        let drawingLineArray = 
+                            newModel.drawingPoint 
+                            |> PList.toArray 
+                            |> Array.map (fun point -> point)
+
+                        let viewDrawingLine = 
+                            drawingLineArray 
+                            |> Array.pairwise
+                            |> Array.map (fun (a, b) -> new Line3d(a.trafo.GetModelOrigin(), b.trafo.GetModelOrigin()))
+
+                        {newModel with drawingLine = viewDrawingLine}
+
                     else newModel
                 | None -> newModel
             | _ -> newModel
         | Reset -> 
-            {newModel with globalTrafo = Trafo3d.Translation -model.boundingBox.Center}
+            {newModel with 
+                globalTrafo         = Trafo3d.Translation -newModel.boundingBox.Center * Trafo3d.RotateInto(newModel.boundingBox.Center.Normalized, V3d.OOI); 
+                flagOnController    = PList.empty
+                flagOnMars          = PList.empty
+                lineOnController    = PList.empty        
+                lineOnMars          = PList.empty
+                lineMarsDisplay     = [|Line3d()|]
+                drawingLine         = [|Line3d()|]
+            }
         | _ -> newModel
