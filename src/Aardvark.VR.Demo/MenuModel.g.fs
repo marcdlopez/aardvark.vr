@@ -22,7 +22,7 @@ module Mutable =
         let _menuButtonPressed = ResetMod.Create(__initial.menuButtonPressed)
         let _initialMenuPosition = Aardvark.Vr.Mutable.MPose.Create(__initial.initialMenuPosition)
         let _initialMenuPositionBool = ResetMod.Create(__initial.initialMenuPositionBool)
-        let _controllerMenuSelector = ResetMod.Create(__initial.controllerMenuSelector)
+        let _controllerMenuSelector = Demo.Mutable.MControllerInfo.Create(__initial.controllerMenuSelector)
         
         member x.mainMenuBoxes = _mainMenuBoxes :> alist<_>
         member x.boxHovered = _boxHovered :> IMod<_>
@@ -33,7 +33,7 @@ module Mutable =
         member x.menuButtonPressed = _menuButtonPressed :> IMod<_>
         member x.initialMenuPosition = _initialMenuPosition
         member x.initialMenuPositionBool = _initialMenuPositionBool :> IMod<_>
-        member x.controllerMenuSelector = _controllerMenuSelector :> IMod<_>
+        member x.controllerMenuSelector = _controllerMenuSelector
         
         member x.Current = __current :> IMod<_>
         member x.Update(v : Demo.Menu.MenuModel) =
@@ -49,7 +49,7 @@ module Mutable =
                 ResetMod.Update(_menuButtonPressed,v.menuButtonPressed)
                 Aardvark.Vr.Mutable.MPose.Update(_initialMenuPosition, v.initialMenuPosition)
                 ResetMod.Update(_initialMenuPositionBool,v.initialMenuPositionBool)
-                ResetMod.Update(_controllerMenuSelector,v.controllerMenuSelector)
+                Demo.Mutable.MControllerInfo.Update(_controllerMenuSelector, v.controllerMenuSelector)
                 
         
         static member Create(__initial : Demo.Menu.MenuModel) : MMenuModel = MMenuModel(__initial)
@@ -121,7 +121,7 @@ module Mutable =
                     override x.Update(r,f) = { r with initialMenuPositionBool = f r.initialMenuPositionBool }
                 }
             let controllerMenuSelector =
-                { new Lens<Demo.Menu.MenuModel, Demo.ControllerKind>() with
+                { new Lens<Demo.Menu.MenuModel, Demo.ControllerInfo>() with
                     override x.Get(r) = r.controllerMenuSelector
                     override x.Set(r,v) = { r with controllerMenuSelector = v }
                     override x.Update(r,f) = { r with controllerMenuSelector = f r.controllerMenuSelector }

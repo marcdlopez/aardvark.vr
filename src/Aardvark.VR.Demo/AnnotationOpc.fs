@@ -21,7 +21,7 @@ module AnnotationOpc =
         match annotationSelection with 
         | Flag -> 
             let controllerPos = newModel.menuModel.controllerMenuSelector
-            let newCP = newModel.controllerInfos |> HMap.tryFind controllerPos
+            let newCP = newModel.controllerInfos |> HMap.tryFind controllerPos.kind
             
             match newCP with 
             | Some id -> 
@@ -50,7 +50,7 @@ module AnnotationOpc =
             newModel
         | Line -> 
             let controllerPos = newModel.menuModel.controllerMenuSelector
-            let newCP = newModel.controllerInfos |> HMap.tryFind controllerPos
+            let newCP = newModel.controllerInfos |> HMap.tryFind controllerPos.kind
             
             match newCP with 
             | Some id -> 

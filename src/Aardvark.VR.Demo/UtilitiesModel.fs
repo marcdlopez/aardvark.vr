@@ -37,19 +37,20 @@ type ControllerInfo = {
     backButtonPressed : bool
     frontButtonPressed: bool
     joystickPressed   : bool
+    joystickHold      : bool
 }
 
-//[<DomainType>]
-//type UtilitiesModel = 
-//    {
-//        controllerInfos     : hmap<ControllerKind, ControllerInfo>
-//    }
-
-//module UtilitiesModel = 
-//    let initial = 
-//        {
-//            controllerInfos = HMap.empty
-//        }
+module ControllerInfo = 
+    let initial = 
+        {
+            kind                = ControllerKind.ControllerA
+            buttonKind          = ControllerButtons.Joystick
+            pose                = Pose.none
+            backButtonPressed   = false
+            frontButtonPressed  = false
+            joystickPressed     = false
+            joystickHold        = false
+        }
 
 [<DomainType>]
 type VisibleBox = {
@@ -130,7 +131,7 @@ module VisibleSphere =
             initial 
                 with
                 color = color 
-                trafo = Trafo3d.Translation(position)
+                trafo = Trafo3d.Translation(V3d(position.X, position.Y, position.Z))
                 id = System.Guid.NewGuid().ToString()
                 geometry = Sphere3d.FromRadius(radius)
                 radius = radius

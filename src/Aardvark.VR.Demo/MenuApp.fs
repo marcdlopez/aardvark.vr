@@ -26,6 +26,10 @@ module MenuApp =
     let rec update (controllers : hmap<ControllerKind, ControllerInfo>) (state : VrState) (vr : VrActions) (model : MenuModel) (msg : MenuAction)  : MenuModel = 
         match msg with
         | CreateMenu (kind, buttonPressed) -> 
+            
+            let updateMenuControllerInfo = 
+                
+
             let model = 
                 if not(model.initialMenuPositionBool) then 
                     let controllerPos = controllers |> HMap.tryFind kind
@@ -95,7 +99,7 @@ module MenuApp =
                             let box0ID = model.mainMenuBoxes |> Seq.item 0
                             let box1ID = model.mainMenuBoxes |> Seq.item 1
 
-                            let menuSelector = if a.joystickPressed then a.kind else b.kind
+                            let menuSelector = if a.joystickPressed then a else b
                                 
                             if box0ID.id = id then 
                                 {   model with menu = MenuState.MainReset }
@@ -144,7 +148,7 @@ module MenuApp =
             | true -> 
                 if not(buttonPressed) then 
                     printfn "button unpressed, going to new mode %s" (model.menu.ToString())
-                    update controllers state vr model (CreateMenu (model.controllerMenuSelector, true))
+                    update controllers state vr model (CreateMenu (model.controllerMenuSelector.kind, true))
                 else model
             | false -> model
         | CloseMenu -> model
@@ -271,7 +275,7 @@ module MenuApp =
     let initial =
         {
             menu                    = MenuState.Navigation
-            controllerMenuSelector  = ControllerKind.ControllerA
+            controllerMenuSelector  = ControllerInfo.initial
             subMenu                 = subMenuState.Init
             initialMenuState        = MenuState.Navigation
             menuButtonPressed       = false

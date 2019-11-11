@@ -31,7 +31,7 @@ type MenuModel =
         menuButtonPressed           : bool
         initialMenuPosition         : Pose
         initialMenuPositionBool     : bool
-        controllerMenuSelector      : ControllerKind
+        controllerMenuSelector      : ControllerInfo
 
     }
 
@@ -47,5 +47,5 @@ module MenuModel =
             menuButtonPressed           = false
             initialMenuPosition         = Pose.none
             initialMenuPositionBool     = false
-            controllerMenuSelector      = ControllerKind.ControllerA
+            controllerMenuSelector      = ControllerInfo.initial
         }

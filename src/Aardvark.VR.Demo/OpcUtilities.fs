@@ -71,6 +71,7 @@ module OpcUtilities =
                 backButtonPressed  = false
                 frontButtonPressed = false
                 joystickPressed    = false
+                joystickHold       = false
             }
 
         model.controllerInfos 

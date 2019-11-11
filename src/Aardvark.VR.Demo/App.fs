@@ -126,24 +126,24 @@ module Demo =
                     match buttonKind |> ControllerButtons.toInt with 
                     | 1 -> 
                         let newInfo = {
-                            kind = kind
-                            pose = Pose.none
-                            buttonKind = buttonKind
-                            //buttons  = ButtonStates
-                            frontButtonPressed = false
-                            backButtonPressed = buttonPress
-                            joystickPressed = false
+                            kind                = kind
+                            pose                = Pose.none
+                            buttonKind          = buttonKind
+                            frontButtonPressed  = false
+                            backButtonPressed   = buttonPress
+                            joystickPressed     = false
+                            joystickHold        = false
                          }
                         Some newInfo
                     | 0 -> 
                         let newInfo = {
-                            kind = kind
-                            pose = Pose.none
-                            buttonKind = buttonKind
-                            //buttons  = ButtonStates
-                            frontButtonPressed = false
-                            backButtonPressed = false
-                            joystickPressed = buttonPress
+                            kind                = kind
+                            pose                = Pose.none
+                            buttonKind          = buttonKind
+                            frontButtonPressed  = false
+                            backButtonPressed   = false
+                            joystickPressed     = buttonPress
+                            joystickHold        = false
                          }
                         Some newInfo)
 
@@ -292,8 +292,7 @@ module Demo =
 
 
     let mkControllerBox (cp : MPose) =
-        //Sg.box' C4b.Cyan Box3d.Unit
-        Sg.cone' 20 C4b.Cyan 2.0 3.0 
+        Sg.cone' 20 C4b.Cyan 0.5 5.0 
             |> Sg.noEvents
             |> Sg.scale 0.01
             |> Sg.trafo cp.deviceToWorld
@@ -517,11 +516,11 @@ module Demo =
 
         let font = Font.create "Consolas" FontStyle.Regular
 
-        let distanceText = 
+        let distanceText =
             m.lineOnMars
             |> AList.toASet
             |> ASet.map (fun dist -> 
-                Sg.text font C4b.White (Mod.constant(m.lineDistance.ToString()))
+                Sg.text font C4b.White (Mod.constant (m.lineDistance.ToString()))
                     |> Sg.noEvents
                     |> Sg.trafo(Mod.constant(Trafo3d.RotationInDegrees(V3d(90.0,0.0,90.0))))
                     |> Sg.scale 0.05
@@ -608,15 +607,38 @@ module Demo =
             [
                 opcs
                 drawLines
-                flags
                 flagsOnMars
-                spheres
                 sphereOnMars
                 drawSphereLines
-                //distanceText
-                showDynamicLine
+                distanceText
             ]   |> Sg.ofList
                 //|> Sg.trafo m.controllerGlobalTrafo
+
+        let inMenuDisappear = 
+            [
+                flags
+                spheres
+                showDynamicLine
+            ]   |> Sg.ofList
+
+        let mkDisappear = 
+            let controllerInfo = m.menuModel.controllerMenuSelector
+            let controllerKind = controllerInfo.kind
+            let newCP = 
+                controllerKind |> Mod.bind (fun ck -> 
+                    m.controllerInfos |> AMap.tryFind ck)
+                
+            let shouldShow = 
+                adaptive {
+                    let! newConPos = newCP
+                    match newConPos with
+                        | None -> return false
+                        | Some e -> 
+                            let! isPressed = e.joystickPressed
+                            return not isPressed
+                }
+            inMenuDisappear
+            |> Sg.onOff shouldShow
 
         let notTransformedSgs =
             [
@@ -625,8 +647,7 @@ module Demo =
                 menuApp
             ] |> Sg.ofList
 
-        Sg.ofList [transformedSgs; notTransformedSgs]
-
+        Sg.ofList [transformedSgs; notTransformedSgs; mkDisappear]
 
     let pause (info : VrSystemInfo) (m : MModel) =
         Sg.box' C4b.Red Box3d.Unit
