@@ -19,6 +19,7 @@ module Mutable =
         let _backButtonPressed = ResetMod.Create(__initial.backButtonPressed)
         let _frontButtonPressed = ResetMod.Create(__initial.frontButtonPressed)
         let _joystickPressed = ResetMod.Create(__initial.joystickPressed)
+        let _sideButtonPressed = ResetMod.Create(__initial.sideButtonPressed)
         let _joystickHold = ResetMod.Create(__initial.joystickHold)
         
         member x.kind = _kind :> IMod<_>
@@ -27,6 +28,7 @@ module Mutable =
         member x.backButtonPressed = _backButtonPressed :> IMod<_>
         member x.frontButtonPressed = _frontButtonPressed :> IMod<_>
         member x.joystickPressed = _joystickPressed :> IMod<_>
+        member x.sideButtonPressed = _sideButtonPressed :> IMod<_>
         member x.joystickHold = _joystickHold :> IMod<_>
         
         member x.Current = __current :> IMod<_>
@@ -40,6 +42,7 @@ module Mutable =
                 ResetMod.Update(_backButtonPressed,v.backButtonPressed)
                 ResetMod.Update(_frontButtonPressed,v.frontButtonPressed)
                 ResetMod.Update(_joystickPressed,v.joystickPressed)
+                ResetMod.Update(_sideButtonPressed,v.sideButtonPressed)
                 ResetMod.Update(_joystickHold,v.joystickHold)
                 
         
@@ -92,6 +95,12 @@ module Mutable =
                     override x.Get(r) = r.joystickPressed
                     override x.Set(r,v) = { r with joystickPressed = v }
                     override x.Update(r,f) = { r with joystickPressed = f r.joystickPressed }
+                }
+            let sideButtonPressed =
+                { new Lens<Demo.ControllerInfo, System.Boolean>() with
+                    override x.Get(r) = r.sideButtonPressed
+                    override x.Set(r,v) = { r with sideButtonPressed = v }
+                    override x.Update(r,f) = { r with sideButtonPressed = f r.sideButtonPressed }
                 }
             let joystickHold =
                 { new Lens<Demo.ControllerInfo, System.Boolean>() with

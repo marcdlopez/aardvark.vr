@@ -97,36 +97,30 @@ module AnnotationOpc =
                 | false -> {newModel with lineOnController = updateLinePos}
             | None -> newModel 
         | Draw -> 
+        
             match ci with
             | Some c when c.backButtonPressed ->                      
-                let lastDrawingBox = 
-                    newModel.drawingPoint
-                        |> PList.tryFirst
+                match newModel.currentlyDrawing with 
+                | Some v -> 
+                    let lastPolygon =
+                        v.vertices
+                        |> Array.tryLast
+
+                    match lastPolygon with 
+                    | Some lp -> 
+                        if V3d.Distance(lp, c.pose.deviceToWorld.GetModelOrigin()) >= 0.001 then 
+                            let newPolygon =   
+                                v.vertices
+                                |> Array.append [|c.pose.deviceToWorld.GetModelOrigin()|]
+                                    
+                            {newModel with currentlyDrawing = Some {vertices = newPolygon}}
+                        else newModel
+                    | None -> newModel
                         
-                match lastDrawingBox with 
-                | Some box -> 
-                    if V3d.Distance(box.trafo.GetModelOrigin(), c.pose.deviceToWorld.GetModelOrigin()) >= 0.001 then
-                        let newDrawingBox = OpcUtilities.mkPointDraw c.pose
-                        let updateDrawingPoint = 
-                            newModel.drawingPoint
-                            |> PList.prepend newDrawingBox
-
-                        let newModel = { newModel with drawingPoint = updateDrawingPoint }
-
-                        let drawingLineArray = 
-                            newModel.drawingPoint 
-                            |> PList.toArray 
-                            |> Array.map (fun point -> point)
-
-                        let viewDrawingLine = 
-                            drawingLineArray 
-                            |> Array.pairwise
-                            |> Array.map (fun (a, b) -> new Line3d(a.trafo.GetModelOrigin(), b.trafo.GetModelOrigin()))
-
-                        {newModel with drawingLine = viewDrawingLine}
-
-                    else newModel
-                | None -> newModel
+                | None -> 
+                    //this case will never happen anyway
+                    {newModel with currentlyDrawing = Some {vertices = [|c.pose.deviceToWorld.GetModelOrigin()|]}}
+                
             | _ -> newModel
         | Reset -> 
             {newModel with 

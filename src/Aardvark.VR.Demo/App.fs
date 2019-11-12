@@ -42,6 +42,7 @@ module Demo =
     open Valve.VR
     open OpenTK.Input
     open Aardvark.UI.Extensions
+    open OpcViewer.Base.Shader
     
     let show  (att : list<string * AttributeValue<_>>) (sg : ISg<_>) =
 
@@ -73,6 +74,7 @@ module Demo =
             else vr.start()
             { model with vr = not model.vr }
         | MenuMessage (a, kind, buttonTouched) ->   
+            
             let updateCont = 
                 model.controllerInfos 
                 |> HMap.alter kind (fun old -> 
@@ -91,6 +93,7 @@ module Demo =
                                 frontButtonPressed = false
                                 joystickPressed    = false
                                 joystickHold       = true
+                                sideButtonPressed  = false
                             } // create
                     | None, false -> 
                         Some
@@ -102,6 +105,7 @@ module Demo =
                                 frontButtonPressed = false
                                 joystickPressed    = false
                                 joystickHold       = false
+                                sideButtonPressed  = false
                             } // create
                 )
 
@@ -158,6 +162,18 @@ module Demo =
                     
                 | None -> 
                     match buttonKind |> ControllerButtons.toInt with 
+                    | 2 -> 
+                        let newInfo = {
+                            kind                = kind
+                            pose                = Pose.none
+                            buttonKind          = buttonKind
+                            frontButtonPressed  = false
+                            backButtonPressed   = false
+                            joystickPressed     = false
+                            joystickHold        = false
+                            sideButtonPressed   = buttonPress
+                         }
+                        Some newInfo
                     | 1 -> 
                         let newInfo = {
                             kind                = kind
@@ -167,6 +183,7 @@ module Demo =
                             backButtonPressed   = buttonPress
                             joystickPressed     = false
                             joystickHold        = false
+                            sideButtonPressed   = false
                          }
                         Some newInfo
                     | 0 -> 
@@ -178,6 +195,7 @@ module Demo =
                             backButtonPressed   = false
                             joystickPressed     = buttonPress
                             joystickHold        = false
+                            sideButtonPressed   = false
                          }
                         Some newInfo)
 
@@ -201,14 +219,24 @@ module Demo =
                         | 1 -> 
                             match buttonPress with 
                             | true -> 
-                                let preDrawBox = OpcUtilities.mkPointDraw id.pose
-                                let newFirstDrawingPoint = 
-                                    newModel.drawingPoint
-                                    |> PList.prepend preDrawBox
-                                    
-                                {newModel with drawingPoint = newFirstDrawingPoint}
+                                match newModel.currentlyDrawing with 
+                                | Some v -> 
+                                    let newPolygon =   
+                                        v.vertices
+                                        |> Array.append [|id.pose.deviceToWorld.GetModelOrigin()|]
+
+                                    {newModel with currentlyDrawing = Some {vertices = newPolygon}}
+                                | None -> {newModel with currentlyDrawing = Some {vertices = [|id.pose.deviceToWorld.GetModelOrigin()|]}}
                             | false -> 
-                                newModel
+                                printfn "New polygon created"
+                                match newModel.currentlyDrawing with 
+                                | None -> newModel 
+                                | Some p -> 
+                                    let newFinishedPol = 
+                                        newModel.finishedDrawings
+                                        |> HMap.add (System.Guid.NewGuid().ToString()) p
+                                        
+                                    {newModel with finishedDrawings = newFinishedPol; currentlyDrawing = Some {vertices = [||]}}
                         | _ -> newModel
                     | Flag -> 
                         let newFlag = OpcUtilities.mkFlags id.pose 1
@@ -302,9 +330,18 @@ module Demo =
             match button with 
             | 0 -> [MenuMessage (Demo.MenuAction.CreateMenu(con |> ControllerKind.fromInt, false), con |> ControllerKind.fromInt, false)]
             | _ -> []
-        | VrMessage.PressButton(_,2) ->
-            //printfn "Button identification %d" button
-            [ToggleVR]
+        | VrMessage.PressButton(con,button) ->
+            match button with 
+            | 2 -> 
+                [GrabObject(con |> ControllerKind.fromInt, button |> ControllerButtons.fromInt, true)]
+            | _ -> 
+                []
+        | VrMessage.UnpressButton(con, button) -> 
+            match button with 
+            | 2 -> 
+                [GrabObject(con |> ControllerKind.fromInt, button |> ControllerButtons.fromInt, false)]
+            | _ -> 
+                []
         | VrMessage.UpdatePose(cn,p) -> 
             if p.isValid then 
                 let pos = p.deviceToWorld.Forward.TransformPos(V3d.Zero)
@@ -422,19 +459,58 @@ module Demo =
         ]
     
     let vr' (info : VrSystemInfo) (m : MModel)= 
-    
-        let drawLines = 
-            m.drawingLine 
-                |> Sg.lines (Mod.constant C4b.White)
-                |> Sg.noEvents
-                |> Sg.uniform "LineWidth" (Mod.constant 5) 
-                |> Sg.effect [
-                    toEffect DefaultSurfaces.trafo
-                    toEffect DefaultSurfaces.vertexColor
-                    toEffect DefaultSurfaces.thickLine
-                    ]
-                |> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
-                |> Sg.depthTest (Mod.constant DepthTestMode.None)
+
+        let drawLineToPolygon = 
+            m.currentlyDrawing
+            |> Mod.bind (fun cd -> 
+                match cd with 
+                | Some p -> 
+                    p.vertices
+                    |> Mod.map (fun v ->
+                        v
+                        |> Array.pairwise
+                        |> Array.map (fun (a,b) -> new Line3d(a, b))
+                    )
+                | None -> Mod.constant [|Line3d()|]
+            )
+
+        let drawPolygon =
+            drawLineToPolygon
+            |> Sg.lines (Mod.constant C4b.White)
+            |> Sg.noEvents
+            |> Sg.uniform "LineWidth" (Mod.constant 5) 
+            |> Sg.effect [
+                toEffect DefaultSurfaces.trafo
+                toEffect DefaultSurfaces.vertexColor
+                toEffect DefaultSurfaces.thickLine
+                ]
+            |> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
+            |> Sg.depthTest (Mod.constant DepthTestMode.None)
+
+        //let drawFinishedPolygon = 
+        //    m.finishedDrawings
+        //    |> AMap.toASet
+        //    |> ASet.map(fun (_, polygon) -> 
+        //        let newPolygonLine = 
+        //            polygon.vertices
+        //            |> Mod.map (fun v -> 
+        //                v
+        //                |> Array.pairwise
+        //                |> Array.map (fun (a,b) -> new Line3d(a, b))
+        //            )
+        //        newPolygonLine 
+        //        |> Sg.lines (Mod.constant C4b.White)
+        //        |> Sg.noEvents
+        //        |> Sg.uniform "LineWidth" (Mod.constant 5) 
+        //        |> Sg.effect [
+        //            toEffect DefaultSurfaces.trafo
+        //            toEffect DefaultSurfaces.vertexColor
+        //            toEffect DefaultSurfaces.thickLine
+        //            ]
+        //        |> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
+        //        |> Sg.depthTest (Mod.constant DepthTestMode.None)
+        //    )
+        //    |> Sg.set
 
         let flags = 
             m.flagOnController
@@ -640,7 +716,8 @@ module Demo =
         let transformedSgs =    
             [
                 opcs
-                drawLines
+                drawPolygon
+                //drawFinishedPolygon
                 flagsOnMars
                 sphereOnMars
                 drawSphereLines
@@ -741,6 +818,10 @@ module Demo =
             menuModel               = Menu.MenuModel.init
             drawingPoint            = PList.empty
             drawingLine             = [|Line3d()|]
+
+            currentlyDrawing        = None
+            finishedDrawings        = HMap.empty
+
             flagOnController        = PList.empty
             flagOnMars              = PList.empty
             lineOnController        = PList.empty

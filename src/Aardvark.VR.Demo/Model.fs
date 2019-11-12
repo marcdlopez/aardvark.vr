@@ -28,6 +28,9 @@ type ButtonStates = {
 }
 
 [<DomainType>]
+type Polygon = { vertices : V3d[]; }
+
+[<DomainType>]
 type Model =
     {
         text    : string
@@ -62,6 +65,10 @@ type Model =
         //Annotation tools
         drawingPoint                : plist<VisibleBox> 
         drawingLine                 : Line3d[]
+
+        currentlyDrawing            : Option<Polygon>
+        finishedDrawings            : hmap<string, Polygon>
+
         flagOnController            : plist<VisibleBox> 
         flagOnMars                  : plist<VisibleBox> 
         lineOnController            : plist<VisibleSphere>

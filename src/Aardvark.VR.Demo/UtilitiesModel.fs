@@ -37,6 +37,7 @@ type ControllerInfo = {
     backButtonPressed : bool
     frontButtonPressed: bool
     joystickPressed   : bool
+    sideButtonPressed : bool
     joystickHold      : bool
 }
 
@@ -49,6 +50,7 @@ module ControllerInfo =
             backButtonPressed   = false
             frontButtonPressed  = false
             joystickPressed     = false
+            sideButtonPressed   = false
             joystickHold        = false
         }
 

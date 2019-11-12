@@ -56,6 +56,43 @@ module Mutable =
                 }
     
     
+    type MPolygon(__initial : Demo.Main.Polygon) =
+        inherit obj()
+        let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.Main.Polygon> = Aardvark.Base.Incremental.EqModRef<Demo.Main.Polygon>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.Main.Polygon>
+        let _vertices = ResetMod.Create(__initial.vertices)
+        
+        member x.vertices = _vertices :> IMod<_>
+        
+        member x.Current = __current :> IMod<_>
+        member x.Update(v : Demo.Main.Polygon) =
+            if not (System.Object.ReferenceEquals(__current.Value, v)) then
+                __current.Value <- v
+                
+                ResetMod.Update(_vertices,v.vertices)
+                
+        
+        static member Create(__initial : Demo.Main.Polygon) : MPolygon = MPolygon(__initial)
+        static member Update(m : MPolygon, v : Demo.Main.Polygon) = m.Update(v)
+        
+        override x.ToString() = __current.Value.ToString()
+        member x.AsString = sprintf "%A" __current.Value
+        interface IUpdatable<Demo.Main.Polygon> with
+            member x.Update v = x.Update v
+    
+    
+    
+    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+    module Polygon =
+        [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+        module Lens =
+            let vertices =
+                { new Lens<Demo.Main.Polygon, Aardvark.Base.V3d[]>() with
+                    override x.Get(r) = r.vertices
+                    override x.Set(r,v) = { r with vertices = v }
+                    override x.Update(r,f) = { r with vertices = f r.vertices }
+                }
+    
+    
     type MModel(__initial : Demo.Main.Model) =
         inherit obj()
         let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.Main.Model> = Aardvark.Base.Incremental.EqModRef<Demo.Main.Model>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.Main.Model>
@@ -80,6 +117,8 @@ module Mutable =
         let _menuModel = Demo.Menu.Mutable.MMenuModel.Create(__initial.menuModel)
         let _drawingPoint = MList.Create(__initial.drawingPoint, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
         let _drawingLine = ResetMod.Create(__initial.drawingLine)
+        let _currentlyDrawing = MOption.Create(__initial.currentlyDrawing, (fun v -> MPolygon.Create(v)), (fun (m,v) -> MPolygon.Update(m, v)), (fun v -> v))
+        let _finishedDrawings = MMap.Create(__initial.finishedDrawings, (fun v -> MPolygon.Create(v)), (fun (m,v) -> MPolygon.Update(m, v)), (fun v -> v))
         let _flagOnController = MList.Create(__initial.flagOnController, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
         let _flagOnMars = MList.Create(__initial.flagOnMars, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
         let _lineOnController = MList.Create(__initial.lineOnController, (fun v -> Demo.Mutable.MVisibleSphere.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleSphere.Update(m, v)), (fun v -> v))
@@ -109,6 +148,8 @@ module Mutable =
         member x.menuModel = _menuModel
         member x.drawingPoint = _drawingPoint :> alist<_>
         member x.drawingLine = _drawingLine :> IMod<_>
+        member x.currentlyDrawing = _currentlyDrawing :> IMod<_>
+        member x.finishedDrawings = _finishedDrawings :> amap<_,_>
         member x.flagOnController = _flagOnController :> alist<_>
         member x.flagOnMars = _flagOnMars :> alist<_>
         member x.lineOnController = _lineOnController :> alist<_>
@@ -142,6 +183,8 @@ module Mutable =
                 Demo.Menu.Mutable.MMenuModel.Update(_menuModel, v.menuModel)
                 MList.Update(_drawingPoint, v.drawingPoint)
                 ResetMod.Update(_drawingLine,v.drawingLine)
+                MOption.Update(_currentlyDrawing, v.currentlyDrawing)
+                MMap.Update(_finishedDrawings, v.finishedDrawings)
                 MList.Update(_flagOnController, v.flagOnController)
                 MList.Update(_flagOnMars, v.flagOnMars)
                 MList.Update(_lineOnController, v.lineOnController)
@@ -295,6 +338,18 @@ module Mutable =
                     override x.Get(r) = r.drawingLine
                     override x.Set(r,v) = { r with drawingLine = v }
                     override x.Update(r,f) = { r with drawingLine = f r.drawingLine }
+                }
+            let currentlyDrawing =
+                { new Lens<Demo.Main.Model, Microsoft.FSharp.Core.Option<Demo.Main.Polygon>>() with
+                    override x.Get(r) = r.currentlyDrawing
+                    override x.Set(r,v) = { r with currentlyDrawing = v }
+                    override x.Update(r,f) = { r with currentlyDrawing = f r.currentlyDrawing }
+                }
+            let finishedDrawings =
+                { new Lens<Demo.Main.Model, Aardvark.Base.hmap<System.String,Demo.Main.Polygon>>() with
+                    override x.Get(r) = r.finishedDrawings
+                    override x.Set(r,v) = { r with finishedDrawings = v }
+                    override x.Update(r,f) = { r with finishedDrawings = f r.finishedDrawings }
                 }
             let flagOnController =
                 { new Lens<Demo.Main.Model, Aardvark.Base.plist<Demo.VisibleBox>>() with
