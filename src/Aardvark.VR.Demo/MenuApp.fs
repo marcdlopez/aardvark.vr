@@ -25,10 +25,7 @@ module MenuApp =
 
     let rec update (controllers : hmap<ControllerKind, ControllerInfo>) (state : VrState) (vr : VrActions) (model : MenuModel) (msg : MenuAction)  : MenuModel = 
         match msg with
-        | CreateMenu (kind, buttonPressed) -> 
-            
-            let updateMenuControllerInfo = 
-                
+        | CreateMenu (kind, buttonPressed) ->                
 
             let model = 
                 if not(model.initialMenuPositionBool) then 
@@ -99,12 +96,12 @@ module MenuApp =
                             let box0ID = model.mainMenuBoxes |> Seq.item 0
                             let box1ID = model.mainMenuBoxes |> Seq.item 1
 
-                            let menuSelector = if a.joystickPressed then a else b
+                            let menuSelector = if a.joystickHold then a else b
                                 
                             if box0ID.id = id then 
-                                {   model with menu = MenuState.MainReset }
+                                {   model with menu = MenuState.MainReset; controllerMenuSelector = menuSelector}
                             else if box1ID.id = id then 
-                                {   model with menu = MenuState.Navigation }
+                                {   model with menu = MenuState.Navigation; controllerMenuSelector = menuSelector}
                             else 
                                 {
                                     model with 

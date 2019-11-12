@@ -26,7 +26,7 @@ open Demo
 type DemoAction =
 | SetText of string 
 | ToggleVR
-| MenuMessage of MenuAction
+| MenuMessage of MenuAction * ControllerKind * bool
 | CameraMessage         of FreeFlyController.Message    
 | SetControllerPosition of ControllerKind *  Pose
 | GrabObject            of ControllerKind * ControllerButtons * bool
@@ -72,13 +72,47 @@ module Demo =
             if model.vr then vr.stop()
             else vr.start()
             { model with vr = not model.vr }
-        | MenuMessage a ->            
-            let controllers = model.controllerInfos
+        | MenuMessage (a, kind, buttonTouched) ->   
+            let updateCont = 
+                model.controllerInfos 
+                |> HMap.alter kind (fun old -> 
+                    match old, buttonTouched with 
+                    | Some x, true -> 
+                        Some { x with joystickHold = true }   // update / overwrite
+                    | Some x, false -> 
+                        Some { x with joystickHold = false }   // update / overwrite
+                    | None, true -> 
+                        Some
+                            {
+                                kind               = kind
+                                pose               = Pose.none
+                                buttonKind         = ControllerButtons.Joystick
+                                backButtonPressed  = false
+                                frontButtonPressed = false
+                                joystickPressed    = false
+                                joystickHold       = true
+                            } // create
+                    | None, false -> 
+                        Some
+                            {
+                                kind               = kind
+                                pose               = Pose.none
+                                buttonKind         = ControllerButtons.Joystick
+                                backButtonPressed  = false
+                                frontButtonPressed = false
+                                joystickPressed    = false
+                                joystickHold       = false
+                            } // create
+                )
+
+            let newModel = {model with controllerInfos = updateCont}
+
+            let controllers = newModel.controllerInfos
 
             let newMenuModel = 
-                MenuApp.update controllers state vr model.menuModel a
+                MenuApp.update controllers state vr newModel.menuModel a
             
-            { model with 
+            { newModel with 
                 menuModel = newMenuModel; 
             }
 
@@ -262,11 +296,11 @@ module Demo =
         // buttons identifications: sensitive = 0, backButton = 1, sideButtons = 2
         | VrMessage.Touch(con,button) -> 
             match button with 
-            | 0 -> [MenuMessage (Demo.MenuAction.CreateMenu(con |> ControllerKind.fromInt, true))]
+            | 0 -> [MenuMessage (Demo.MenuAction.CreateMenu(con |> ControllerKind.fromInt, true), con |> ControllerKind.fromInt, true)]
             | _ -> []
         | VrMessage.Untouch(con,button) -> 
             match button with 
-            | 0 -> [MenuMessage (Demo.MenuAction.CreateMenu(con |> ControllerKind.fromInt, false))]
+            | 0 -> [MenuMessage (Demo.MenuAction.CreateMenu(con |> ControllerKind.fromInt, false), con |> ControllerKind.fromInt, false)]
             | _ -> []
         | VrMessage.PressButton(_,2) ->
             //printfn "Button identification %d" button
@@ -634,7 +668,7 @@ module Demo =
                     match newConPos with
                         | None -> return false
                         | Some e -> 
-                            let! isPressed = e.joystickPressed
+                            let! isPressed = e.joystickHold
                             return not isPressed
                 }
             inMenuDisappear
