@@ -56,7 +56,8 @@ type Model =
         pickingModel                : PickingModel
 
         globalTrafo                 : Trafo3d
-        //controllerGlobalTrafo       : Trafo3d
+        controllerGlobalTrafo       : Trafo3d
+        initControllerGlobalTrafo   : Trafo3d
         initGlobalTrafo             : Trafo3d
         initControlTrafo            : Trafo3d
         init2ControlTrafo           : Trafo3d

@@ -33,9 +33,14 @@ module NavigationOpc =
                     newModel
                     |> OpcUtilities.getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
 
-                let newControllerTrafoShift = newModel.initControlTrafo.Inverse * currentControllerTrafo
+                let newControllerTrafoShift = newModel.initControllerGlobalTrafo * newModel.initControlTrafo.Inverse * currentControllerTrafo 
                 let newTrafoShift = newModel.initGlobalTrafo * newModel.initControlTrafo.Inverse * currentControllerTrafo
-                {newModel with globalTrafo = newTrafoShift}//; controllerGlobalTrafo = newControllerTrafoShift}
+                printfn "Controller Trafo : %s" (newControllerTrafoShift.GetModelOrigin().ToString())
+                printfn "Global Trafo : %s" (newTrafoShift.GetModelOrigin().ToString())
+                {newModel with 
+                    globalTrafo             = newTrafoShift; 
+                    controllerGlobalTrafo   = newControllerTrafoShift
+                }
             | 2 ->
                 let dist = 
                     newModel
@@ -66,9 +71,11 @@ module NavigationOpc =
                     Trafo3d.Translation (-newModel.rotationAxis.GetModelOrigin()) * getRotation * Trafo3d.Translation (newModel.rotationAxis.GetModelOrigin())
                     // coordinate system (rotation axis) should probably be at the center distance of the controllers
                         
-                let newControllerGlobalTrafo = newRotationTrafo * scaleControllerCenter
+                let newControllerGlobalTrafo = newModel.initControllerGlobalTrafo * newRotationTrafo * scaleControllerCenter
                 let newGlobalTrafo = newModel.initGlobalTrafo * newRotationTrafo * scaleControllerCenter
-                {newModel with globalTrafo = newGlobalTrafo}//; controllerGlobalTrafo = newControllerGlobalTrafo}
+                {newModel with  
+                    globalTrafo = newGlobalTrafo}
+                    //; controllerGlobalTrafo = newControllerGlobalTrafo}
             | _ -> 
                 newModel
         newModel
@@ -123,4 +130,11 @@ module NavigationOpc =
                 Trafo3d.FromBasis(newXAxis, yAxis, zAxis, getFirstControllerTrafo.GetModelOrigin())
             | _ -> Trafo3d.Identity
         
-        {model with initGlobalTrafo = model.globalTrafo; initControlTrafo = firstControllerTrafo; init2ControlTrafo = secondControllerTrafo ;offsetControllerDistance = InitialControllerDistance; rotationAxis = newRotationCoordinateSystem}
+        {model with 
+            initGlobalTrafo             = model.globalTrafo; 
+            initControllerGlobalTrafo   = model.controllerGlobalTrafo; 
+            initControlTrafo            = firstControllerTrafo; 
+            init2ControlTrafo           = secondControllerTrafo;
+            offsetControllerDistance    = InitialControllerDistance; 
+            rotationAxis                = newRotationCoordinateSystem
+        }

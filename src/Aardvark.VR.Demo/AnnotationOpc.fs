@@ -99,7 +99,7 @@ module AnnotationOpc =
         | Draw -> 
         
             match ci with
-            | Some c when c.backButtonPressed ->                      
+            | Some c when c.backButtonPressed ->
                 match newModel.currentlyDrawing with 
                 | Some v -> 
                     let lastPolygon =

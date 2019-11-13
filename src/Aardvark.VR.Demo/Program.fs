@@ -12,7 +12,7 @@ let main argv =
     Aardvark.Init()
     Aardium.init()
 
-    let app = VRApplication.create (VRDisplay.OpenVR 1.0) 8 false
+    let app = VRApplication.create (VRDisplay.OpenVR 1.0) 8 true
     let mapp = ComposedApp.start app Demo.app
     
     WebPart.startServerLocalhost 4321 [

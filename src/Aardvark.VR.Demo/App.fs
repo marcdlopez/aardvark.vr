@@ -207,8 +207,13 @@ module Demo =
 
             match newModel.menuModel.menu with 
             | Navigation -> 
-                newModel
-                |> NavigationOpc.initialSceneInfo
+                let newModel = 
+                    newModel
+                    |> NavigationOpc.initialSceneInfo
+                {newModel with 
+                    flagOnController    = PList.empty
+                    lineOnController    = PList.empty
+                }
             | Annotation ->
                 let controllerPos = newModel.controllerInfos |> HMap.tryFind kind
                 match controllerPos with 
@@ -228,15 +233,16 @@ module Demo =
                                     {newModel with currentlyDrawing = Some {vertices = newPolygon}}
                                 | None -> {newModel with currentlyDrawing = Some {vertices = [|id.pose.deviceToWorld.GetModelOrigin()|]}}
                             | false -> 
-                                printfn "New polygon created"
-                                match newModel.currentlyDrawing with 
-                                | None -> newModel 
-                                | Some p -> 
-                                    let newFinishedPol = 
-                                        newModel.finishedDrawings
-                                        |> HMap.add (System.Guid.NewGuid().ToString()) p
+                                //printfn "New polygon created"
+                                //match newModel.currentlyDrawing with 
+                                //| None -> newModel 
+                                //| Some p -> 
+                                //    let newFinishedPol = 
+                                //        newModel.finishedDrawings
+                                //        |> HMap.add (System.Guid.NewGuid().ToString()) p
                                         
-                                    {newModel with finishedDrawings = newFinishedPol; currentlyDrawing = Some {vertices = [||]}}
+                                //    {newModel with finishedDrawings = newFinishedPol; currentlyDrawing = Some {vertices = [||]}}
+                                newModel
                         | _ -> newModel
                     | Flag -> 
                         let newFlag = OpcUtilities.mkFlags id.pose 1
@@ -332,31 +338,23 @@ module Demo =
             | _ -> []
         | VrMessage.PressButton(con,button) ->
             match button with 
-            | 2 -> 
-                [GrabObject(con |> ControllerKind.fromInt, button |> ControllerButtons.fromInt, true)]
-            | _ -> 
-                []
+            | 2 -> [GrabObject(con |> ControllerKind.fromInt, button |> ControllerButtons.fromInt, true)]
+            | _ -> []
         | VrMessage.UnpressButton(con, button) -> 
             match button with 
-            | 2 -> 
-                [GrabObject(con |> ControllerKind.fromInt, button |> ControllerButtons.fromInt, false)]
-            | _ -> 
-                []
+            | 2 -> [GrabObject(con |> ControllerKind.fromInt, button |> ControllerButtons.fromInt, false)]
+            | _ -> []
         | VrMessage.UpdatePose(cn,p) -> 
             if p.isValid then 
-                let pos = p.deviceToWorld.Forward.TransformPos(V3d.Zero)
-                //printfn "%d changed pos= %A" cn pos
                 [SetControllerPosition (cn |> ControllerKind.fromInt, p)]
             else []
         | VrMessage.Press(con,button) -> 
             printfn "%d Button identification %d" con button
             match button with
-            //| 0 -> [MenuMessage (Demo.MenuAction.Select(con |> ControllerKind.fromInt, true))]
             | _ -> [GrabObject(con |> ControllerKind.fromInt, button |> ControllerButtons.fromInt, true)]
         | VrMessage.Unpress(con,button) -> 
             printfn "Button unpressed by %d" con
             match button with 
-            //| 0 -> [MenuMessage (Demo.MenuAction.Select(con |> ControllerKind.fromInt, false))]
             | _ -> [GrabObject (con |> ControllerKind.fromInt, button |> ControllerButtons.fromInt, false)]
         | _ -> 
             []
@@ -467,11 +465,14 @@ module Demo =
                 | Some p -> 
                     p.vertices
                     |> Mod.map (fun v ->
-                        v
-                        |> Array.pairwise
-                        |> Array.map (fun (a,b) -> new Line3d(a, b))
+                        if v.Length = 0 then [|Line3d(V3d.OOO,V3d.III)|]
+                        else
+                            v
+                            |> Array.pairwise
+                            |> Array.map (fun (a,b) -> new Line3d(a, b))
                     )
-                | None -> Mod.constant [|Line3d()|]
+                | None ->
+                        Mod.constant [|Line3d()|]
             )
 
         let drawPolygon =
@@ -484,7 +485,7 @@ module Demo =
                 toEffect DefaultSurfaces.vertexColor
                 toEffect DefaultSurfaces.thickLine
                 ]
-            |> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
+            //|> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
             |> Sg.depthTest (Mod.constant DepthTestMode.None)
 
         //let drawFinishedPolygon = 
@@ -715,7 +716,7 @@ module Demo =
         
         let transformedSgs =    
             [
-                opcs
+                //opcs
                 drawPolygon
                 //drawFinishedPolygon
                 flagsOnMars
@@ -723,7 +724,7 @@ module Demo =
                 drawSphereLines
                 distanceText
             ]   |> Sg.ofList
-                //|> Sg.trafo m.controllerGlobalTrafo
+                |> Sg.trafo m.controllerGlobalTrafo
 
         let inMenuDisappear = 
             [
@@ -758,7 +759,7 @@ module Demo =
                 menuApp
             ] |> Sg.ofList
 
-        Sg.ofList [transformedSgs; notTransformedSgs; mkDisappear]
+        Sg.ofList [opcs; transformedSgs; notTransformedSgs; mkDisappear]
 
     let pause (info : VrSystemInfo) (m : MModel) =
         Sg.box' C4b.Red Box3d.Unit
@@ -806,14 +807,14 @@ module Demo =
             pickingModel        = OpcViewer.Base.Picking.PickingModel.initial
 
             globalTrafo             = Trafo3d.Translation(-boundingBoxInit.Center) * upRotationTrafo //global trafo for opc, with center in boundingbox center
-            //controllerGlobalTrafo   = Trafo3d.Identity 
-
-            offsetControllerDistance = 1.0
-
-            initGlobalTrafo     = Trafo3d.Identity
-            initControlTrafo    = Trafo3d.Identity
-            init2ControlTrafo   = Trafo3d.Identity
-            rotationAxis        = Trafo3d.Identity
+            controllerGlobalTrafo   = Trafo3d.Identity
+            
+            offsetControllerDistance    = 1.0
+            initControllerGlobalTrafo   = Trafo3d.Identity
+            initGlobalTrafo             = Trafo3d.Identity
+            initControlTrafo            = Trafo3d.Identity
+            init2ControlTrafo           = Trafo3d.Identity
+            rotationAxis                = Trafo3d.Identity
 
             menuModel               = Menu.MenuModel.init
             drawingPoint            = PList.empty
