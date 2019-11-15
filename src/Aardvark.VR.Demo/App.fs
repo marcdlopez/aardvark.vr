@@ -122,7 +122,7 @@ module Demo =
 
         | CameraMessage m -> 
             { model with cameraState = FreeFlyController.update model.cameraState m }   
-        | SetControllerPosition (kind, p) ->                         
+        | SetControllerPosition (kind, p) ->    
             let newModel = 
                 match model.menuModel.menu with
                 | Menu.MenuState.Navigation ->
@@ -150,6 +150,25 @@ module Demo =
             
             printfn "Menu mode is: %s when buttonpress is: %s" (model.menuModel.menu.ToString()) (buttonPress.ToString())
             
+            let testStuff = 
+                if buttonPress then 
+                    {model with pressGlobalTrafo = model.globalTrafo}
+                else 
+                    {model with unpressGlobalTrafo = model.globalTrafo}
+
+            let takeItBack : Trafo3d = testStuff.pressGlobalTrafo * testStuff.unpressGlobalTrafo.Inverse
+            let takeItBack1 : Trafo3d = testStuff.pressGlobalTrafo.Inverse * testStuff.unpressGlobalTrafo
+            let takeItBackDiff = testStuff.unpressGlobalTrafo.GetModelOrigin() - testStuff.pressGlobalTrafo.GetModelOrigin()
+            printfn "Difference: %A" takeItBackDiff
+            printfn "take it back : %s" (takeItBack.GetModelOrigin().ToString())
+            printfn "take it back 1: %s" (takeItBack1.GetModelOrigin().ToString())
+            printfn "take it back INVERSE: %s" (takeItBack.Inverse.GetModelOrigin().ToString())
+            printfn "take it back INVERSE1: %s" (takeItBack1.Inverse.GetModelOrigin().ToString())
+            printfn "press global trafo: %s" (testStuff.pressGlobalTrafo.GetModelOrigin().ToString())
+            printfn "unpress global trafo: %s" (testStuff.unpressGlobalTrafo.GetModelOrigin().ToString())
+
+            let model = testStuff
+
             let updateControllerButtons = 
                 model.controllerInfos
                 |> HMap.alter kind (fun but ->  
@@ -245,7 +264,14 @@ module Demo =
                                 newModel
                         | _ -> newModel
                     | Flag -> 
-                        let newFlag = OpcUtilities.mkFlags id.pose 1
+                        
+                        let newFlag = OpcUtilities.mkFlags id.pose.deviceToWorld 1
+                        let printFlagPos = 
+                            newFlag 
+                            |> PList.map (fun flag -> 
+                                printfn "Flag position: %s" (flag.trafo.GetModelOrigin().ToString())
+                            )
+                        printfn "Controller Pose when creating: %s" (id.pose.deviceToWorld.GetModelOrigin().ToString())
                         {newModel with flagOnController = newFlag}
                     | Line -> 
                         let newLine = OpcUtilities.mkSphere id.pose 1 0.02
@@ -759,7 +785,7 @@ module Demo =
                 menuApp
             ] |> Sg.ofList
 
-        Sg.ofList [opcs; transformedSgs; notTransformedSgs; mkDisappear]
+        Sg.ofList [transformedSgs; notTransformedSgs; mkDisappear; opcs]
 
     let pause (info : VrSystemInfo) (m : MModel) =
         Sg.box' C4b.Red Box3d.Unit
@@ -829,6 +855,10 @@ module Demo =
             lineOnMars              = PList.empty
             lineDistance            = 0.0
             lineMarsDisplay         = [|Line3d()|]
+
+
+            pressGlobalTrafo        = Trafo3d.Identity
+            unpressGlobalTrafo      = Trafo3d.Identity
         }
     let app =
         {

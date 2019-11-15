@@ -10,6 +10,7 @@ module NavigationOpc =
     open Aardvark.Base.Rendering
     open Model
     open OpenTK
+    open Aardvark.Base.MapExtImplementation
 
 
     let currentSceneInfo kind p model : Model = 
@@ -33,10 +34,11 @@ module NavigationOpc =
                     newModel
                     |> OpcUtilities.getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
 
-                let newControllerTrafoShift = newModel.initControllerGlobalTrafo * newModel.initControlTrafo.Inverse * currentControllerTrafo 
+
+                // initControllerGlobalTrafo -> all accumulated actions (drag, rotate ...) of controls
+                let newControllerTrafoShift = currentControllerTrafo * newModel.initControlTrafo.Inverse * currentControllerTrafo
                 let newTrafoShift = newModel.initGlobalTrafo * newModel.initControlTrafo.Inverse * currentControllerTrafo
-                printfn "Controller Trafo : %s" (newControllerTrafoShift.GetModelOrigin().ToString())
-                printfn "Global Trafo : %s" (newTrafoShift.GetModelOrigin().ToString())
+
                 {newModel with 
                     globalTrafo             = newTrafoShift; 
                     controllerGlobalTrafo   = newControllerTrafoShift
@@ -50,7 +52,7 @@ module NavigationOpc =
 
                 let scaleControllerCenter = Trafo3d.Translation (-newModel.initControlTrafo.GetModelOrigin()) * Trafo3d.Scale (newControllerDistance) * Trafo3d.Translation (newModel.initControlTrafo.GetModelOrigin())
 
-                // Rotation with origin in the controller
+                // Rotation with origin in the first controller
                 let firstControllerTrafo = 
                     newModel 
                     |> OpcUtilities.getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
@@ -69,7 +71,7 @@ module NavigationOpc =
 
                 let newRotationTrafo = 
                     Trafo3d.Translation (-newModel.rotationAxis.GetModelOrigin()) * getRotation * Trafo3d.Translation (newModel.rotationAxis.GetModelOrigin())
-                    // coordinate system (rotation axis) should probably be at the center distance of the controllers
+                    // coordinate system (rotation axis) should probably be at the middle distance of the controllers
                         
                 let newControllerGlobalTrafo = newModel.initControllerGlobalTrafo * newRotationTrafo * scaleControllerCenter
                 let newGlobalTrafo = newModel.initGlobalTrafo * newRotationTrafo * scaleControllerCenter
@@ -129,7 +131,16 @@ module NavigationOpc =
                 let zAxis : V3d = V3d.Cross(newXAxis, yAxis)
                 Trafo3d.FromBasis(newXAxis, yAxis, zAxis, getFirstControllerTrafo.GetModelOrigin())
             | _ -> Trafo3d.Identity
-        
+        let lastDeltaTrafo = Trafo3d.Translation(model.initGlobalTrafo.GetModelOrigin() + model.globalTrafo.GetModelOrigin())
+        let lastDeltaTrafo1 = model.globalTrafo.Inverse * model.initGlobalTrafo
+           
+
+        //printfn "Difference of shift: %s" (lastDeltaTrafo.GetModelOrigin().ToString())
+        //printfn "Difference of shift1: %s" (lastDeltaTrafo1.GetModelOrigin().ToString())
+        //printfn "Difference of shift1 Inverse: %s" (lastDeltaTrafo1.Inverse.GetModelOrigin().ToString())
+        //printfn "Controller TRafo: %s" (currentControllerTrafo.GetModelOrigin().ToString())
+        //printfn "Init Global Trafo: %s" (newModel.initGlobalTrafo.GetModelOrigin().ToString())
+        //printfn "Global Trafo: %s" (newModel.globalTrafo.GetModelOrigin().ToString())
         {model with 
             initGlobalTrafo             = model.globalTrafo; 
             initControllerGlobalTrafo   = model.controllerGlobalTrafo; 

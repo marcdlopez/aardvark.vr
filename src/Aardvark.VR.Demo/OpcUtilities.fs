@@ -24,10 +24,10 @@ open OpcViewer.Base.Attributes
 
 module OpcUtilities = 
 
-    let mkFlags (controllerPos : Pose) (number : int) : plist<VisibleBox> = 
+    let mkFlags (controllerPos : Trafo3d) (number : int) : plist<VisibleBox> = 
         [0..number-1]
         |> List.map (fun x -> 
-            VisibleBox.createFlag C4b.Magenta (controllerPos.deviceToWorld.GetModelOrigin()))
+            VisibleBox.createFlag C4b.Magenta (controllerPos.GetModelOrigin()))
         |> PList.ofList
 
     let mkSphere (controllerPos : Pose) (number : int) (radius : float) : plist<VisibleSphere> = 

@@ -76,4 +76,9 @@ type Model =
         lineOnMars                  : plist<VisibleSphere>
         lineMarsDisplay             : Line3d[]
         lineDistance                : float
+
+
+        pressGlobalTrafo    : Trafo3d
+        unpressGlobalTrafo  : Trafo3d
+
     }

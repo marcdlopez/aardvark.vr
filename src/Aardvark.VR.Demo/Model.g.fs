@@ -127,6 +127,8 @@ module Mutable =
         let _lineOnMars = MList.Create(__initial.lineOnMars, (fun v -> Demo.Mutable.MVisibleSphere.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleSphere.Update(m, v)), (fun v -> v))
         let _lineMarsDisplay = ResetMod.Create(__initial.lineMarsDisplay)
         let _lineDistance = ResetMod.Create(__initial.lineDistance)
+        let _pressGlobalTrafo = ResetMod.Create(__initial.pressGlobalTrafo)
+        let _unpressGlobalTrafo = ResetMod.Create(__initial.unpressGlobalTrafo)
         
         member x.text = _text :> IMod<_>
         member x.vr = _vr :> IMod<_>
@@ -160,6 +162,8 @@ module Mutable =
         member x.lineOnMars = _lineOnMars :> alist<_>
         member x.lineMarsDisplay = _lineMarsDisplay :> IMod<_>
         member x.lineDistance = _lineDistance :> IMod<_>
+        member x.pressGlobalTrafo = _pressGlobalTrafo :> IMod<_>
+        member x.unpressGlobalTrafo = _unpressGlobalTrafo :> IMod<_>
         
         member x.Current = __current :> IMod<_>
         member x.Update(v : Demo.Main.Model) =
@@ -197,6 +201,8 @@ module Mutable =
                 MList.Update(_lineOnMars, v.lineOnMars)
                 ResetMod.Update(_lineMarsDisplay,v.lineMarsDisplay)
                 ResetMod.Update(_lineDistance,v.lineDistance)
+                ResetMod.Update(_pressGlobalTrafo,v.pressGlobalTrafo)
+                ResetMod.Update(_unpressGlobalTrafo,v.unpressGlobalTrafo)
                 
         
         static member Create(__initial : Demo.Main.Model) : MModel = MModel(__initial)
@@ -404,4 +410,16 @@ module Mutable =
                     override x.Get(r) = r.lineDistance
                     override x.Set(r,v) = { r with lineDistance = v }
                     override x.Update(r,f) = { r with lineDistance = f r.lineDistance }
+                }
+            let pressGlobalTrafo =
+                { new Lens<Demo.Main.Model, Aardvark.Base.Trafo3d>() with
+                    override x.Get(r) = r.pressGlobalTrafo
+                    override x.Set(r,v) = { r with pressGlobalTrafo = v }
+                    override x.Update(r,f) = { r with pressGlobalTrafo = f r.pressGlobalTrafo }
+                }
+            let unpressGlobalTrafo =
+                { new Lens<Demo.Main.Model, Aardvark.Base.Trafo3d>() with
+                    override x.Get(r) = r.unpressGlobalTrafo
+                    override x.Set(r,v) = { r with unpressGlobalTrafo = v }
+                    override x.Update(r,f) = { r with unpressGlobalTrafo = f r.unpressGlobalTrafo }
                 }
