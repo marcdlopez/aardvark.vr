@@ -26,7 +26,7 @@ module AnnotationOpc =
             match newCP with 
             | Some id -> 
                 let updateFlagPos = 
-                    model.flagOnController
+                    newModel.flagOnController
                     |> PList.map (fun flag -> {flag with trafo = id.pose.deviceToWorld})
                 
                 match id.backButtonPressed with 
@@ -37,9 +37,10 @@ module AnnotationOpc =
 
                     match flagOnController with 
                     | Some flag ->
+                        let updateFlag = {flag with trafo = id.pose.deviceToWorld * newModel.workSpaceTrafo.Inverse}
                         let newFlagOnMars = 
                             newModel.flagOnMars
-                            |> PList.prepend flag
+                            |> PList.prepend updateFlag
 
                         {newModel with flagOnController = PList.empty; flagOnMars = newFlagOnMars}
                     | None -> newModel
@@ -55,7 +56,7 @@ module AnnotationOpc =
             match newCP with 
             | Some id -> 
                 let updateLinePos = 
-                    model.lineOnController
+                    newModel.lineOnController
                     |> PList.map (fun line -> {line with trafo = id.pose.deviceToWorld})
 
                 match id.backButtonPressed with 
@@ -91,7 +92,17 @@ module AnnotationOpc =
                         match linePointMars with
                         | Some line1 ->
                             let newDistanceLine = V3d.Distance(line1.trafo.GetModelOrigin(), line.trafo.GetModelOrigin())
-                            {newModel with lineDistance = newDistanceLine}
+                            let newSphereListIndex = 
+                                newModel.lineOnMars
+                                |> PList.findIndex line 
+                            let newSphereList = 
+                                newModel.lineOnMars
+                                |> PList.alter newSphereListIndex (fun dist -> 
+                                    match dist with 
+                                    | Some s -> Some {s with distance = string newDistanceLine}
+                                    | None -> Some VisibleSphere.initial
+                                )
+                            {newModel with lineOnMars = newSphereList}
                         | None -> newModel
                     | None -> newModel 
                 | false -> {newModel with lineOnController = updateLinePos}

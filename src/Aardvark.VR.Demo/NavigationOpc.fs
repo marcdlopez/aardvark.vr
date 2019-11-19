@@ -34,14 +34,20 @@ module NavigationOpc =
                     newModel
                     |> OpcUtilities.getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
 
-
                 // initControllerGlobalTrafo -> all accumulated actions (drag, rotate ...) of controls
-                let newControllerTrafoShift = currentControllerTrafo * newModel.initControlTrafo.Inverse * currentControllerTrafo
+                let newControllerTrafoShift = Trafo3d.Identity * newModel.initControllerGlobalTrafo// * currentControllerTrafo
                 let newTrafoShift = newModel.initGlobalTrafo * newModel.initControlTrafo.Inverse * currentControllerTrafo
+
+                let newWorkSpace = newModel.initWorkSpaceTrafo * newModel.initControlTrafo.Inverse * currentControllerTrafo
+                let newOpcSpace = newModel.initOpcSpaceTrafo * newWorkSpace
+                let newFlagSpace = newModel.initFlagSpaceTrafo * newWorkSpace
 
                 {newModel with 
                     globalTrafo             = newTrafoShift; 
-                    controllerGlobalTrafo   = newControllerTrafoShift
+                    controllerGlobalTrafo   = newControllerTrafoShift;
+                    opcSpaceTrafo           = newOpcSpace;
+                    flagSpaceTrafo          = newFlagSpace;
+                    workSpaceTrafo          = newWorkSpace
                 }
             | 2 ->
                 let dist = 
@@ -131,19 +137,15 @@ module NavigationOpc =
                 let zAxis : V3d = V3d.Cross(newXAxis, yAxis)
                 Trafo3d.FromBasis(newXAxis, yAxis, zAxis, getFirstControllerTrafo.GetModelOrigin())
             | _ -> Trafo3d.Identity
-        let lastDeltaTrafo = Trafo3d.Translation(model.initGlobalTrafo.GetModelOrigin() + model.globalTrafo.GetModelOrigin())
-        let lastDeltaTrafo1 = model.globalTrafo.Inverse * model.initGlobalTrafo
-           
 
-        //printfn "Difference of shift: %s" (lastDeltaTrafo.GetModelOrigin().ToString())
-        //printfn "Difference of shift1: %s" (lastDeltaTrafo1.GetModelOrigin().ToString())
-        //printfn "Difference of shift1 Inverse: %s" (lastDeltaTrafo1.Inverse.GetModelOrigin().ToString())
-        //printfn "Controller TRafo: %s" (currentControllerTrafo.GetModelOrigin().ToString())
-        //printfn "Init Global Trafo: %s" (newModel.initGlobalTrafo.GetModelOrigin().ToString())
-        //printfn "Global Trafo: %s" (newModel.globalTrafo.GetModelOrigin().ToString())
         {model with 
             initGlobalTrafo             = model.globalTrafo; 
-            initControllerGlobalTrafo   = model.controllerGlobalTrafo; 
+            initControllerGlobalTrafo   = model.controllerGlobalTrafo;
+
+            //initOpcSpaceTrafo           = model.opcSpaceTrafo;
+            //initFlagSpaceTrafo          = model.flagSpaceTrafo;
+            initWorkSpaceTrafo          = model.workSpaceTrafo;
+
             initControlTrafo            = firstControllerTrafo; 
             init2ControlTrafo           = secondControllerTrafo;
             offsetControllerDistance    = InitialControllerDistance; 

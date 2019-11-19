@@ -114,6 +114,7 @@ type VisibleSphere = {
     color : C4b
     trafo : Trafo3d
     radius : float
+    distance : string
     [<TreatAsValue>]
     id : string
 }
@@ -126,6 +127,7 @@ module VisibleSphere =
             trafo = Trafo3d.Identity
             id = ""
             radius = 1.0
+            distance = ""
         }
 
     let createSphere (color : C4b) (position : V3d) (radius : float) = 

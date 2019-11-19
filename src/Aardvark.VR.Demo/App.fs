@@ -150,25 +150,6 @@ module Demo =
             
             printfn "Menu mode is: %s when buttonpress is: %s" (model.menuModel.menu.ToString()) (buttonPress.ToString())
             
-            let testStuff = 
-                if buttonPress then 
-                    {model with pressGlobalTrafo = model.globalTrafo}
-                else 
-                    {model with unpressGlobalTrafo = model.globalTrafo}
-
-            let takeItBack : Trafo3d = testStuff.pressGlobalTrafo * testStuff.unpressGlobalTrafo.Inverse
-            let takeItBack1 : Trafo3d = testStuff.pressGlobalTrafo.Inverse * testStuff.unpressGlobalTrafo
-            let takeItBackDiff = testStuff.unpressGlobalTrafo.GetModelOrigin() - testStuff.pressGlobalTrafo.GetModelOrigin()
-            printfn "Difference: %A" takeItBackDiff
-            printfn "take it back : %s" (takeItBack.GetModelOrigin().ToString())
-            printfn "take it back 1: %s" (takeItBack1.GetModelOrigin().ToString())
-            printfn "take it back INVERSE: %s" (takeItBack.Inverse.GetModelOrigin().ToString())
-            printfn "take it back INVERSE1: %s" (takeItBack1.Inverse.GetModelOrigin().ToString())
-            printfn "press global trafo: %s" (testStuff.pressGlobalTrafo.GetModelOrigin().ToString())
-            printfn "unpress global trafo: %s" (testStuff.unpressGlobalTrafo.GetModelOrigin().ToString())
-
-            let model = testStuff
-
             let updateControllerButtons = 
                 model.controllerInfos
                 |> HMap.alter kind (fun but ->  
@@ -264,14 +245,7 @@ module Demo =
                                 newModel
                         | _ -> newModel
                     | Flag -> 
-                        
                         let newFlag = OpcUtilities.mkFlags id.pose.deviceToWorld 1
-                        let printFlagPos = 
-                            newFlag 
-                            |> PList.map (fun flag -> 
-                                printfn "Flag position: %s" (flag.trafo.GetModelOrigin().ToString())
-                            )
-                        printfn "Controller Pose when creating: %s" (id.pose.deviceToWorld.GetModelOrigin().ToString())
                         {newModel with flagOnController = newFlag}
                     | Line -> 
                         let newLine = OpcUtilities.mkSphere id.pose 1 0.02
@@ -657,7 +631,7 @@ module Demo =
             m.lineOnMars
             |> AList.toASet
             |> ASet.map (fun dist -> 
-                Sg.text font C4b.White (Mod.constant (m.lineDistance.ToString()))
+                Sg.text font C4b.White (dist.distance)
                     |> Sg.noEvents
                     |> Sg.trafo(Mod.constant(Trafo3d.RotationInDegrees(V3d(90.0,0.0,90.0))))
                     |> Sg.scale 0.05
@@ -723,6 +697,24 @@ module Demo =
             MenuApp.vr info m.menuModel
             |> Sg.map MenuMessage
 
+        let OpcSpaceMod = 
+            let OS = m.opcSpaceTrafo
+            let WS = m.workSpaceTrafo
+            adaptive {
+                let! o = OS
+                let! w = WS
+                return o * w
+            }
+
+        let flagSpaceMod = 
+            let FS = m.flagSpaceTrafo
+            let WS = m.workSpaceTrafo
+            adaptive {
+                let! f = FS
+                let! w = WS
+                return f * w
+            }
+
         let opcs = 
             m.opcInfos
                 |> AMap.toASet
@@ -738,7 +730,7 @@ module Demo =
                 |> Sg.noEvents
                 |> Sg.map OpcViewerMsg
                 |> Sg.noEvents     
-                |> Sg.trafo m.globalTrafo 
+                |> Sg.trafo m.opcSpaceTrafo//OpcSpaceMod
         
         let transformedSgs =    
             [
@@ -750,7 +742,7 @@ module Demo =
                 drawSphereLines
                 distanceText
             ]   |> Sg.ofList
-                |> Sg.trafo m.controllerGlobalTrafo
+                |> Sg.trafo m.flagSpaceTrafo//flagSpaceMod
 
         let inMenuDisappear = 
             [
@@ -836,6 +828,15 @@ module Demo =
             controllerGlobalTrafo   = Trafo3d.Identity
             
             offsetControllerDistance    = 1.0
+
+            initWorkSpaceTrafo          = Trafo3d.Identity
+
+            workSpaceTrafo              = Trafo3d.Identity
+            opcSpaceTrafo               = Trafo3d.Translation(-boundingBoxInit.Center) * upRotationTrafo
+            flagSpaceTrafo              = Trafo3d.Identity
+
+            initFlagSpaceTrafo          = Trafo3d.Identity
+            initOpcSpaceTrafo           = Trafo3d.Translation(-boundingBoxInit.Center) * upRotationTrafo
             initControllerGlobalTrafo   = Trafo3d.Identity
             initGlobalTrafo             = Trafo3d.Identity
             initControlTrafo            = Trafo3d.Identity
@@ -853,7 +854,6 @@ module Demo =
             flagOnMars              = PList.empty
             lineOnController        = PList.empty
             lineOnMars              = PList.empty
-            lineDistance            = 0.0
             lineMarsDisplay         = [|Line3d()|]
 
 
