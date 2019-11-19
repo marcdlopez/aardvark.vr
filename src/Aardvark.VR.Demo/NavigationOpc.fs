@@ -34,19 +34,13 @@ module NavigationOpc =
                     newModel
                     |> OpcUtilities.getWorldTrafoIfBackPressed (controllersFiltered |> HMap.keys |> Seq.item 0)
 
-                // initControllerGlobalTrafo -> all accumulated actions (drag, rotate ...) of controls
-                let newControllerTrafoShift = Trafo3d.Identity * newModel.initControllerGlobalTrafo// * currentControllerTrafo
-                let newTrafoShift = newModel.initGlobalTrafo * newModel.initControlTrafo.Inverse * currentControllerTrafo
-
                 let newWorkSpace = newModel.initWorkSpaceTrafo * newModel.initControlTrafo.Inverse * currentControllerTrafo
                 let newOpcSpace = newModel.initOpcSpaceTrafo * newWorkSpace
-                let newFlagSpace = newModel.initFlagSpaceTrafo * newWorkSpace
+                let newFlagSpace = newModel.initAnnotationSpaceTrafo * newWorkSpace
 
                 {newModel with 
-                    globalTrafo             = newTrafoShift; 
-                    controllerGlobalTrafo   = newControllerTrafoShift;
                     opcSpaceTrafo           = newOpcSpace;
-                    flagSpaceTrafo          = newFlagSpace;
+                    annotationSpaceTrafo          = newFlagSpace;
                     workSpaceTrafo          = newWorkSpace
                 }
             | 2 ->
@@ -78,12 +72,15 @@ module NavigationOpc =
                 let newRotationTrafo = 
                     Trafo3d.Translation (-newModel.rotationAxis.GetModelOrigin()) * getRotation * Trafo3d.Translation (newModel.rotationAxis.GetModelOrigin())
                     // coordinate system (rotation axis) should probably be at the middle distance of the controllers
-                        
-                let newControllerGlobalTrafo = newModel.initControllerGlobalTrafo * newRotationTrafo * scaleControllerCenter
-                let newGlobalTrafo = newModel.initGlobalTrafo * newRotationTrafo * scaleControllerCenter
+
+                let newWorkSpace = newModel.initWorkSpaceTrafo * newRotationTrafo * scaleControllerCenter//newModel.initControlTrafo.Inverse * currentControllerTrafo
+                let newOpcSpace = newModel.initOpcSpaceTrafo * newWorkSpace
+                let newFlagSpace = newModel.initAnnotationSpaceTrafo * newWorkSpace
+
                 {newModel with  
-                    globalTrafo = newGlobalTrafo}
-                    //; controllerGlobalTrafo = newControllerGlobalTrafo}
+                    opcSpaceTrafo           = newOpcSpace;
+                    annotationSpaceTrafo          = newFlagSpace;
+                    workSpaceTrafo          = newWorkSpace}
             | _ -> 
                 newModel
         newModel
@@ -139,11 +136,6 @@ module NavigationOpc =
             | _ -> Trafo3d.Identity
 
         {model with 
-            initGlobalTrafo             = model.globalTrafo; 
-            initControllerGlobalTrafo   = model.controllerGlobalTrafo;
-
-            //initOpcSpaceTrafo           = model.opcSpaceTrafo;
-            //initFlagSpaceTrafo          = model.flagSpaceTrafo;
             initWorkSpaceTrafo          = model.workSpaceTrafo;
 
             initControlTrafo            = firstControllerTrafo; 

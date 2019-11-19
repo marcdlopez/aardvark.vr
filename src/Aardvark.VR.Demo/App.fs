@@ -133,7 +133,9 @@ module Demo =
                     |> AnnotationOpc.annotationMode kind p model.menuModel.subMenu
                 | Menu.MenuState.MainReset -> 
                     {model with 
-                        globalTrafo         = Trafo3d.Translation -model.boundingBox.Center * Trafo3d.RotateInto(model.boundingBox.Center.Normalized, V3d.OOI) 
+                        opcSpaceTrafo       = Trafo3d.Translation -model.boundingBox.Center * Trafo3d.RotateInto(model.boundingBox.Center.Normalized, V3d.OOI) 
+                        annotationSpaceTrafo      = Trafo3d.Identity
+                        workSpaceTrafo      = Trafo3d.Identity
                         flagOnController    = PList.empty
                         flagOnMars          = PList.empty
                         lineOnController    = PList.empty
@@ -228,10 +230,10 @@ module Demo =
                                 | Some v -> 
                                     let newPolygon =   
                                         v.vertices
-                                        |> Array.append [|id.pose.deviceToWorld.GetModelOrigin()|]
+                                        |> PList.prepend (id.pose.deviceToWorld.GetModelOrigin() * newModel.workSpaceTrafo.Inverse.GetModelOrigin())
 
                                     {newModel with currentlyDrawing = Some {vertices = newPolygon}}
-                                | None -> {newModel with currentlyDrawing = Some {vertices = [|id.pose.deviceToWorld.GetModelOrigin()|]}}
+                                | None -> {newModel with currentlyDrawing = Some {vertices = id.pose.deviceToWorld.GetModelOrigin() * newModel.workSpaceTrafo.Inverse.GetModelOrigin() |> PList.single}}
                             | false -> 
                                 //printfn "New polygon created"
                                 //match newModel.currentlyDrawing with 
@@ -254,9 +256,11 @@ module Demo =
                 | None -> newModel
             | MainReset -> 
                 {newModel with 
-                        globalTrafo         = Trafo3d.Translation -model.boundingBox.Center; 
-                        flagOnController    = PList.empty
-                        flagOnMars          = PList.empty
+                        opcSpaceTrafo           = Trafo3d.Translation -model.boundingBox.Center * Trafo3d.RotateInto(model.boundingBox.Center.Normalized, V3d.OOI) 
+                        annotationSpaceTrafo    = Trafo3d.Identity
+                        workSpaceTrafo          = Trafo3d.Identity
+                        flagOnController        = PList.empty
+                        flagOnMars              = PList.empty
                 }
                 
     let mkColor (model : MModel) (box : MVisibleBox) =
@@ -365,7 +369,7 @@ module Demo =
             |> Sg.noEvents
             |> Sg.scale 0.01
             |> Sg.trafo cp.deviceToWorld
-
+    
     let mkFlag (model : MModel) (box : MVisibleBox) =
         let color = mkColor model box
         let pos = box.trafo
@@ -456,7 +460,7 @@ module Demo =
             button [ style "position: fixed; bottom: 5px; right: 5px"; onClick (fun () -> ToggleVR) ] text
         ]
     
-    let vr' (info : VrSystemInfo) (m : MModel)= 
+    let vr' (info : VrSystemInfo) (m : MModel) = 
 
         let drawLineToPolygon = 
             m.currentlyDrawing
@@ -464,15 +468,17 @@ module Demo =
                 match cd with 
                 | Some p -> 
                     p.vertices
+                    |> AList.toMod 
                     |> Mod.map (fun v ->
-                        if v.Length = 0 then [|Line3d(V3d.OOO,V3d.III)|]
+                        if v.IsEmpty() then
+                            [|Line3d(V3d.OOO,V3d.III)|]
                         else
                             v
+                            |> PList.toArray
                             |> Array.pairwise
-                            |> Array.map (fun (a,b) -> new Line3d(a, b))
+                            |> Array.map (fun (a, b) -> Line3d(a, b))
                     )
-                | None ->
-                        Mod.constant [|Line3d()|]
+                | None -> Mod.constant [| Line3d() |]
             )
 
         let drawPolygon =
@@ -485,7 +491,7 @@ module Demo =
                 toEffect DefaultSurfaces.vertexColor
                 toEffect DefaultSurfaces.thickLine
                 ]
-            //|> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
+            |> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
             |> Sg.depthTest (Mod.constant DepthTestMode.None)
 
         //let drawFinishedPolygon = 
@@ -697,24 +703,6 @@ module Demo =
             MenuApp.vr info m.menuModel
             |> Sg.map MenuMessage
 
-        let OpcSpaceMod = 
-            let OS = m.opcSpaceTrafo
-            let WS = m.workSpaceTrafo
-            adaptive {
-                let! o = OS
-                let! w = WS
-                return o * w
-            }
-
-        let flagSpaceMod = 
-            let FS = m.flagSpaceTrafo
-            let WS = m.workSpaceTrafo
-            adaptive {
-                let! f = FS
-                let! w = WS
-                return f * w
-            }
-
         let opcs = 
             m.opcInfos
                 |> AMap.toASet
@@ -730,19 +718,19 @@ module Demo =
                 |> Sg.noEvents
                 |> Sg.map OpcViewerMsg
                 |> Sg.noEvents     
-                |> Sg.trafo m.opcSpaceTrafo//OpcSpaceMod
+                |> Sg.trafo m.opcSpaceTrafo
         
         let transformedSgs =    
             [
-                //opcs
                 drawPolygon
                 //drawFinishedPolygon
                 flagsOnMars
                 sphereOnMars
                 drawSphereLines
                 distanceText
-            ]   |> Sg.ofList
-                |> Sg.trafo m.flagSpaceTrafo//flagSpaceMod
+            ]   
+            |> Sg.ofList
+            |> Sg.trafo m.annotationSpaceTrafo
 
         let inMenuDisappear = 
             [
@@ -824,21 +812,16 @@ module Demo =
             rotateBox           = rotateBoxInit
             pickingModel        = OpcViewer.Base.Picking.PickingModel.initial
 
-            globalTrafo             = Trafo3d.Translation(-boundingBoxInit.Center) * upRotationTrafo //global trafo for opc, with center in boundingbox center
-            controllerGlobalTrafo   = Trafo3d.Identity
-            
             offsetControllerDistance    = 1.0
 
-            initWorkSpaceTrafo          = Trafo3d.Identity
-
-            workSpaceTrafo              = Trafo3d.Identity
             opcSpaceTrafo               = Trafo3d.Translation(-boundingBoxInit.Center) * upRotationTrafo
-            flagSpaceTrafo              = Trafo3d.Identity
+            workSpaceTrafo              = Trafo3d.Identity
+            annotationSpaceTrafo              = Trafo3d.Identity
 
-            initFlagSpaceTrafo          = Trafo3d.Identity
             initOpcSpaceTrafo           = Trafo3d.Translation(-boundingBoxInit.Center) * upRotationTrafo
-            initControllerGlobalTrafo   = Trafo3d.Identity
-            initGlobalTrafo             = Trafo3d.Identity
+            initWorkSpaceTrafo          = Trafo3d.Identity
+            initAnnotationSpaceTrafo          = Trafo3d.Identity
+
             initControlTrafo            = Trafo3d.Identity
             init2ControlTrafo           = Trafo3d.Identity
             rotationAxis                = Trafo3d.Identity
@@ -856,9 +839,6 @@ module Demo =
             lineOnMars              = PList.empty
             lineMarsDisplay         = [|Line3d()|]
 
-
-            pressGlobalTrafo        = Trafo3d.Identity
-            unpressGlobalTrafo      = Trafo3d.Identity
         }
     let app =
         {

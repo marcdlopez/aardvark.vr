@@ -59,16 +59,16 @@ module Mutable =
     type MPolygon(__initial : Demo.Main.Polygon) =
         inherit obj()
         let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.Main.Polygon> = Aardvark.Base.Incremental.EqModRef<Demo.Main.Polygon>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.Main.Polygon>
-        let _vertices = ResetMod.Create(__initial.vertices)
+        let _vertices = MList.Create(__initial.vertices)
         
-        member x.vertices = _vertices :> IMod<_>
+        member x.vertices = _vertices :> alist<_>
         
         member x.Current = __current :> IMod<_>
         member x.Update(v : Demo.Main.Polygon) =
             if not (System.Object.ReferenceEquals(__current.Value, v)) then
                 __current.Value <- v
                 
-                ResetMod.Update(_vertices,v.vertices)
+                MList.Update(_vertices, v.vertices)
                 
         
         static member Create(__initial : Demo.Main.Polygon) : MPolygon = MPolygon(__initial)
@@ -86,7 +86,7 @@ module Mutable =
         [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
         module Lens =
             let vertices =
-                { new Lens<Demo.Main.Polygon, Aardvark.Base.V3d[]>() with
+                { new Lens<Demo.Main.Polygon, Aardvark.Base.plist<Aardvark.Base.V3d>>() with
                     override x.Get(r) = r.vertices
                     override x.Set(r,v) = { r with vertices = v }
                     override x.Update(r,f) = { r with vertices = f r.vertices }
@@ -113,15 +113,11 @@ module Mutable =
         let _initWorkSpaceTrafo = ResetMod.Create(__initial.initWorkSpaceTrafo)
         let _workSpaceTrafo = ResetMod.Create(__initial.workSpaceTrafo)
         let _opcSpaceTrafo = ResetMod.Create(__initial.opcSpaceTrafo)
-        let _flagSpaceTrafo = ResetMod.Create(__initial.flagSpaceTrafo)
+        let _annotationSpaceTrafo = ResetMod.Create(__initial.annotationSpaceTrafo)
         let _initOpcSpaceTrafo = ResetMod.Create(__initial.initOpcSpaceTrafo)
-        let _initFlagSpaceTrafo = ResetMod.Create(__initial.initFlagSpaceTrafo)
-        let _globalTrafo = ResetMod.Create(__initial.globalTrafo)
-        let _controllerGlobalTrafo = ResetMod.Create(__initial.controllerGlobalTrafo)
-        let _initGlobalTrafo = ResetMod.Create(__initial.initGlobalTrafo)
+        let _initAnnotationSpaceTrafo = ResetMod.Create(__initial.initAnnotationSpaceTrafo)
         let _initControlTrafo = ResetMod.Create(__initial.initControlTrafo)
         let _init2ControlTrafo = ResetMod.Create(__initial.init2ControlTrafo)
-        let _initControllerGlobalTrafo = ResetMod.Create(__initial.initControllerGlobalTrafo)
         let _menuModel = Demo.Menu.Mutable.MMenuModel.Create(__initial.menuModel)
         let _drawingPoint = MList.Create(__initial.drawingPoint, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
         let _drawingLine = ResetMod.Create(__initial.drawingLine)
@@ -132,8 +128,6 @@ module Mutable =
         let _lineOnController = MList.Create(__initial.lineOnController, (fun v -> Demo.Mutable.MVisibleSphere.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleSphere.Update(m, v)), (fun v -> v))
         let _lineOnMars = MList.Create(__initial.lineOnMars, (fun v -> Demo.Mutable.MVisibleSphere.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleSphere.Update(m, v)), (fun v -> v))
         let _lineMarsDisplay = ResetMod.Create(__initial.lineMarsDisplay)
-        let _pressGlobalTrafo = ResetMod.Create(__initial.pressGlobalTrafo)
-        let _unpressGlobalTrafo = ResetMod.Create(__initial.unpressGlobalTrafo)
         
         member x.text = _text :> IMod<_>
         member x.vr = _vr :> IMod<_>
@@ -153,15 +147,11 @@ module Mutable =
         member x.initWorkSpaceTrafo = _initWorkSpaceTrafo :> IMod<_>
         member x.workSpaceTrafo = _workSpaceTrafo :> IMod<_>
         member x.opcSpaceTrafo = _opcSpaceTrafo :> IMod<_>
-        member x.flagSpaceTrafo = _flagSpaceTrafo :> IMod<_>
+        member x.annotationSpaceTrafo = _annotationSpaceTrafo :> IMod<_>
         member x.initOpcSpaceTrafo = _initOpcSpaceTrafo :> IMod<_>
-        member x.initFlagSpaceTrafo = _initFlagSpaceTrafo :> IMod<_>
-        member x.globalTrafo = _globalTrafo :> IMod<_>
-        member x.controllerGlobalTrafo = _controllerGlobalTrafo :> IMod<_>
-        member x.initGlobalTrafo = _initGlobalTrafo :> IMod<_>
+        member x.initAnnotationSpaceTrafo = _initAnnotationSpaceTrafo :> IMod<_>
         member x.initControlTrafo = _initControlTrafo :> IMod<_>
         member x.init2ControlTrafo = _init2ControlTrafo :> IMod<_>
-        member x.initControllerGlobalTrafo = _initControllerGlobalTrafo :> IMod<_>
         member x.menuModel = _menuModel
         member x.drawingPoint = _drawingPoint :> alist<_>
         member x.drawingLine = _drawingLine :> IMod<_>
@@ -172,8 +162,6 @@ module Mutable =
         member x.lineOnController = _lineOnController :> alist<_>
         member x.lineOnMars = _lineOnMars :> alist<_>
         member x.lineMarsDisplay = _lineMarsDisplay :> IMod<_>
-        member x.pressGlobalTrafo = _pressGlobalTrafo :> IMod<_>
-        member x.unpressGlobalTrafo = _unpressGlobalTrafo :> IMod<_>
         
         member x.Current = __current :> IMod<_>
         member x.Update(v : Demo.Main.Model) =
@@ -197,15 +185,11 @@ module Mutable =
                 ResetMod.Update(_initWorkSpaceTrafo,v.initWorkSpaceTrafo)
                 ResetMod.Update(_workSpaceTrafo,v.workSpaceTrafo)
                 ResetMod.Update(_opcSpaceTrafo,v.opcSpaceTrafo)
-                ResetMod.Update(_flagSpaceTrafo,v.flagSpaceTrafo)
+                ResetMod.Update(_annotationSpaceTrafo,v.annotationSpaceTrafo)
                 ResetMod.Update(_initOpcSpaceTrafo,v.initOpcSpaceTrafo)
-                ResetMod.Update(_initFlagSpaceTrafo,v.initFlagSpaceTrafo)
-                ResetMod.Update(_globalTrafo,v.globalTrafo)
-                ResetMod.Update(_controllerGlobalTrafo,v.controllerGlobalTrafo)
-                ResetMod.Update(_initGlobalTrafo,v.initGlobalTrafo)
+                ResetMod.Update(_initAnnotationSpaceTrafo,v.initAnnotationSpaceTrafo)
                 ResetMod.Update(_initControlTrafo,v.initControlTrafo)
                 ResetMod.Update(_init2ControlTrafo,v.init2ControlTrafo)
-                ResetMod.Update(_initControllerGlobalTrafo,v.initControllerGlobalTrafo)
                 Demo.Menu.Mutable.MMenuModel.Update(_menuModel, v.menuModel)
                 MList.Update(_drawingPoint, v.drawingPoint)
                 ResetMod.Update(_drawingLine,v.drawingLine)
@@ -216,8 +200,6 @@ module Mutable =
                 MList.Update(_lineOnController, v.lineOnController)
                 MList.Update(_lineOnMars, v.lineOnMars)
                 ResetMod.Update(_lineMarsDisplay,v.lineMarsDisplay)
-                ResetMod.Update(_pressGlobalTrafo,v.pressGlobalTrafo)
-                ResetMod.Update(_unpressGlobalTrafo,v.unpressGlobalTrafo)
                 
         
         static member Create(__initial : Demo.Main.Model) : MModel = MModel(__initial)
@@ -342,11 +324,11 @@ module Mutable =
                     override x.Set(r,v) = { r with opcSpaceTrafo = v }
                     override x.Update(r,f) = { r with opcSpaceTrafo = f r.opcSpaceTrafo }
                 }
-            let flagSpaceTrafo =
+            let annotationSpaceTrafo =
                 { new Lens<Demo.Main.Model, Aardvark.Base.Trafo3d>() with
-                    override x.Get(r) = r.flagSpaceTrafo
-                    override x.Set(r,v) = { r with flagSpaceTrafo = v }
-                    override x.Update(r,f) = { r with flagSpaceTrafo = f r.flagSpaceTrafo }
+                    override x.Get(r) = r.annotationSpaceTrafo
+                    override x.Set(r,v) = { r with annotationSpaceTrafo = v }
+                    override x.Update(r,f) = { r with annotationSpaceTrafo = f r.annotationSpaceTrafo }
                 }
             let initOpcSpaceTrafo =
                 { new Lens<Demo.Main.Model, Aardvark.Base.Trafo3d>() with
@@ -354,29 +336,11 @@ module Mutable =
                     override x.Set(r,v) = { r with initOpcSpaceTrafo = v }
                     override x.Update(r,f) = { r with initOpcSpaceTrafo = f r.initOpcSpaceTrafo }
                 }
-            let initFlagSpaceTrafo =
+            let initAnnotationSpaceTrafo =
                 { new Lens<Demo.Main.Model, Aardvark.Base.Trafo3d>() with
-                    override x.Get(r) = r.initFlagSpaceTrafo
-                    override x.Set(r,v) = { r with initFlagSpaceTrafo = v }
-                    override x.Update(r,f) = { r with initFlagSpaceTrafo = f r.initFlagSpaceTrafo }
-                }
-            let globalTrafo =
-                { new Lens<Demo.Main.Model, Aardvark.Base.Trafo3d>() with
-                    override x.Get(r) = r.globalTrafo
-                    override x.Set(r,v) = { r with globalTrafo = v }
-                    override x.Update(r,f) = { r with globalTrafo = f r.globalTrafo }
-                }
-            let controllerGlobalTrafo =
-                { new Lens<Demo.Main.Model, Aardvark.Base.Trafo3d>() with
-                    override x.Get(r) = r.controllerGlobalTrafo
-                    override x.Set(r,v) = { r with controllerGlobalTrafo = v }
-                    override x.Update(r,f) = { r with controllerGlobalTrafo = f r.controllerGlobalTrafo }
-                }
-            let initGlobalTrafo =
-                { new Lens<Demo.Main.Model, Aardvark.Base.Trafo3d>() with
-                    override x.Get(r) = r.initGlobalTrafo
-                    override x.Set(r,v) = { r with initGlobalTrafo = v }
-                    override x.Update(r,f) = { r with initGlobalTrafo = f r.initGlobalTrafo }
+                    override x.Get(r) = r.initAnnotationSpaceTrafo
+                    override x.Set(r,v) = { r with initAnnotationSpaceTrafo = v }
+                    override x.Update(r,f) = { r with initAnnotationSpaceTrafo = f r.initAnnotationSpaceTrafo }
                 }
             let initControlTrafo =
                 { new Lens<Demo.Main.Model, Aardvark.Base.Trafo3d>() with
@@ -389,12 +353,6 @@ module Mutable =
                     override x.Get(r) = r.init2ControlTrafo
                     override x.Set(r,v) = { r with init2ControlTrafo = v }
                     override x.Update(r,f) = { r with init2ControlTrafo = f r.init2ControlTrafo }
-                }
-            let initControllerGlobalTrafo =
-                { new Lens<Demo.Main.Model, Aardvark.Base.Trafo3d>() with
-                    override x.Get(r) = r.initControllerGlobalTrafo
-                    override x.Set(r,v) = { r with initControllerGlobalTrafo = v }
-                    override x.Update(r,f) = { r with initControllerGlobalTrafo = f r.initControllerGlobalTrafo }
                 }
             let menuModel =
                 { new Lens<Demo.Main.Model, Demo.Menu.MenuModel>() with
@@ -455,16 +413,4 @@ module Mutable =
                     override x.Get(r) = r.lineMarsDisplay
                     override x.Set(r,v) = { r with lineMarsDisplay = v }
                     override x.Update(r,f) = { r with lineMarsDisplay = f r.lineMarsDisplay }
-                }
-            let pressGlobalTrafo =
-                { new Lens<Demo.Main.Model, Aardvark.Base.Trafo3d>() with
-                    override x.Get(r) = r.pressGlobalTrafo
-                    override x.Set(r,v) = { r with pressGlobalTrafo = v }
-                    override x.Update(r,f) = { r with pressGlobalTrafo = f r.pressGlobalTrafo }
-                }
-            let unpressGlobalTrafo =
-                { new Lens<Demo.Main.Model, Aardvark.Base.Trafo3d>() with
-                    override x.Get(r) = r.unpressGlobalTrafo
-                    override x.Set(r,v) = { r with unpressGlobalTrafo = v }
-                    override x.Update(r,f) = { r with unpressGlobalTrafo = f r.unpressGlobalTrafo }
                 }

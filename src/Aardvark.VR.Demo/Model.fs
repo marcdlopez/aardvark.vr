@@ -28,7 +28,10 @@ type ButtonStates = {
 }
 
 [<DomainType>]
-type Polygon = { vertices : V3d[]; }
+type Polygon = 
+    { 
+        vertices : plist<V3d>
+    }
 
 [<DomainType>]
 type Model =
@@ -59,20 +62,13 @@ type Model =
         initWorkSpaceTrafo          : Trafo3d // describes all accumulated drag and rotation actions by the user (how the opc and everything is moved)
                                               // END -> update initWorkSpaceTrafo by workSpaceTrafo for the next iteration...
         workSpaceTrafo              : Trafo3d // START and MOVE -> initWorkSpaceTrafo * controller-DELTA
-        opcSpaceTrafo               : Trafo3d // STATIC description of how the opc is moved from 25k to our worldspace-origin (controller space)
-        flagSpaceTrafo              : Trafo3d // STATIC (identity) lives at the origin...but later for accuracy reasons...model trafo like opcSpace...
-        initOpcSpaceTrafo           : Trafo3d // opcSpace at Start-CLICK
-        initFlagSpaceTrafo          : Trafo3d // flagSpace at Start-CLICK
-
-        globalTrafo                 : Trafo3d // workSapce * opcSpace // OBSOLET...
-
-        controllerGlobalTrafo       : Trafo3d // could be the same as startPosC1...TODO check
+        opcSpaceTrafo               : Trafo3d //  description of how the opc is moved from 25k to our worldspace-origin (controller space)
+        annotationSpaceTrafo        : Trafo3d // (identity) lives at the origin...but later for accuracy reasons...model trafo like opcSpace...
+        initOpcSpaceTrafo           : Trafo3d // STATIC opcSpace at Start-CLICK
+        initAnnotationSpaceTrafo    : Trafo3d // STATIC annotationSpace at Start-CLICK
         
-        initGlobalTrafo             : Trafo3d // workspace * opcSpace at Start-CLICK (temporal!) // OBSOLET...
         initControlTrafo            : Trafo3d // START Controller1 (temporal!)
         init2ControlTrafo           : Trafo3d // START Controller2 (temporal!)
-
-        initControllerGlobalTrafo   : Trafo3d // could be the same as initControlTrafo
 
         menuModel                   : MenuModel
         //Annotation tools
@@ -87,9 +83,5 @@ type Model =
         lineOnController            : plist<VisibleSphere>
         lineOnMars                  : plist<VisibleSphere>
         lineMarsDisplay             : Line3d[]
-
-
-        pressGlobalTrafo    : Trafo3d
-        unpressGlobalTrafo  : Trafo3d
-
+        
     }

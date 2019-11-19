@@ -67,14 +67,14 @@ module AnnotationOpc =
 
                     match lineOnController with
                     | Some line -> 
+                        let updateLine = {line with trafo = id.pose.deviceToWorld * newModel.workSpaceTrafo.Inverse}
+                        
                         let newLineOnMars = 
                             newModel.lineOnMars
-                            |> PList.prepend line
+                            |> PList.prepend updateLine
                         
-                        let newModel = {newModel with lineOnController = PList.empty; lineOnMars = newLineOnMars}
-
                         let spherePoint =  
-                            newModel.lineOnMars 
+                            newLineOnMars 
                             |> PList.toArray 
                             |> Array.map (fun sphere -> sphere)
                         
@@ -83,18 +83,18 @@ module AnnotationOpc =
                             |> Array.pairwise
                             |> Array.map (fun (a, b) -> new Line3d(a.trafo.GetModelOrigin(), b.trafo.GetModelOrigin()))
 
-                        let newModel = {newModel with lineMarsDisplay = sphereLine}
+                        let newModel = {newModel with lineMarsDisplay = sphereLine; lineOnController = PList.empty; lineOnMars = newLineOnMars}
 
                         let linePointMars = 
-                            newModel.lineOnMars
+                            newLineOnMars
                             |> PList.tryLast
 
                         match linePointMars with
                         | Some line1 ->
-                            let newDistanceLine = V3d.Distance(line1.trafo.GetModelOrigin(), line.trafo.GetModelOrigin())
+                            let newDistanceLine = V3d.Distance(line1.trafo.GetModelOrigin(), updateLine.trafo.GetModelOrigin())
                             let newSphereListIndex = 
                                 newModel.lineOnMars
-                                |> PList.findIndex line 
+                                |> PList.findIndex updateLine 
                             let newSphereList = 
                                 newModel.lineOnMars
                                 |> PList.alter newSphereListIndex (fun dist -> 
@@ -108,34 +108,34 @@ module AnnotationOpc =
                 | false -> {newModel with lineOnController = updateLinePos}
             | None -> newModel 
         | Draw -> 
-        
             match ci with
             | Some c when c.backButtonPressed ->
                 match newModel.currentlyDrawing with 
                 | Some v -> 
-                    let lastPolygon =
-                        v.vertices
-                        |> Array.tryLast
+                    
+                    let newPointDeviceSpace = c.pose.deviceToWorld.GetModelOrigin()
+                    let newPointAnnotationSpace = newPointDeviceSpace * newModel.workSpaceTrafo.Inverse.GetModelOrigin()
+                    
+                    let updatedPolygon = 
+                        match v.vertices |> PList.tryFirst with 
+                        | Some lastInsertedPoint -> 
+                            let distance = V3d.Distance(lastInsertedPoint, newPointDeviceSpace) 
+                            match distance with
+                            | x when x >= 0.001 -> { v with vertices = v.vertices |> PList.prepend newPointAnnotationSpace }  
+                            | _ -> v
+                        | None -> { v with vertices = PList.single newPointAnnotationSpace }    // updated vertices (only one)
 
-                    match lastPolygon with 
-                    | Some lp -> 
-                        if V3d.Distance(lp, c.pose.deviceToWorld.GetModelOrigin()) >= 0.001 then 
-                            let newPolygon =   
-                                v.vertices
-                                |> Array.append [|c.pose.deviceToWorld.GetModelOrigin()|]
-                                    
-                            {newModel with currentlyDrawing = Some {vertices = newPolygon}}
-                        else newModel
-                    | None -> newModel
-                        
+                    { newModel with currentlyDrawing = Some updatedPolygon}
                 | None -> 
                     //this case will never happen anyway
-                    {newModel with currentlyDrawing = Some {vertices = [|c.pose.deviceToWorld.GetModelOrigin()|]}}
+                    { newModel with currentlyDrawing = Some {vertices = c.pose.deviceToWorld.GetModelOrigin() |> PList.single } }
                 
             | _ -> newModel
         | Reset -> 
             {newModel with 
-                globalTrafo         = Trafo3d.Translation -newModel.boundingBox.Center * Trafo3d.RotateInto(newModel.boundingBox.Center.Normalized, V3d.OOI); 
+                opcSpaceTrafo       = Trafo3d.Translation -model.boundingBox.Center * Trafo3d.RotateInto(model.boundingBox.Center.Normalized, V3d.OOI) 
+                annotationSpaceTrafo      = Trafo3d.Identity
+                workSpaceTrafo      = Trafo3d.Identity
                 flagOnController    = PList.empty
                 flagOnMars          = PList.empty
                 lineOnController    = PList.empty        
