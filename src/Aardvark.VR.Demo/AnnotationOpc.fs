@@ -113,13 +113,15 @@ module AnnotationOpc =
                 match newModel.currentlyDrawing with 
                 | Some v -> 
                     
-                    let newPointDeviceSpace = c.pose.deviceToWorld.GetModelOrigin()
-                    let newPointAnnotationSpace = newPointDeviceSpace * newModel.workSpaceTrafo.Inverse.GetModelOrigin()
+                    let newPointDeviceSpace = c.pose.deviceToWorld.GetModelOrigin()  
+                    let newTrafoAnnotationSpace = c.pose.deviceToWorld * newModel.workSpaceTrafo.Inverse
+                    let newPointAnnotationSpace = newTrafoAnnotationSpace.GetModelOrigin()
                     
                     let updatedPolygon = 
                         match v.vertices |> PList.tryFirst with 
                         | Some lastInsertedPoint -> 
                             let distance = V3d.Distance(lastInsertedPoint, newPointDeviceSpace) 
+                            //printfn "on the fly: %A" newPointAnnotationSpace
                             match distance with
                             | x when x >= 0.001 -> { v with vertices = v.vertices |> PList.prepend newPointAnnotationSpace }  
                             | _ -> v

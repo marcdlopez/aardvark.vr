@@ -233,7 +233,11 @@ module Demo =
                                         |> PList.prepend (id.pose.deviceToWorld.GetModelOrigin() * newModel.workSpaceTrafo.Inverse.GetModelOrigin())
 
                                     {newModel with currentlyDrawing = Some {vertices = newPolygon}}
-                                | None -> {newModel with currentlyDrawing = Some {vertices = id.pose.deviceToWorld.GetModelOrigin() * newModel.workSpaceTrafo.Inverse.GetModelOrigin() |> PList.single}}
+                                | None -> 
+                                    let newTrafoAnnotationSpace = id.pose.deviceToWorld * newModel.workSpaceTrafo.Inverse
+                                    let newVectorAnnotationSpace = newTrafoAnnotationSpace.GetModelOrigin()
+                                    printfn "starting pos: %A" newVectorAnnotationSpace
+                                    {newModel with currentlyDrawing = Some {vertices = newVectorAnnotationSpace |> PList.single}}
                             | false -> 
                                 //printfn "New polygon created"
                                 //match newModel.currentlyDrawing with 
