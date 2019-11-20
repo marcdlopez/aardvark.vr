@@ -146,61 +146,22 @@ module Demo =
             
             let controllerMenuUpdate = MenuApp.update model.controllerInfos state vr newModel.menuModel (MenuAction.UpdateControllerPose (kind, p))
 
+            let ttt = 
+                if newModel.menuModel.subMenu.Equals(subMenuState.Line) then 
+                    printfn "line sub menu: %s" (newModel.menuModel.lineSubMenu.ToString())
+                    1
+                else 0
+
+
+
             {newModel with menuModel = controllerMenuUpdate}
             
         | GrabObject (kind, buttonKind, buttonPress)-> 
             
             printfn "Menu mode is: %s when buttonpress is: %s" (model.menuModel.menu.ToString()) (buttonPress.ToString())
             
-            let updateControllerButtons = 
-                model.controllerInfos
-                |> HMap.alter kind (fun but ->  
-                match but with
-                | Some x -> 
-                    match buttonKind |> ControllerButtons.toInt with 
-                    | 0 -> Some {x with joystickPressed = buttonPress}
-                    | 1 -> Some {x with backButtonPressed = buttonPress}
-                    | _ -> None
-                    
-                | None -> 
-                    match buttonKind |> ControllerButtons.toInt with 
-                    | 2 -> 
-                        let newInfo = {
-                            kind                = kind
-                            pose                = Pose.none
-                            buttonKind          = buttonKind
-                            frontButtonPressed  = false
-                            backButtonPressed   = false
-                            joystickPressed     = false
-                            joystickHold        = false
-                            sideButtonPressed   = buttonPress
-                         }
-                        Some newInfo
-                    | 1 -> 
-                        let newInfo = {
-                            kind                = kind
-                            pose                = Pose.none
-                            buttonKind          = buttonKind
-                            frontButtonPressed  = false
-                            backButtonPressed   = buttonPress
-                            joystickPressed     = false
-                            joystickHold        = false
-                            sideButtonPressed   = false
-                         }
-                        Some newInfo
-                    | 0 -> 
-                        let newInfo = {
-                            kind                = kind
-                            pose                = Pose.none
-                            buttonKind          = buttonKind
-                            frontButtonPressed  = false
-                            backButtonPressed   = false
-                            joystickPressed     = buttonPress
-                            joystickHold        = false
-                            sideButtonPressed   = false
-                         }
-                        Some newInfo)
-
+            let updateControllerButtons = model |> OpcUtilities.updateControllersInfoWhenPress kind buttonKind buttonPress
+            
             let newModel = {model with controllerInfos = updateControllerButtons}
             
             let controllerMenuUpdate = MenuApp.update newModel.controllerInfos state vr newModel.menuModel (MenuAction.Select (kind, buttonPress))
@@ -236,7 +197,6 @@ module Demo =
                                 | None -> 
                                     let newTrafoAnnotationSpace = id.pose.deviceToWorld * newModel.workSpaceTrafo.Inverse
                                     let newVectorAnnotationSpace = newTrafoAnnotationSpace.GetModelOrigin()
-                                    printfn "starting pos: %A" newVectorAnnotationSpace
                                     {newModel with currentlyDrawing = Some {vertices = newVectorAnnotationSpace |> PList.single}}
                             | false -> 
                                 //printfn "New polygon created"
@@ -254,8 +214,43 @@ module Demo =
                         let newFlag = OpcUtilities.mkFlags id.pose.deviceToWorld 1
                         {newModel with flagOnController = newFlag}
                     | Line -> 
-                        let newLine = OpcUtilities.mkSphere id.pose 1 0.02
-                        {newModel with lineOnController = newLine}
+                        match newModel.menuModel.lineSubMenu with 
+                        | LineCreate -> 
+                            let newLine = OpcUtilities.mkSphere id.pose 1 0.02
+                            let newModel = {newModel with lineOnController = newLine}
+                            printfn "button kind: %d" (buttonKind |> ControllerButtons.toInt)
+                            match buttonKind |> ControllerButtons.toInt with 
+                            | 2 -> 
+
+                                let newFinishedLine = 
+                                    newModel.finishedLine
+                                    |> HMap.alter (System.Guid.NewGuid().ToString()) (fun fl ->
+                                        match fl with 
+                                        | Some updateLine -> Some updateLine //update line... never happens
+                                        | None -> // create new finished line
+                                            let newLine = 
+                                                {
+                                                    finishedLineOnMars      = newModel.lineOnMars
+                                                    finishedLineMarsDisplay = newModel.lineMarsDisplay
+                                                }
+                                            Some newLine
+                                    )
+
+                                let newModel = {newModel with finishedLine = newFinishedLine}
+
+                                let newControllerLine = 
+                                    OpcUtilities.mkSphere id.pose 1 0.02
+
+                                {newModel with 
+                                    lineOnController = newControllerLine;
+                                    lineOnMars = PList.empty
+                                }    
+                                //newModel
+                            | _ -> newModel 
+                        | Edit -> 
+                            printfn "new MOOOOOOODE"
+                            {newModel with lineOnController = PList.empty}
+
                     | _ -> newModel
                 | None -> newModel
             | MainReset -> 
@@ -345,8 +340,10 @@ module Demo =
             | 0 -> [MenuMessage (Demo.MenuAction.CreateMenu(con |> ControllerKind.fromInt, false), con |> ControllerKind.fromInt, false)]
             | _ -> []
         | VrMessage.PressButton(con,button) ->
+            printfn "button pressed: %d" button
             match button with 
             | 2 -> [GrabObject(con |> ControllerKind.fromInt, button |> ControllerButtons.fromInt, true)]
+            //| 1 -> [GrabObject(con |> ControllerKind.fromInt, button |> ControllerButtons.fromInt, true)]
             | _ -> []
         | VrMessage.UnpressButton(con, button) -> 
             match button with 
@@ -357,11 +354,11 @@ module Demo =
                 [SetControllerPosition (cn |> ControllerKind.fromInt, p)]
             else []
         | VrMessage.Press(con,button) -> 
-            printfn "%d Button identification %d" con button
+            printfn "%d Touch identification %d" con button
             match button with
             | _ -> [GrabObject(con |> ControllerKind.fromInt, button |> ControllerButtons.fromInt, true)]
         | VrMessage.Unpress(con,button) -> 
-            printfn "Button unpressed by %d" con
+            printfn "Touch unpressed by %d" con
             match button with 
             | _ -> [GrabObject (con |> ControllerKind.fromInt, button |> ControllerButtons.fromInt, false)]
         | _ -> 
@@ -388,7 +385,7 @@ module Demo =
                 }      
                 
     let mkSphere (model : MModel) (sphere : MVisibleSphere) =
-        let color = Mod.constant (C4b.White)
+        let color = sphere.color
         let pos = sphere.trafo
 
         Sg.sphere 10 color sphere.radius
@@ -682,6 +679,42 @@ module Demo =
                 toEffect DefaultSurfaces.simpleLighting                              
                 ]
 
+        let finishedLineHmap = 
+            m.finishedLine
+            |> AMap.toASet
+            |> ASet.map (fun (s, b) -> 
+                let newFinishedLineOnMars = 
+                    b.finishedLineOnMars
+                    |> AList.map (fun l -> 
+                        mkSphere m l
+                    )                
+                    |> AList.toASet
+                    |> Sg.set
+                    |> Sg.effect [
+                        toEffect DefaultSurfaces.trafo
+                        toEffect DefaultSurfaces.vertexColor
+                        toEffect DefaultSurfaces.simpleLighting                              
+                        ]
+                    |> Sg.noEvents
+                
+                let newFinishedDisplayLine = 
+                    b.finishedLineMarsDisplay
+                    |> Sg.lines (Mod.constant C4b.White)
+                    |> Sg.noEvents
+                    |> Sg.uniform "LineWidth" (Mod.constant 5) 
+                    |> Sg.effect [
+                        toEffect DefaultSurfaces.trafo
+                        toEffect DefaultSurfaces.vertexColor
+                        toEffect DefaultSurfaces.thickLine
+                        ]
+                    |> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
+                    |> Sg.depthTest (Mod.constant DepthTestMode.None)
+
+                newFinishedLineOnMars
+                |> Sg.andAlso newFinishedDisplayLine
+            )
+            |> Sg.set
+
         let deviceSgs = 
             info.state.devices |> AMap.toASet |> ASet.chooseM (fun (_,d) ->
                 d.Model |> Mod.map (fun m ->
@@ -732,6 +765,7 @@ module Demo =
                 sphereOnMars
                 drawSphereLines
                 distanceText
+                finishedLineHmap
             ]   
             |> Sg.ofList
             |> Sg.trafo m.annotationSpaceTrafo
@@ -842,6 +876,7 @@ module Demo =
             lineOnController        = PList.empty
             lineOnMars              = PList.empty
             lineMarsDisplay         = [|Line3d()|]
+            finishedLine            = HMap.empty
 
         }
     let app =

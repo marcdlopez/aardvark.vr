@@ -274,6 +274,7 @@ module MenuApp =
             menu                    = MenuState.Navigation
             controllerMenuSelector  = ControllerInfo.initial
             subMenu                 = subMenuState.Init
+            lineSubMenu             = lineSubMenuState.LineCreate
             initialMenuState        = MenuState.Navigation
             menuButtonPressed       = false
             initialMenuPosition     = Pose.none

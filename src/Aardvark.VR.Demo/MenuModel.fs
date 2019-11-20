@@ -18,6 +18,9 @@ type subMenuState =
 | DipAndStrike
 | Init
 
+type lineSubMenuState = 
+| LineCreate
+| Edit
 
 [<DomainType>]
 type MenuModel = 
@@ -27,6 +30,7 @@ type MenuModel =
         subMenuBoxes                : plist<VisibleBox>
         menu                        : MenuState
         subMenu                     : subMenuState
+        lineSubMenu                 : lineSubMenuState
         initialMenuState            : MenuState
         menuButtonPressed           : bool
         initialMenuPosition         : Pose
@@ -43,6 +47,7 @@ module MenuModel =
             subMenuBoxes                = PList.empty
             menu                        = MenuState.Navigation
             subMenu                     = subMenuState.Init
+            lineSubMenu                 = lineSubMenuState.LineCreate
             initialMenuState            = MenuState.Navigation
             menuButtonPressed           = false
             initialMenuPosition         = Pose.none

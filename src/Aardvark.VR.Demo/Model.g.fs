@@ -93,6 +93,52 @@ module Mutable =
                 }
     
     
+    type MFinishedLine(__initial : Demo.Main.FinishedLine) =
+        inherit obj()
+        let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.Main.FinishedLine> = Aardvark.Base.Incremental.EqModRef<Demo.Main.FinishedLine>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.Main.FinishedLine>
+        let _finishedLineOnMars = MList.Create(__initial.finishedLineOnMars, (fun v -> Demo.Mutable.MVisibleSphere.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleSphere.Update(m, v)), (fun v -> v))
+        let _finishedLineMarsDisplay = ResetMod.Create(__initial.finishedLineMarsDisplay)
+        
+        member x.finishedLineOnMars = _finishedLineOnMars :> alist<_>
+        member x.finishedLineMarsDisplay = _finishedLineMarsDisplay :> IMod<_>
+        
+        member x.Current = __current :> IMod<_>
+        member x.Update(v : Demo.Main.FinishedLine) =
+            if not (System.Object.ReferenceEquals(__current.Value, v)) then
+                __current.Value <- v
+                
+                MList.Update(_finishedLineOnMars, v.finishedLineOnMars)
+                ResetMod.Update(_finishedLineMarsDisplay,v.finishedLineMarsDisplay)
+                
+        
+        static member Create(__initial : Demo.Main.FinishedLine) : MFinishedLine = MFinishedLine(__initial)
+        static member Update(m : MFinishedLine, v : Demo.Main.FinishedLine) = m.Update(v)
+        
+        override x.ToString() = __current.Value.ToString()
+        member x.AsString = sprintf "%A" __current.Value
+        interface IUpdatable<Demo.Main.FinishedLine> with
+            member x.Update v = x.Update v
+    
+    
+    
+    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+    module FinishedLine =
+        [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+        module Lens =
+            let finishedLineOnMars =
+                { new Lens<Demo.Main.FinishedLine, Aardvark.Base.plist<Demo.VisibleSphere>>() with
+                    override x.Get(r) = r.finishedLineOnMars
+                    override x.Set(r,v) = { r with finishedLineOnMars = v }
+                    override x.Update(r,f) = { r with finishedLineOnMars = f r.finishedLineOnMars }
+                }
+            let finishedLineMarsDisplay =
+                { new Lens<Demo.Main.FinishedLine, Aardvark.Base.Line3d[]>() with
+                    override x.Get(r) = r.finishedLineMarsDisplay
+                    override x.Set(r,v) = { r with finishedLineMarsDisplay = v }
+                    override x.Update(r,f) = { r with finishedLineMarsDisplay = f r.finishedLineMarsDisplay }
+                }
+    
+    
     type MModel(__initial : Demo.Main.Model) =
         inherit obj()
         let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.Main.Model> = Aardvark.Base.Incremental.EqModRef<Demo.Main.Model>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.Main.Model>
@@ -128,6 +174,7 @@ module Mutable =
         let _lineOnController = MList.Create(__initial.lineOnController, (fun v -> Demo.Mutable.MVisibleSphere.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleSphere.Update(m, v)), (fun v -> v))
         let _lineOnMars = MList.Create(__initial.lineOnMars, (fun v -> Demo.Mutable.MVisibleSphere.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleSphere.Update(m, v)), (fun v -> v))
         let _lineMarsDisplay = ResetMod.Create(__initial.lineMarsDisplay)
+        let _finishedLine = MMap.Create(__initial.finishedLine, (fun v -> MFinishedLine.Create(v)), (fun (m,v) -> MFinishedLine.Update(m, v)), (fun v -> v))
         
         member x.text = _text :> IMod<_>
         member x.vr = _vr :> IMod<_>
@@ -162,6 +209,7 @@ module Mutable =
         member x.lineOnController = _lineOnController :> alist<_>
         member x.lineOnMars = _lineOnMars :> alist<_>
         member x.lineMarsDisplay = _lineMarsDisplay :> IMod<_>
+        member x.finishedLine = _finishedLine :> amap<_,_>
         
         member x.Current = __current :> IMod<_>
         member x.Update(v : Demo.Main.Model) =
@@ -200,6 +248,7 @@ module Mutable =
                 MList.Update(_lineOnController, v.lineOnController)
                 MList.Update(_lineOnMars, v.lineOnMars)
                 ResetMod.Update(_lineMarsDisplay,v.lineMarsDisplay)
+                MMap.Update(_finishedLine, v.finishedLine)
                 
         
         static member Create(__initial : Demo.Main.Model) : MModel = MModel(__initial)
@@ -413,4 +462,10 @@ module Mutable =
                     override x.Get(r) = r.lineMarsDisplay
                     override x.Set(r,v) = { r with lineMarsDisplay = v }
                     override x.Update(r,f) = { r with lineMarsDisplay = f r.lineMarsDisplay }
+                }
+            let finishedLine =
+                { new Lens<Demo.Main.Model, Aardvark.Base.hmap<System.String,Demo.Main.FinishedLine>>() with
+                    override x.Get(r) = r.finishedLine
+                    override x.Set(r,v) = { r with finishedLine = v }
+                    override x.Update(r,f) = { r with finishedLine = f r.finishedLine }
                 }

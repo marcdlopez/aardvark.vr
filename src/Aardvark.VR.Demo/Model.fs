@@ -34,6 +34,14 @@ type Polygon =
     }
 
 [<DomainType>]
+type FinishedLine = 
+    {
+        finishedLineOnMars      : plist<VisibleSphere>
+        finishedLineMarsDisplay : Line3d[]
+
+    }
+
+[<DomainType>]
 type Model =
     {
         text    : string
@@ -83,5 +91,6 @@ type Model =
         lineOnController            : plist<VisibleSphere>
         lineOnMars                  : plist<VisibleSphere>
         lineMarsDisplay             : Line3d[]
+        finishedLine                : hmap<string, FinishedLine>
         
     }

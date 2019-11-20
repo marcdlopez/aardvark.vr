@@ -1,4 +1,6 @@
-﻿namespace Demo.Main
+﻿open Demo.Menu
+
+namespace Demo.Main
 
 open Demo
 open Demo.Menu
@@ -33,7 +35,7 @@ module OpcUtilities =
     let mkSphere (controllerPos : Pose) (number : int) (radius : float) : plist<VisibleSphere> = 
         [0..number-1]
         |> List.map (fun x -> 
-            VisibleSphere.createSphere C4b.Yellow (controllerPos.deviceToWorld.GetModelOrigin()) radius)
+            VisibleSphere.createSphere C4b.White (controllerPos.deviceToWorld.GetModelOrigin()) radius)
         |> PList.ofList
 
     let mkPointDraw (controllerPos : Pose) : VisibleBox =
@@ -83,5 +85,59 @@ module OpcUtilities =
             | None -> 
                 mkControllerInfo kind pose |> Some // create
         )
+
+    let updateControllersInfoWhenPress (kind : ControllerKind) (buttonKind : ControllerButtons) (buttonPress : bool) (model : Model) = 
+        model.controllerInfos
+        |> HMap.alter kind (fun but ->  
+        match but with
+        | Some x -> 
+            match buttonKind |> ControllerButtons.toInt with 
+            | 0 -> Some {x with joystickPressed = buttonPress}
+            | 1 -> Some {x with backButtonPressed = buttonPress}
+            | 2 -> Some {x with sideButtonPressed = buttonPress}
+            | _ -> None
+                    
+        | None -> 
+            match buttonKind |> ControllerButtons.toInt with 
+            | 2 -> 
+                let newInfo = {
+                    kind                = kind
+                    pose                = Pose.none
+                    buttonKind          = buttonKind
+                    frontButtonPressed  = false
+                    backButtonPressed   = false
+                    joystickPressed     = false
+                    joystickHold        = false
+                    sideButtonPressed   = buttonPress
+                    }
+                Some newInfo
+            | 1 -> 
+                let newInfo = {
+                    kind                = kind
+                    pose                = Pose.none
+                    buttonKind          = buttonKind
+                    frontButtonPressed  = false
+                    backButtonPressed   = buttonPress
+                    joystickPressed     = false
+                    joystickHold        = false
+                    sideButtonPressed   = false
+                    }
+                Some newInfo
+            | 0 -> 
+                let newInfo = {
+                    kind                = kind
+                    pose                = Pose.none
+                    buttonKind          = buttonKind
+                    frontButtonPressed  = false
+                    backButtonPressed   = false
+                    joystickPressed     = buttonPress
+                    joystickHold        = false
+                    sideButtonPressed   = false
+                    }
+                Some newInfo)
+
+    let changeLineSubMenu (model : MenuModel) (lineMode : lineSubMenuState) = 
+        {model with lineSubMenu = lineMode}
+
 
         

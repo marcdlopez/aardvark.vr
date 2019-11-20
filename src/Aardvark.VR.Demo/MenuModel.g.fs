@@ -18,6 +18,7 @@ module Mutable =
         let _subMenuBoxes = MList.Create(__initial.subMenuBoxes, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
         let _menu = ResetMod.Create(__initial.menu)
         let _subMenu = ResetMod.Create(__initial.subMenu)
+        let _lineSubMenu = ResetMod.Create(__initial.lineSubMenu)
         let _initialMenuState = ResetMod.Create(__initial.initialMenuState)
         let _menuButtonPressed = ResetMod.Create(__initial.menuButtonPressed)
         let _initialMenuPosition = Aardvark.Vr.Mutable.MPose.Create(__initial.initialMenuPosition)
@@ -29,6 +30,7 @@ module Mutable =
         member x.subMenuBoxes = _subMenuBoxes :> alist<_>
         member x.menu = _menu :> IMod<_>
         member x.subMenu = _subMenu :> IMod<_>
+        member x.lineSubMenu = _lineSubMenu :> IMod<_>
         member x.initialMenuState = _initialMenuState :> IMod<_>
         member x.menuButtonPressed = _menuButtonPressed :> IMod<_>
         member x.initialMenuPosition = _initialMenuPosition
@@ -45,6 +47,7 @@ module Mutable =
                 MList.Update(_subMenuBoxes, v.subMenuBoxes)
                 ResetMod.Update(_menu,v.menu)
                 ResetMod.Update(_subMenu,v.subMenu)
+                ResetMod.Update(_lineSubMenu,v.lineSubMenu)
                 ResetMod.Update(_initialMenuState,v.initialMenuState)
                 ResetMod.Update(_menuButtonPressed,v.menuButtonPressed)
                 Aardvark.Vr.Mutable.MPose.Update(_initialMenuPosition, v.initialMenuPosition)
@@ -95,6 +98,12 @@ module Mutable =
                     override x.Get(r) = r.subMenu
                     override x.Set(r,v) = { r with subMenu = v }
                     override x.Update(r,f) = { r with subMenu = f r.subMenu }
+                }
+            let lineSubMenu =
+                { new Lens<Demo.Menu.MenuModel, Demo.Menu.lineSubMenuState>() with
+                    override x.Get(r) = r.lineSubMenu
+                    override x.Set(r,v) = { r with lineSubMenu = v }
+                    override x.Update(r,f) = { r with lineSubMenu = f r.lineSubMenu }
                 }
             let initialMenuState =
                 { new Lens<Demo.Menu.MenuModel, Demo.Menu.MenuState>() with

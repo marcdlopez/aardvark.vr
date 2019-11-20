@@ -59,69 +59,85 @@ module AnnotationOpc =
                     newModel.lineOnController
                     |> PList.map (fun line -> {line with trafo = id.pose.deviceToWorld})
 
-                match id.backButtonPressed with 
-                | true -> 
-                    let lineOnController = 
-                        newModel.lineOnController
-                        |> PList.tryFirst
+                let newModel = 
+                    match id.backButtonPressed with 
+                    | true -> 
+                        let lineOnController = 
+                            newModel.lineOnController
+                            |> PList.tryFirst
 
-                    match lineOnController with
-                    | Some line -> 
-                        let updateLine = {line with trafo = id.pose.deviceToWorld * newModel.workSpaceTrafo.Inverse}
+                        match lineOnController with
+                        | Some line -> 
+                            let updateLine = {line with trafo = id.pose.deviceToWorld * newModel.workSpaceTrafo.Inverse}
                         
-                        let newLineOnMars = 
-                            newModel.lineOnMars
-                            |> PList.prepend updateLine
-                        
-                        let spherePoint =  
-                            newLineOnMars 
-                            |> PList.toArray 
-                            |> Array.map (fun sphere -> sphere)
-                        
-                        let sphereLine = 
-                            spherePoint 
-                            |> Array.pairwise
-                            |> Array.map (fun (a, b) -> new Line3d(a.trafo.GetModelOrigin(), b.trafo.GetModelOrigin()))
-
-                        let newModel = {newModel with lineMarsDisplay = sphereLine; lineOnController = PList.empty; lineOnMars = newLineOnMars}
-
-                        let linePointMars = 
-                            newLineOnMars
-                            |> PList.tryLast
-
-                        match linePointMars with
-                        | Some line1 ->
-                            let newDistanceLine = V3d.Distance(line1.trafo.GetModelOrigin(), updateLine.trafo.GetModelOrigin())
-                            let newSphereListIndex = 
+                            let newLineOnMars = 
                                 newModel.lineOnMars
-                                |> PList.findIndex updateLine 
-                            let newSphereList = 
-                                newModel.lineOnMars
-                                |> PList.alter newSphereListIndex (fun dist -> 
-                                    match dist with 
-                                    | Some s -> Some {s with distance = string newDistanceLine}
-                                    | None -> Some VisibleSphere.initial
-                                )
-                            {newModel with lineOnMars = newSphereList}
-                        | None -> newModel
-                    | None -> newModel 
-                | false -> {newModel with lineOnController = updateLinePos}
+                                |> PList.prepend updateLine
+                        
+                            let spherePoint =  
+                                newLineOnMars 
+                                |> PList.toArray 
+                                |> Array.map (fun sphere -> sphere)
+                        
+                            let sphereLine = 
+                                spherePoint 
+                                |> Array.pairwise
+                                |> Array.map (fun (a, b) -> new Line3d(a.trafo.GetModelOrigin(), b.trafo.GetModelOrigin()))
+
+                            let newModel = {newModel with lineMarsDisplay = sphereLine; lineOnController = PList.empty; lineOnMars = newLineOnMars}
+
+                            let linePointMars = 
+                                newLineOnMars
+                                |> PList.tryLast
+
+                            match linePointMars with
+                            | Some line1 ->
+                                let newDistanceLine = V3d.Distance(line1.trafo.GetModelOrigin(), updateLine.trafo.GetModelOrigin())
+                                let newSphereListIndex = 
+                                    newModel.lineOnMars
+                                    |> PList.findIndex updateLine 
+                                let newSphereList = 
+                                    newModel.lineOnMars
+                                    |> PList.alter newSphereListIndex (fun dist -> 
+                                        match dist with 
+                                        | Some s -> Some {s with distance = string newDistanceLine}
+                                        | None -> Some VisibleSphere.initial
+                                    )
+                                {newModel with lineOnMars = newSphereList}
+                            | None -> newModel
+                        | None -> newModel 
+                    | false -> {newModel with lineOnController = updateLinePos}
+            
+                let checkHover = 
+                    newModel.finishedLine
+                    |> HMap.map (fun idSphere fl -> 
+                        let newSpherePlist = 
+                            fl.finishedLineOnMars
+                            |> PList.choose (fun s -> 
+                                if (s.geometry.BoundingBox3d.Transformed(s.trafo).Contains(id.pose.deviceToWorld.GetModelOrigin())) then 
+                                    Some {s with color = C4b.Red}
+                                else
+                                    Some {s with color = C4b.White}
+                        )
+                        {fl with finishedLineOnMars = newSpherePlist}
+                    )
+                    
+                {newModel with finishedLine = checkHover}
+            
             | None -> newModel 
         | Draw -> 
             match ci with
             | Some c when c.backButtonPressed ->
                 match newModel.currentlyDrawing with 
-                | Some v -> 
-                    
+                | Some v ->                     
                     let newPointDeviceSpace = c.pose.deviceToWorld.GetModelOrigin()  
                     let newTrafoAnnotationSpace = c.pose.deviceToWorld * newModel.workSpaceTrafo.Inverse
                     let newPointAnnotationSpace = newTrafoAnnotationSpace.GetModelOrigin()
-                    
+
                     let updatedPolygon = 
                         match v.vertices |> PList.tryFirst with 
                         | Some lastInsertedPoint -> 
                             let distance = V3d.Distance(lastInsertedPoint, newPointDeviceSpace) 
-                            //printfn "on the fly: %A" newPointAnnotationSpace
                             match distance with
                             | x when x >= 0.001 -> { v with vertices = v.vertices |> PList.prepend newPointAnnotationSpace }  
                             | _ -> v
@@ -135,14 +151,14 @@ module AnnotationOpc =
             | _ -> newModel
         | Reset -> 
             {newModel with 
-                opcSpaceTrafo       = Trafo3d.Translation -model.boundingBox.Center * Trafo3d.RotateInto(model.boundingBox.Center.Normalized, V3d.OOI) 
-                annotationSpaceTrafo      = Trafo3d.Identity
-                workSpaceTrafo      = Trafo3d.Identity
-                flagOnController    = PList.empty
-                flagOnMars          = PList.empty
-                lineOnController    = PList.empty        
-                lineOnMars          = PList.empty
-                lineMarsDisplay     = [|Line3d()|]
-                drawingLine         = [|Line3d()|]
+                opcSpaceTrafo           = Trafo3d.Translation -model.boundingBox.Center * Trafo3d.RotateInto(model.boundingBox.Center.Normalized, V3d.OOI) 
+                annotationSpaceTrafo    = Trafo3d.Identity
+                workSpaceTrafo          = Trafo3d.Identity
+                flagOnController        = PList.empty
+                flagOnMars              = PList.empty
+                lineOnController        = PList.empty        
+                lineOnMars              = PList.empty
+                lineMarsDisplay         = [|Line3d()|]
+                drawingLine             = [|Line3d()|]
             }
         | _ -> newModel
