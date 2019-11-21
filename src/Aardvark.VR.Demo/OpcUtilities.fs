@@ -1,6 +1,4 @@
-﻿open Demo.Menu
-
-namespace Demo.Main
+﻿namespace Demo.Main
 
 open Demo
 open Demo.Menu

@@ -39,10 +39,10 @@ module AnnotationOpc =
                     | Some flag ->
                         let updateFlag = {flag with trafo = id.pose.deviceToWorld * newModel.workSpaceTrafo.Inverse}
                         let newFlagOnMars = 
-                            newModel.flagOnMars
+                            newModel.flagOnAnnotationSpace
                             |> PList.prepend updateFlag
 
-                        {newModel with flagOnController = PList.empty; flagOnMars = newFlagOnMars}
+                        {newModel with flagOnController = PList.empty; flagOnAnnotationSpace = newFlagOnMars}
                     | None -> newModel
                 | false -> {newModel with flagOnController = updateFlagPos}
                 
@@ -59,6 +59,43 @@ module AnnotationOpc =
                     newModel.lineOnController
                     |> PList.map (fun line -> {line with trafo = id.pose.deviceToWorld})
 
+                let somethingHovered = 
+                    newModel.finishedLine
+                    |> HMap.map (fun idPoints fl -> 
+                        //let modes = Removing | insetBefore | changePosition | ChangeColor
+                        //match modes with
+                        //| Remove -> 
+                        //    let everythingExceptHovered = fl.points |> PList.filter (fun lp -> lp.hovered = false)
+                        //    { fl with points = everythingExceptHovered }
+                        //| Modify -> 
+                            
+                        //| _ ->
+                        //    fl
+                        fl.points
+                        |> PList.map (fun p -> 
+                            match p.hovered with 
+                            | true -> 
+                                
+                                match id.joystickHold with 
+                                | true -> 
+                                    //printfn "point hovered"
+                                    //let newMM = {newModel.menuModel with lineSubMenu = lineSubMenuState.Edit}
+                                    //{newModel with menuModel = newMM}
+                                    //true
+                                    p
+                                | false ->  
+                                    //printfn "not hovering, better quit"
+                                    //let newMM = {newModel.menuModel with lineSubMenu = lineSubMenuState.LineCreate}
+                                    //{newModel with menuModel = newMM}
+                                    p
+                            | false -> 
+                                p
+                        )
+                    )
+
+                                
+                printfn "line modeeee: %s" (newModel.menuModel.lineSubMenu.ToString())
+
                 let newModel = 
                     match id.backButtonPressed with 
                     | true -> 
@@ -68,10 +105,11 @@ module AnnotationOpc =
 
                         match lineOnController with
                         | Some line -> 
+
                             let updateLine = {line with trafo = id.pose.deviceToWorld * newModel.workSpaceTrafo.Inverse}
                         
                             let newLineOnMars = 
-                                newModel.lineOnMars
+                                newModel.lineOnAnnotationSpace
                                 |> PList.prepend updateLine
                         
                             let spherePoint =  
@@ -84,7 +122,7 @@ module AnnotationOpc =
                                 |> Array.pairwise
                                 |> Array.map (fun (a, b) -> new Line3d(a.trafo.GetModelOrigin(), b.trafo.GetModelOrigin()))
 
-                            let newModel = {newModel with lineMarsDisplay = sphereLine; lineOnController = PList.empty; lineOnMars = newLineOnMars}
+                            let newModel = {newModel with lineMarsDisplay = sphereLine; lineOnController = PList.empty; lineOnAnnotationSpace = newLineOnMars}
 
                             let linePointMars = 
                                 newLineOnMars
@@ -94,16 +132,16 @@ module AnnotationOpc =
                             | Some line1 ->
                                 let newDistanceLine = V3d.Distance(line1.trafo.GetModelOrigin(), updateLine.trafo.GetModelOrigin())
                                 let newSphereListIndex = 
-                                    newModel.lineOnMars
+                                    newModel.lineOnAnnotationSpace
                                     |> PList.findIndex updateLine 
                                 let newSphereList = 
-                                    newModel.lineOnMars
+                                    newModel.lineOnAnnotationSpace
                                     |> PList.alter newSphereListIndex (fun dist -> 
                                         match dist with 
                                         | Some s -> Some {s with distance = string newDistanceLine}
                                         | None -> Some VisibleSphere.initial
                                     )
-                                {newModel with lineOnMars = newSphereList}
+                                {newModel with lineOnAnnotationSpace = newSphereList}
                             | None -> newModel
                         | None -> newModel 
                     | false -> {newModel with lineOnController = updateLinePos}
@@ -112,14 +150,15 @@ module AnnotationOpc =
                     newModel.finishedLine
                     |> HMap.map (fun idSphere fl -> 
                         let newSpherePlist = 
-                            fl.finishedLineOnMars
-                            |> PList.choose (fun s -> 
-                                if (s.geometry.BoundingBox3d.Transformed(s.trafo).Contains(id.pose.deviceToWorld.GetModelOrigin())) then 
-                                    Some {s with color = C4b.Red}
+                            fl.points
+                            |> PList.choosei (fun index s -> 
+                                let distance = V3d.Distance(s.pos, id.pose.deviceToWorld.GetModelOrigin())
+                                if (distance <= 0.1) then 
+                                    Some {s with color = C4b.Red; hovered = true}
                                 else
-                                    Some {s with color = C4b.White}
+                                    Some {s with color = C4b.White; hovered = false}
                         )
-                        {fl with finishedLineOnMars = newSpherePlist}
+                        {fl with points = newSpherePlist}
                     )
                     
                 {newModel with finishedLine = checkHover}
@@ -155,9 +194,9 @@ module AnnotationOpc =
                 annotationSpaceTrafo    = Trafo3d.Identity
                 workSpaceTrafo          = Trafo3d.Identity
                 flagOnController        = PList.empty
-                flagOnMars              = PList.empty
+                flagOnAnnotationSpace              = PList.empty
                 lineOnController        = PList.empty        
-                lineOnMars              = PList.empty
+                lineOnAnnotationSpace              = PList.empty
                 lineMarsDisplay         = [|Line3d()|]
                 drawingLine             = [|Line3d()|]
             }

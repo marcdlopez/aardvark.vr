@@ -11,12 +11,6 @@ open Aardvark.Rendering.Vulkan
 open Demo.Menu
 open Demo
 
-[<DomainType>]
-type Line = {
-    line : Line3d
-    color : C4b
-}
-
 type State =
     | Pressed
     | Released
@@ -33,12 +27,20 @@ type Polygon =
         vertices : plist<V3d>
     }
 
+type LinePoints = 
+    {
+        pos: V3d
+        hovered: bool
+        color : C4b
+    }
+
 [<DomainType>]
 type FinishedLine = 
     {
-        finishedLineOnMars      : plist<VisibleSphere>
-        finishedLineMarsDisplay : Line3d[]
-
+        points          : plist<LinePoints>
+        trafo           : Trafo3d
+        colorLine       : C4b
+        colorVertices   : C4b
     }
 
 [<DomainType>]
@@ -87,9 +89,9 @@ type Model =
         finishedDrawings            : hmap<string, Polygon>
 
         flagOnController            : plist<VisibleBox> 
-        flagOnMars                  : plist<VisibleBox> 
+        flagOnAnnotationSpace       : plist<VisibleBox> 
         lineOnController            : plist<VisibleSphere>
-        lineOnMars                  : plist<VisibleSphere>
+        lineOnAnnotationSpace       : plist<VisibleSphere>
         lineMarsDisplay             : Line3d[]
         finishedLine                : hmap<string, FinishedLine>
         

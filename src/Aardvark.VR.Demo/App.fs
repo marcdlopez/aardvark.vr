@@ -137,23 +137,16 @@ module Demo =
                         annotationSpaceTrafo      = Trafo3d.Identity
                         workSpaceTrafo      = Trafo3d.Identity
                         flagOnController    = PList.empty
-                        flagOnMars          = PList.empty
+                        flagOnAnnotationSpace          = PList.empty
                         lineOnController    = PList.empty
-                        lineOnMars          = PList.empty
+                        lineOnAnnotationSpace          = PList.empty
                         lineMarsDisplay     = [|Line3d()|]
                         drawingLine         = [|Line3d()|]
                     }
             
             let controllerMenuUpdate = MenuApp.update model.controllerInfos state vr newModel.menuModel (MenuAction.UpdateControllerPose (kind, p))
 
-            let ttt = 
-                if newModel.menuModel.subMenu.Equals(subMenuState.Line) then 
-                    printfn "line sub menu: %s" (newModel.menuModel.lineSubMenu.ToString())
-                    1
-                else 0
-
-
-
+            
             {newModel with menuModel = controllerMenuUpdate}
             
         | GrabObject (kind, buttonKind, buttonPress)-> 
@@ -222,6 +215,16 @@ module Demo =
                             match buttonKind |> ControllerButtons.toInt with 
                             | 2 -> 
 
+                                let spherePoints = 
+                                    newModel.lineOnAnnotationSpace
+                                    |> PList.map (fun p -> 
+                                        {
+                                            pos         = p.trafo.GetModelOrigin()
+                                            hovered     = false 
+                                            color       = C4b.White
+                                        }
+                                    )
+
                                 let newFinishedLine = 
                                     newModel.finishedLine
                                     |> HMap.alter (System.Guid.NewGuid().ToString()) (fun fl ->
@@ -230,8 +233,12 @@ module Demo =
                                         | None -> // create new finished line
                                             let newLine = 
                                                 {
-                                                    finishedLineOnMars      = newModel.lineOnMars
-                                                    finishedLineMarsDisplay = newModel.lineMarsDisplay
+                                                    points          = spherePoints
+                                                    trafo           = Trafo3d.Identity
+                                                    colorLine       = C4b.White
+                                                    colorVertices   = C4b.White
+                                                    //finishedLineOnMars      = newModel.lineOnMars
+                                                    //finishedLineMarsDisplay = newModel.lineMarsDisplay
                                                 }
                                             Some newLine
                                     )
@@ -243,7 +250,7 @@ module Demo =
 
                                 {newModel with 
                                     lineOnController = newControllerLine;
-                                    lineOnMars = PList.empty
+                                    lineOnAnnotationSpace = PList.empty
                                 }    
                                 //newModel
                             | _ -> newModel 
@@ -259,7 +266,7 @@ module Demo =
                         annotationSpaceTrafo    = Trafo3d.Identity
                         workSpaceTrafo          = Trafo3d.Identity
                         flagOnController        = PList.empty
-                        flagOnMars              = PList.empty
+                        flagOnAnnotationSpace              = PList.empty
                 }
                 
     let mkColor (model : MModel) (box : MVisibleBox) =
@@ -426,7 +433,7 @@ module Demo =
             |> Sg.noEvents
 
         let flagsOnMars = 
-            m.flagOnMars
+            m.flagOnAnnotationSpace
             |> AList.toASet 
             |> ASet.map (fun b -> 
                 mkFlag m b 
@@ -549,7 +556,7 @@ module Demo =
             |> Sg.noEvents
 
         let sphereOnMars = 
-            m.lineOnMars
+            m.lineOnAnnotationSpace
             |> AList.toASet
             |> ASet.map (fun b -> 
                 mkSphere m b 
@@ -592,7 +599,7 @@ module Demo =
                 )
                 
             let marsLine = 
-                m.lineOnMars
+                m.lineOnAnnotationSpace
                 |> AList.toMod
                 |> Mod.map (fun ml -> 
                     ml
@@ -635,7 +642,7 @@ module Demo =
         let font = Font.create "Consolas" FontStyle.Regular
 
         let distanceText =
-            m.lineOnMars
+            m.lineOnAnnotationSpace
             |> AList.toASet
             |> ASet.map (fun dist -> 
                 Sg.text font C4b.White (dist.distance)
@@ -653,7 +660,7 @@ module Demo =
             |> Sg.noEvents
 
         let flagsOnMars = 
-            m.flagOnMars
+            m.flagOnAnnotationSpace
             |> AList.toASet 
             |> ASet.map (fun b -> 
                 mkFlag m b 
@@ -682,23 +689,16 @@ module Demo =
         let finishedLineHmap = 
             m.finishedLine
             |> AMap.toASet
-            |> ASet.map (fun (s, b) -> 
-                let newFinishedLineOnMars = 
-                    b.finishedLineOnMars
-                    |> AList.map (fun l -> 
-                        mkSphere m l
-                    )                
-                    |> AList.toASet
-                    |> Sg.set
-                    |> Sg.effect [
-                        toEffect DefaultSurfaces.trafo
-                        toEffect DefaultSurfaces.vertexColor
-                        toEffect DefaultSurfaces.simpleLighting                              
-                        ]
-                    |> Sg.noEvents
-                
-                let newFinishedDisplayLine = 
-                    b.finishedLineMarsDisplay
+            |> ASet.map (fun (s, b) ->
+                let newFinishedLine = 
+                    b.points
+                    |> AList.toList
+                    |> List.pairwise
+                    |> List.map (fun (a, b) -> Line3d(a.pos, b.pos))
+                    |> List.toArray
+
+                let renderFinishedLine = 
+                    Mod.constant newFinishedLine
                     |> Sg.lines (Mod.constant C4b.White)
                     |> Sg.noEvents
                     |> Sg.uniform "LineWidth" (Mod.constant 5) 
@@ -710,8 +710,33 @@ module Demo =
                     |> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
                     |> Sg.depthTest (Mod.constant DepthTestMode.None)
 
+                let newFinishedLineOnMars = 
+                    b.points
+                    |> AList.map (fun l -> 
+                        let newSphere = Mod.constant (VisibleSphere.createSphere l.color l.pos 0.02)
+                        let color = newSphere |> Mod.map (fun s -> s.color)
+                        let pos = newSphere |> Mod.map (fun s -> s.trafo)
+                        Sg.sphere 10 color (newSphere |> Mod.map (fun s -> s.radius))
+                        |> Sg.noEvents
+                        |> Sg.trafo(pos)
+                        |> Sg.shader {
+                            do! DefaultSurfaces.trafo
+                            do! DefaultSurfaces.vertexColor
+                            //do! DefaultSurfaces.simpleLighting
+                            }  
+                    )                
+                    |> AList.toASet
+                    |> Sg.set
+                    |> Sg.effect [
+                        toEffect DefaultSurfaces.trafo
+                        toEffect DefaultSurfaces.vertexColor
+                        toEffect DefaultSurfaces.simpleLighting                              
+                        ]
+                    |> Sg.noEvents
+                
                 newFinishedLineOnMars
-                |> Sg.andAlso newFinishedDisplayLine
+                |> Sg.andAlso renderFinishedLine
+                
             )
             |> Sg.set
 
@@ -872,9 +897,9 @@ module Demo =
             finishedDrawings        = HMap.empty
 
             flagOnController        = PList.empty
-            flagOnMars              = PList.empty
+            flagOnAnnotationSpace              = PList.empty
             lineOnController        = PList.empty
-            lineOnMars              = PList.empty
+            lineOnAnnotationSpace              = PList.empty
             lineMarsDisplay         = [|Line3d()|]
             finishedLine            = HMap.empty
 

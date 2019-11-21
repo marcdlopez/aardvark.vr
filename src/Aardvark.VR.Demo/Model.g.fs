@@ -10,52 +10,6 @@ module Mutable =
 
     
     
-    type MLine(__initial : Demo.Main.Line) =
-        inherit obj()
-        let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.Main.Line> = Aardvark.Base.Incremental.EqModRef<Demo.Main.Line>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.Main.Line>
-        let _line = ResetMod.Create(__initial.line)
-        let _color = ResetMod.Create(__initial.color)
-        
-        member x.line = _line :> IMod<_>
-        member x.color = _color :> IMod<_>
-        
-        member x.Current = __current :> IMod<_>
-        member x.Update(v : Demo.Main.Line) =
-            if not (System.Object.ReferenceEquals(__current.Value, v)) then
-                __current.Value <- v
-                
-                ResetMod.Update(_line,v.line)
-                ResetMod.Update(_color,v.color)
-                
-        
-        static member Create(__initial : Demo.Main.Line) : MLine = MLine(__initial)
-        static member Update(m : MLine, v : Demo.Main.Line) = m.Update(v)
-        
-        override x.ToString() = __current.Value.ToString()
-        member x.AsString = sprintf "%A" __current.Value
-        interface IUpdatable<Demo.Main.Line> with
-            member x.Update v = x.Update v
-    
-    
-    
-    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-    module Line =
-        [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-        module Lens =
-            let line =
-                { new Lens<Demo.Main.Line, Aardvark.Base.Line3d>() with
-                    override x.Get(r) = r.line
-                    override x.Set(r,v) = { r with line = v }
-                    override x.Update(r,f) = { r with line = f r.line }
-                }
-            let color =
-                { new Lens<Demo.Main.Line, Aardvark.Base.C4b>() with
-                    override x.Get(r) = r.color
-                    override x.Set(r,v) = { r with color = v }
-                    override x.Update(r,f) = { r with color = f r.color }
-                }
-    
-    
     type MPolygon(__initial : Demo.Main.Polygon) =
         inherit obj()
         let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.Main.Polygon> = Aardvark.Base.Incremental.EqModRef<Demo.Main.Polygon>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.Main.Polygon>
@@ -96,19 +50,25 @@ module Mutable =
     type MFinishedLine(__initial : Demo.Main.FinishedLine) =
         inherit obj()
         let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.Main.FinishedLine> = Aardvark.Base.Incremental.EqModRef<Demo.Main.FinishedLine>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.Main.FinishedLine>
-        let _finishedLineOnMars = MList.Create(__initial.finishedLineOnMars, (fun v -> Demo.Mutable.MVisibleSphere.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleSphere.Update(m, v)), (fun v -> v))
-        let _finishedLineMarsDisplay = ResetMod.Create(__initial.finishedLineMarsDisplay)
+        let _points = MList.Create(__initial.points)
+        let _trafo = ResetMod.Create(__initial.trafo)
+        let _colorLine = ResetMod.Create(__initial.colorLine)
+        let _colorVertices = ResetMod.Create(__initial.colorVertices)
         
-        member x.finishedLineOnMars = _finishedLineOnMars :> alist<_>
-        member x.finishedLineMarsDisplay = _finishedLineMarsDisplay :> IMod<_>
+        member x.points = _points :> alist<_>
+        member x.trafo = _trafo :> IMod<_>
+        member x.colorLine = _colorLine :> IMod<_>
+        member x.colorVertices = _colorVertices :> IMod<_>
         
         member x.Current = __current :> IMod<_>
         member x.Update(v : Demo.Main.FinishedLine) =
             if not (System.Object.ReferenceEquals(__current.Value, v)) then
                 __current.Value <- v
                 
-                MList.Update(_finishedLineOnMars, v.finishedLineOnMars)
-                ResetMod.Update(_finishedLineMarsDisplay,v.finishedLineMarsDisplay)
+                MList.Update(_points, v.points)
+                ResetMod.Update(_trafo,v.trafo)
+                ResetMod.Update(_colorLine,v.colorLine)
+                ResetMod.Update(_colorVertices,v.colorVertices)
                 
         
         static member Create(__initial : Demo.Main.FinishedLine) : MFinishedLine = MFinishedLine(__initial)
@@ -125,17 +85,29 @@ module Mutable =
     module FinishedLine =
         [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
         module Lens =
-            let finishedLineOnMars =
-                { new Lens<Demo.Main.FinishedLine, Aardvark.Base.plist<Demo.VisibleSphere>>() with
-                    override x.Get(r) = r.finishedLineOnMars
-                    override x.Set(r,v) = { r with finishedLineOnMars = v }
-                    override x.Update(r,f) = { r with finishedLineOnMars = f r.finishedLineOnMars }
+            let points =
+                { new Lens<Demo.Main.FinishedLine, Aardvark.Base.plist<Demo.Main.LinePoints>>() with
+                    override x.Get(r) = r.points
+                    override x.Set(r,v) = { r with points = v }
+                    override x.Update(r,f) = { r with points = f r.points }
                 }
-            let finishedLineMarsDisplay =
-                { new Lens<Demo.Main.FinishedLine, Aardvark.Base.Line3d[]>() with
-                    override x.Get(r) = r.finishedLineMarsDisplay
-                    override x.Set(r,v) = { r with finishedLineMarsDisplay = v }
-                    override x.Update(r,f) = { r with finishedLineMarsDisplay = f r.finishedLineMarsDisplay }
+            let trafo =
+                { new Lens<Demo.Main.FinishedLine, Aardvark.Base.Trafo3d>() with
+                    override x.Get(r) = r.trafo
+                    override x.Set(r,v) = { r with trafo = v }
+                    override x.Update(r,f) = { r with trafo = f r.trafo }
+                }
+            let colorLine =
+                { new Lens<Demo.Main.FinishedLine, Aardvark.Base.C4b>() with
+                    override x.Get(r) = r.colorLine
+                    override x.Set(r,v) = { r with colorLine = v }
+                    override x.Update(r,f) = { r with colorLine = f r.colorLine }
+                }
+            let colorVertices =
+                { new Lens<Demo.Main.FinishedLine, Aardvark.Base.C4b>() with
+                    override x.Get(r) = r.colorVertices
+                    override x.Set(r,v) = { r with colorVertices = v }
+                    override x.Update(r,f) = { r with colorVertices = f r.colorVertices }
                 }
     
     
@@ -170,9 +142,9 @@ module Mutable =
         let _currentlyDrawing = MOption.Create(__initial.currentlyDrawing, (fun v -> MPolygon.Create(v)), (fun (m,v) -> MPolygon.Update(m, v)), (fun v -> v))
         let _finishedDrawings = MMap.Create(__initial.finishedDrawings, (fun v -> MPolygon.Create(v)), (fun (m,v) -> MPolygon.Update(m, v)), (fun v -> v))
         let _flagOnController = MList.Create(__initial.flagOnController, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
-        let _flagOnMars = MList.Create(__initial.flagOnMars, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
+        let _flagOnAnnotationSpace = MList.Create(__initial.flagOnAnnotationSpace, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
         let _lineOnController = MList.Create(__initial.lineOnController, (fun v -> Demo.Mutable.MVisibleSphere.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleSphere.Update(m, v)), (fun v -> v))
-        let _lineOnMars = MList.Create(__initial.lineOnMars, (fun v -> Demo.Mutable.MVisibleSphere.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleSphere.Update(m, v)), (fun v -> v))
+        let _lineOnAnnotationSpace = MList.Create(__initial.lineOnAnnotationSpace, (fun v -> Demo.Mutable.MVisibleSphere.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleSphere.Update(m, v)), (fun v -> v))
         let _lineMarsDisplay = ResetMod.Create(__initial.lineMarsDisplay)
         let _finishedLine = MMap.Create(__initial.finishedLine, (fun v -> MFinishedLine.Create(v)), (fun (m,v) -> MFinishedLine.Update(m, v)), (fun v -> v))
         
@@ -205,9 +177,9 @@ module Mutable =
         member x.currentlyDrawing = _currentlyDrawing :> IMod<_>
         member x.finishedDrawings = _finishedDrawings :> amap<_,_>
         member x.flagOnController = _flagOnController :> alist<_>
-        member x.flagOnMars = _flagOnMars :> alist<_>
+        member x.flagOnAnnotationSpace = _flagOnAnnotationSpace :> alist<_>
         member x.lineOnController = _lineOnController :> alist<_>
-        member x.lineOnMars = _lineOnMars :> alist<_>
+        member x.lineOnAnnotationSpace = _lineOnAnnotationSpace :> alist<_>
         member x.lineMarsDisplay = _lineMarsDisplay :> IMod<_>
         member x.finishedLine = _finishedLine :> amap<_,_>
         
@@ -244,9 +216,9 @@ module Mutable =
                 MOption.Update(_currentlyDrawing, v.currentlyDrawing)
                 MMap.Update(_finishedDrawings, v.finishedDrawings)
                 MList.Update(_flagOnController, v.flagOnController)
-                MList.Update(_flagOnMars, v.flagOnMars)
+                MList.Update(_flagOnAnnotationSpace, v.flagOnAnnotationSpace)
                 MList.Update(_lineOnController, v.lineOnController)
-                MList.Update(_lineOnMars, v.lineOnMars)
+                MList.Update(_lineOnAnnotationSpace, v.lineOnAnnotationSpace)
                 ResetMod.Update(_lineMarsDisplay,v.lineMarsDisplay)
                 MMap.Update(_finishedLine, v.finishedLine)
                 
@@ -439,11 +411,11 @@ module Mutable =
                     override x.Set(r,v) = { r with flagOnController = v }
                     override x.Update(r,f) = { r with flagOnController = f r.flagOnController }
                 }
-            let flagOnMars =
+            let flagOnAnnotationSpace =
                 { new Lens<Demo.Main.Model, Aardvark.Base.plist<Demo.VisibleBox>>() with
-                    override x.Get(r) = r.flagOnMars
-                    override x.Set(r,v) = { r with flagOnMars = v }
-                    override x.Update(r,f) = { r with flagOnMars = f r.flagOnMars }
+                    override x.Get(r) = r.flagOnAnnotationSpace
+                    override x.Set(r,v) = { r with flagOnAnnotationSpace = v }
+                    override x.Update(r,f) = { r with flagOnAnnotationSpace = f r.flagOnAnnotationSpace }
                 }
             let lineOnController =
                 { new Lens<Demo.Main.Model, Aardvark.Base.plist<Demo.VisibleSphere>>() with
@@ -451,11 +423,11 @@ module Mutable =
                     override x.Set(r,v) = { r with lineOnController = v }
                     override x.Update(r,f) = { r with lineOnController = f r.lineOnController }
                 }
-            let lineOnMars =
+            let lineOnAnnotationSpace =
                 { new Lens<Demo.Main.Model, Aardvark.Base.plist<Demo.VisibleSphere>>() with
-                    override x.Get(r) = r.lineOnMars
-                    override x.Set(r,v) = { r with lineOnMars = v }
-                    override x.Update(r,f) = { r with lineOnMars = f r.lineOnMars }
+                    override x.Get(r) = r.lineOnAnnotationSpace
+                    override x.Set(r,v) = { r with lineOnAnnotationSpace = v }
+                    override x.Update(r,f) = { r with lineOnAnnotationSpace = f r.lineOnAnnotationSpace }
                 }
             let lineMarsDisplay =
                 { new Lens<Demo.Main.Model, Aardvark.Base.Line3d[]>() with
