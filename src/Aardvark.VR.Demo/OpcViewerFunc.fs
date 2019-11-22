@@ -31,7 +31,7 @@ module OpcViewerFunc =
     
                 yield {
                     patchHierarchy = h
-                    kdTree         = Aardvark.VRVis.Opc.KdTrees.expandKdTreePaths h.opcPaths.Opc_DirAbsPath (KdTrees.loadKdTrees' h Trafo3d.Identity true ViewerModality.XYZ SerializationOpc.binarySerializer)
+                    kdTree         = HMap.empty //Aardvark.VRVis.Opc.KdTrees.expandKdTreePaths h.opcPaths.Opc_DirAbsPath (KdTrees.loadKdTrees' h Trafo3d.Identity true ViewerModality.XYZ SerializationOpc.binarySerializer)
                     localBB        = rootTree.info.LocalBoundingBox 
                     globalBB       = rootTree.info.GlobalBoundingBox
                     neighborMap    = HMap.empty

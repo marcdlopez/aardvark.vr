@@ -16,6 +16,7 @@ module Mutable =
         let _mainMenuBoxes = MList.Create(__initial.mainMenuBoxes, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
         let _boxHovered = MOption.Create(__initial.boxHovered)
         let _subMenuBoxes = MList.Create(__initial.subMenuBoxes, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
+        let _lineSubMenuBoxes = MList.Create(__initial.lineSubMenuBoxes, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
         let _menu = ResetMod.Create(__initial.menu)
         let _subMenu = ResetMod.Create(__initial.subMenu)
         let _lineSubMenu = ResetMod.Create(__initial.lineSubMenu)
@@ -28,6 +29,7 @@ module Mutable =
         member x.mainMenuBoxes = _mainMenuBoxes :> alist<_>
         member x.boxHovered = _boxHovered :> IMod<_>
         member x.subMenuBoxes = _subMenuBoxes :> alist<_>
+        member x.lineSubMenuBoxes = _lineSubMenuBoxes :> alist<_>
         member x.menu = _menu :> IMod<_>
         member x.subMenu = _subMenu :> IMod<_>
         member x.lineSubMenu = _lineSubMenu :> IMod<_>
@@ -45,6 +47,7 @@ module Mutable =
                 MList.Update(_mainMenuBoxes, v.mainMenuBoxes)
                 MOption.Update(_boxHovered, v.boxHovered)
                 MList.Update(_subMenuBoxes, v.subMenuBoxes)
+                MList.Update(_lineSubMenuBoxes, v.lineSubMenuBoxes)
                 ResetMod.Update(_menu,v.menu)
                 ResetMod.Update(_subMenu,v.subMenu)
                 ResetMod.Update(_lineSubMenu,v.lineSubMenu)
@@ -86,6 +89,12 @@ module Mutable =
                     override x.Get(r) = r.subMenuBoxes
                     override x.Set(r,v) = { r with subMenuBoxes = v }
                     override x.Update(r,f) = { r with subMenuBoxes = f r.subMenuBoxes }
+                }
+            let lineSubMenuBoxes =
+                { new Lens<Demo.Menu.MenuModel, Aardvark.Base.plist<Demo.VisibleBox>>() with
+                    override x.Get(r) = r.lineSubMenuBoxes
+                    override x.Set(r,v) = { r with lineSubMenuBoxes = v }
+                    override x.Update(r,f) = { r with lineSubMenuBoxes = f r.lineSubMenuBoxes }
                 }
             let menu =
                 { new Lens<Demo.Menu.MenuModel, Demo.Menu.MenuState>() with

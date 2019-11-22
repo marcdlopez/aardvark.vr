@@ -285,7 +285,8 @@ module Demo =
                         | Edit -> 
                             printfn "new MOOOOOOODE"
                             {newModel with lineOnController = PList.empty}
-
+                    | DipAndStrike -> 
+                        newModel
                     | _ -> newModel
                 | None -> newModel
             | MainReset -> 
@@ -870,7 +871,7 @@ module Demo =
     let initial =
         let rotateBoxInit = false
         let patchHierarchiesInit = 
-            OpcViewerFunc.patchHierarchiesImport "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423"
+            OpcViewerFunc.patchHierarchiesImport "C:\Users\lopez\Desktop\VictoriaCrater\HiRISE_VictoriaCrater_SuperResolution"
 
         let boundingBoxInit = 
             OpcViewerFunc.boxImport (patchHierarchiesInit)
@@ -898,7 +899,7 @@ module Demo =
             patchHierarchies    = patchHierarchiesInit
             boundingBox         = boundingBoxInit
             opcInfos            = opcInfosInit
-            opcAttributes       = SurfaceAttributes.initModel "C:\Users\lopez\Desktop\GardenCity\MSL_Mastcam_Sol_929_id_48423"
+            opcAttributes       = SurfaceAttributes.initModel "C:\Users\lopez\Desktop\VictoriaCrater\HiRISE_VictoriaCrater_SuperResolution"
             mainFrustum         = Frustum.perspective 60.0 0.01 1000.0 1.0
             rotateBox           = rotateBoxInit
             pickingModel        = OpcViewer.Base.Picking.PickingModel.initial

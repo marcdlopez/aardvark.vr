@@ -36,6 +36,8 @@ module OpcUtilities =
             VisibleSphere.createSphere C4b.White (controllerPos.deviceToWorld.GetModelOrigin()) radius)
         |> PList.ofList
 
+    let mkCyllinder (controllerPos : Pose) (number : int) (radius : float) : plist<VisibleSphere> = 
+
     let mkPointDraw (controllerPos : Pose) : VisibleBox =
         VisibleBox.createDrawingPoint C4b.White (controllerPos.deviceToWorld.GetModelOrigin())
 

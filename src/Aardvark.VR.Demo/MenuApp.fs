@@ -67,7 +67,22 @@ module MenuApp =
                             else if idx.id.Equals(boxID3.id) then {idx with id = "Flag"}
                             else if idx.id.Equals(boxID4.id) then {idx with id = "Draw"} //allow different options in the draw mode: freely draw and draw by points
                             else {idx with id = "Line"})
-                    {model with subMenuBoxes = newSubMenuBoxes; menuButtonPressed = buttonPressed}
+                    
+                    match model.lineSubMenu with 
+                    | Edit -> 
+                        let newLineMenuBoxes = UtilitiesMenu.mkBoxesMenu model.initialMenuPosition hmdPos.pose 3
+                        let boxID0 = newLineMenuBoxes |> Seq.item 0
+                        let boxID1 = newLineMenuBoxes |> Seq.item 1 
+                        
+                        let newLineMenuBoxes = 
+                            newLineMenuBoxes
+                            |> PList.map (fun idx -> 
+                                if idx.id.Equals(boxID0.id)then {idx with id = "Remove Line"}
+                                else if idx.id.Equals(boxID1.id) then {idx with id = "Modify Poistion"}
+                                else {idx with id = "Start new Line"})
+                        model //TODO   
+                    | LineCreate -> 
+                        {model with subMenuBoxes = newSubMenuBoxes; menuButtonPressed = buttonPressed}//; lineSubMenuBoxes = lineSubModel}
                 | MainReset -> 
                     {model with menu = MenuState.Navigation}
             else 
@@ -221,6 +236,7 @@ module MenuApp =
                     //do! DefaultSurfaces.simpleLighting
                     }                    
                 |> Sg.fillMode (Mod.constant FillMode.Line)
+                //|> Sg.onHover (fun box -> BoxHovered box.id)
 
         menuText
         |> Sg.andAlso menuBox
@@ -254,8 +270,23 @@ module MenuApp =
                 ]
             |> Sg.noEvents
 
+        let lineSubMenuBox = 
+            m.lineSubMenuBoxes
+            |> AList.toASet 
+            |> ASet.map (fun b -> 
+                mkISg m b 
+                )
+            |> Sg.set
+            |> Sg.effect [
+                toEffect DefaultSurfaces.trafo
+                toEffect DefaultSurfaces.vertexColor
+                toEffect DefaultSurfaces.simpleLighting                              
+                ]
+            |> Sg.noEvents
+
         menuBox
         |> Sg.andAlso annotationSubMenuBox
+        |> Sg.andAlso lineSubMenuBox
 
     let threads (model : MenuModel) = 
         ThreadPool.empty
@@ -274,6 +305,7 @@ module MenuApp =
             menu                    = MenuState.Navigation
             controllerMenuSelector  = ControllerInfo.initial
             subMenu                 = subMenuState.Init
+            lineSubMenuBoxes        = PList.empty
             lineSubMenu             = lineSubMenuState.LineCreate
             initialMenuState        = MenuState.Navigation
             menuButtonPressed       = false

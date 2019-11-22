@@ -140,3 +140,34 @@ module VisibleSphere =
                 geometry = Sphere3d.FromRadius(radius)
                 radius = radius
         }
+
+[<DomainType>]
+type VisibleCylinder = 
+    {
+        geometry : Cylinder3d
+        color : C4b
+        trafo : Trafo3d
+        radius : float
+        [<TreatAsValue>]
+        id : string
+    }
+
+module VisibleCylinder = 
+    let initial = 
+        {
+            geometry = Cylinder3d()
+            color = C4b.White
+            trafo = Trafo3d.Identity
+            radius = 1.0
+            id = ""
+        }
+
+    let createCylinder (color : C4b) (position : V3d) (radius : float) = 
+        {
+            initial with 
+                color = color
+                trafo = Trafo3d.Translation(V3d(position.X, position.Y, position.Z))
+                id = System.Guid.NewGuid().ToString()
+                geometry = Cylinder3d(V3d(position.X, position.Y, position.Z), V3d(position.X, position.Y+ 0.1, position.Z), radius)
+                radius = radius
+        }
