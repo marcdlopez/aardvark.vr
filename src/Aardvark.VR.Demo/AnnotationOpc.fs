@@ -59,42 +59,7 @@ module AnnotationOpc =
                     newModel.lineOnController
                     |> PList.map (fun line -> {line with trafo = id.pose.deviceToWorld})
 
-                let somethingHovered = 
-                    newModel.finishedLine
-                    |> HMap.map (fun idPoints fl -> 
-                        //let modes = Removing | insetBefore | changePosition | ChangeColor
-                        //match modes with
-                        //| Remove -> 
-                        //    let everythingExceptHovered = fl.points |> PList.filter (fun lp -> lp.hovered = false)
-                        //    { fl with points = everythingExceptHovered }
-                        //| Modify -> 
-                            
-                        //| _ ->
-                        //    fl
-                        fl.points
-                        |> PList.map (fun p -> 
-                            match p.hovered with 
-                            | true -> 
-                                
-                                match id.joystickHold with 
-                                | true -> 
-                                    //printfn "point hovered"
-                                    //let newMM = {newModel.menuModel with lineSubMenu = lineSubMenuState.Edit}
-                                    //{newModel with menuModel = newMM}
-                                    //true
-                                    p
-                                | false ->  
-                                    //printfn "not hovering, better quit"
-                                    //let newMM = {newModel.menuModel with lineSubMenu = lineSubMenuState.LineCreate}
-                                    //{newModel with menuModel = newMM}
-                                    p
-                            | false -> 
-                                p
-                        )
-                    )
-
-                                
-                printfn "line modeeee: %s" (newModel.menuModel.lineSubMenu.ToString())
+                
 
                 let newModel = 
                     match id.backButtonPressed with 

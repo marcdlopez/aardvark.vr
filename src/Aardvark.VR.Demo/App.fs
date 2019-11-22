@@ -133,21 +133,49 @@ module Demo =
                     |> AnnotationOpc.annotationMode kind p model.menuModel.subMenu
                 | Menu.MenuState.MainReset -> 
                     {model with 
-                        opcSpaceTrafo       = Trafo3d.Translation -model.boundingBox.Center * Trafo3d.RotateInto(model.boundingBox.Center.Normalized, V3d.OOI) 
-                        annotationSpaceTrafo      = Trafo3d.Identity
-                        workSpaceTrafo      = Trafo3d.Identity
-                        flagOnController    = PList.empty
-                        flagOnAnnotationSpace          = PList.empty
-                        lineOnController    = PList.empty
-                        lineOnAnnotationSpace          = PList.empty
-                        lineMarsDisplay     = [|Line3d()|]
-                        drawingLine         = [|Line3d()|]
+                        opcSpaceTrafo           = Trafo3d.Translation -model.boundingBox.Center * Trafo3d.RotateInto(model.boundingBox.Center.Normalized, V3d.OOI) 
+                        annotationSpaceTrafo    = Trafo3d.Identity
+                        workSpaceTrafo          = Trafo3d.Identity
+                        flagOnController        = PList.empty
+                        flagOnAnnotationSpace   = PList.empty
+                        lineOnController        = PList.empty
+                        lineOnAnnotationSpace   = PList.empty
+                        lineMarsDisplay         = [|Line3d()|]
+                        drawingLine             = [|Line3d()|]
                     }
             
             let controllerMenuUpdate = MenuApp.update model.controllerInfos state vr newModel.menuModel (MenuAction.UpdateControllerPose (kind, p))
 
+            let somethingHovered = 
+                    newModel.finishedLine
+                    |> HMap.map (fun idPoints fl -> 
+                        fl.points |> PList.filter(fun lp -> lp.hovered = true)
+                    )
+                    |> HMap.values
+                    |> Seq.first
+                
+            let isHovered = 
+                match somethingHovered with 
+                | Some h -> 
+                    let getHovered = 
+                        h
+                        |> PList.tryFirst
+                    match getHovered with 
+                    | Some s -> 
+                        s.hovered
+                    | None -> false
+                | None -> false
+
+            let newModel = {newModel with menuModel = controllerMenuUpdate; lineIsHovered = isHovered}
             
-            {newModel with menuModel = controllerMenuUpdate}
+            let changeLineMode = 
+                if newModel.lineIsHovered then 
+                    {newModel.menuModel with lineSubMenu = lineSubMenuState.Edit}
+                else {newModel.menuModel with lineSubMenu = lineSubMenuState.LineCreate}
+            
+            printfn "%s, %s" (newModel.lineIsHovered.ToString()) (newModel.menuModel.lineSubMenu.ToString())
+            
+            {newModel with menuModel = changeLineMode}
             
         | GrabObject (kind, buttonKind, buttonPress)-> 
             
@@ -897,11 +925,12 @@ module Demo =
             finishedDrawings        = HMap.empty
 
             flagOnController        = PList.empty
-            flagOnAnnotationSpace              = PList.empty
+            flagOnAnnotationSpace   = PList.empty
             lineOnController        = PList.empty
-            lineOnAnnotationSpace              = PList.empty
+            lineOnAnnotationSpace   = PList.empty
             lineMarsDisplay         = [|Line3d()|]
             finishedLine            = HMap.empty
+            lineIsHovered           = false
 
         }
     let app =

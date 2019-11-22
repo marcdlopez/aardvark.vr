@@ -145,6 +145,7 @@ module Mutable =
         let _flagOnAnnotationSpace = MList.Create(__initial.flagOnAnnotationSpace, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
         let _lineOnController = MList.Create(__initial.lineOnController, (fun v -> Demo.Mutable.MVisibleSphere.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleSphere.Update(m, v)), (fun v -> v))
         let _lineOnAnnotationSpace = MList.Create(__initial.lineOnAnnotationSpace, (fun v -> Demo.Mutable.MVisibleSphere.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleSphere.Update(m, v)), (fun v -> v))
+        let _lineIsHovered = ResetMod.Create(__initial.lineIsHovered)
         let _lineMarsDisplay = ResetMod.Create(__initial.lineMarsDisplay)
         let _finishedLine = MMap.Create(__initial.finishedLine, (fun v -> MFinishedLine.Create(v)), (fun (m,v) -> MFinishedLine.Update(m, v)), (fun v -> v))
         
@@ -180,6 +181,7 @@ module Mutable =
         member x.flagOnAnnotationSpace = _flagOnAnnotationSpace :> alist<_>
         member x.lineOnController = _lineOnController :> alist<_>
         member x.lineOnAnnotationSpace = _lineOnAnnotationSpace :> alist<_>
+        member x.lineIsHovered = _lineIsHovered :> IMod<_>
         member x.lineMarsDisplay = _lineMarsDisplay :> IMod<_>
         member x.finishedLine = _finishedLine :> amap<_,_>
         
@@ -219,6 +221,7 @@ module Mutable =
                 MList.Update(_flagOnAnnotationSpace, v.flagOnAnnotationSpace)
                 MList.Update(_lineOnController, v.lineOnController)
                 MList.Update(_lineOnAnnotationSpace, v.lineOnAnnotationSpace)
+                ResetMod.Update(_lineIsHovered,v.lineIsHovered)
                 ResetMod.Update(_lineMarsDisplay,v.lineMarsDisplay)
                 MMap.Update(_finishedLine, v.finishedLine)
                 
@@ -428,6 +431,12 @@ module Mutable =
                     override x.Get(r) = r.lineOnAnnotationSpace
                     override x.Set(r,v) = { r with lineOnAnnotationSpace = v }
                     override x.Update(r,f) = { r with lineOnAnnotationSpace = f r.lineOnAnnotationSpace }
+                }
+            let lineIsHovered =
+                { new Lens<Demo.Main.Model, System.Boolean>() with
+                    override x.Get(r) = r.lineIsHovered
+                    override x.Set(r,v) = { r with lineIsHovered = v }
+                    override x.Update(r,f) = { r with lineIsHovered = f r.lineIsHovered }
                 }
             let lineMarsDisplay =
                 { new Lens<Demo.Main.Model, Aardvark.Base.Line3d[]>() with
