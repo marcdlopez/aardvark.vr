@@ -33,7 +33,7 @@ type DemoAction =
 | OpcViewerMsg of PickingAction
 
 module Demo =
-    open Aardvark.Application
+    open Aardvark.Application //TODO ML: avoid using module opens ... just put them up in one place
     open Aardvark.VRVis.Opc
     open Aardvark.UI.Primitives
     open Aardvark.Base.Rendering
@@ -84,8 +84,8 @@ module Demo =
                     | Some x, false -> 
                         Some { x with joystickHold = false }   // update / overwrite
                     | None, true -> 
-                        Some
-                            {
+                        Some //TODO ML:make a variable for that "{ ControllerButtons.InitJoystick with joystickHold = true }"
+                            { 
                                 kind               = kind
                                 pose               = Pose.none
                                 buttonKind         = ControllerButtons.Joystick
@@ -132,7 +132,7 @@ module Demo =
                     model
                     |> AnnotationOpc.annotationMode kind p model.menuModel.subMenu
                 | Menu.MenuState.MainReset -> 
-                    {model with 
+                    {model with //TODO ML: make model initial for that
                         opcSpaceTrafo       = Trafo3d.Translation -model.boundingBox.Center * Trafo3d.RotateInto(model.boundingBox.Center.Normalized, V3d.OOI) 
                         annotationSpaceTrafo      = Trafo3d.Identity
                         workSpaceTrafo      = Trafo3d.Identity
@@ -153,7 +153,8 @@ module Demo =
             
             printfn "Menu mode is: %s when buttonpress is: %s" (model.menuModel.menu.ToString()) (buttonPress.ToString())
             
-            let updateControllerButtons = model |> OpcUtilities.updateControllersInfoWhenPress kind buttonKind buttonPress
+            //TODO ML: use line breaks
+            let updateControllerButtons = model |> OpcUtilities.updateControllersInfoWhenPress kind buttonKind buttonPress //TODO ML: does not belong to OPC Utils
             
             let newModel = {model with controllerInfos = updateControllerButtons}
             
@@ -170,13 +171,13 @@ module Demo =
                     flagOnController    = PList.empty
                     lineOnController    = PList.empty
                 }
-            | Annotation ->
+            | Annotation -> //TODO ML: make your own annotation app
                 let controllerPos = newModel.controllerInfos |> HMap.tryFind kind
                 match controllerPos with 
                 | Some id -> 
                     match newModel.menuModel.subMenu with
                     | Draw -> 
-                        match buttonKind |> ControllerButtons.toInt with 
+                        match buttonKind |> ControllerButtons.toInt with //TODO ML: match buttonkind directly
                         | 1 -> 
                             match buttonPress with 
                             | true -> 

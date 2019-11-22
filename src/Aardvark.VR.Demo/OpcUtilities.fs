@@ -23,7 +23,7 @@ open OpcViewer.Base.Picking
 open OpcViewer.Base.Attributes
 
 module OpcUtilities = 
-
+    //TODO ML: none of these functions belongs to a module called opc utilities
     let mkFlags (controllerPos : Trafo3d) (number : int) : plist<VisibleBox> = 
         [0..number-1]
         |> List.map (fun x -> 
