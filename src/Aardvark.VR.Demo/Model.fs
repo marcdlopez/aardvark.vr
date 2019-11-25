@@ -97,3 +97,84 @@ type Model =
         finishedLine                : hmap<string, FinishedLine>
         
     }
+
+module Model =
+    let initial = 
+        let rotateBoxInit = false
+        let patchHierarchiesInit = 
+            OpcViewerFunc.patchHierarchiesImport "C:\Users\lopez\Desktop\VictoriaCrater\HiRISE_VictoriaCrater_SuperResolution"
+
+        let boundingBoxInit = 
+            OpcViewerFunc.boxImport (patchHierarchiesInit)
+
+        let opcInfosInit = 
+            OpcViewerFunc.opcInfosImport (patchHierarchiesInit)
+
+        let up =
+            OpcViewerFunc.getUpVector boundingBoxInit rotateBoxInit
+
+        let upRotationTrafo = 
+            Trafo3d.RotateInto(boundingBoxInit.Center.Normalized, V3d.OOI)
+
+        let cameraStateInit = 
+            OpcViewerFunc.restoreCamStateImport boundingBoxInit V3d.OOI
+        {
+            text                = "some text"
+            vr                  = false
+
+            ControllerPosition      = V3d.OOO
+            controllerInfos         = HMap.empty
+            offsetToCenter          = V3d.One
+            cameraState             = cameraStateInit
+            
+            patchHierarchies    = patchHierarchiesInit
+            boundingBox         = boundingBoxInit
+            opcInfos            = opcInfosInit
+            opcAttributes       = SurfaceAttributes.initModel "C:\Users\lopez\Desktop\VictoriaCrater\HiRISE_VictoriaCrater_SuperResolution"
+            mainFrustum         = Frustum.perspective 60.0 0.01 1000.0 1.0
+            rotateBox           = rotateBoxInit
+            pickingModel        = OpcViewer.Base.Picking.PickingModel.initial
+
+            offsetControllerDistance    = 1.0
+
+            opcSpaceTrafo               = Trafo3d.Translation(-boundingBoxInit.Center) * upRotationTrafo
+            workSpaceTrafo              = Trafo3d.Identity
+            annotationSpaceTrafo              = Trafo3d.Identity
+
+            initOpcSpaceTrafo           = Trafo3d.Translation(-boundingBoxInit.Center) * upRotationTrafo
+            initWorkSpaceTrafo          = Trafo3d.Identity
+            initAnnotationSpaceTrafo          = Trafo3d.Identity
+
+            initControlTrafo            = Trafo3d.Identity
+            init2ControlTrafo           = Trafo3d.Identity
+            rotationAxis                = Trafo3d.Identity
+
+            menuModel               = Menu.MenuModel.init
+            drawingPoint            = PList.empty
+            drawingLine             = [|Line3d()|]
+
+            currentlyDrawing        = None
+            finishedDrawings        = HMap.empty
+
+            flagOnController        = PList.empty
+            flagOnAnnotationSpace   = PList.empty
+            lineOnController        = PList.empty
+            lineOnAnnotationSpace   = PList.empty
+            lineMarsDisplay         = [|Line3d()|]
+            finishedLine            = HMap.empty
+            lineIsHovered           = false
+        }
+
+    let initMainReset = 
+        {
+            initial with 
+                opcSpaceTrafo           = Trafo3d.Translation -initial.boundingBox.Center * Trafo3d.RotateInto(initial.boundingBox.Center.Normalized, V3d.OOI) 
+                annotationSpaceTrafo    = Trafo3d.Identity
+                workSpaceTrafo          = Trafo3d.Identity
+                flagOnController        = PList.empty
+                flagOnAnnotationSpace   = PList.empty
+                lineOnController        = PList.empty
+                lineOnAnnotationSpace   = PList.empty
+                lineMarsDisplay         = [|Line3d()|]
+                drawingLine             = [|Line3d()|]
+        }

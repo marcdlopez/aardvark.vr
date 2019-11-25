@@ -84,29 +84,18 @@ module Demo =
                     | Some x, false -> 
                         Some { x with joystickHold = false }   // update / overwrite
                     | None, true -> 
-                        Some
-                            {
-                                kind               = kind
-                                pose               = Pose.none
-                                buttonKind         = ControllerButtons.Joystick
-                                backButtonPressed  = false
-                                frontButtonPressed = false
-                                joystickPressed    = false
-                                joystickHold       = true
-                                sideButtonPressed  = false
-                            } // create
+                        Some 
+                            {ControllerInfo.initial with 
+                                kind            = kind
+                                buttonKind      = ControllerButtons.Joystick
+                                joystickHold    = true 
+                            } //create
                     | None, false -> 
                         Some
-                            {
-                                kind               = kind
-                                pose               = Pose.none
-                                buttonKind         = ControllerButtons.Joystick
-                                backButtonPressed  = false
-                                frontButtonPressed = false
-                                joystickPressed    = false
-                                joystickHold       = false
-                                sideButtonPressed  = false
-                            } // create
+                            {ControllerInfo.initial with 
+                                kind        = kind
+                                buttonKind  = ControllerButtons.Joystick 
+                            } //create
                 )
 
             let newModel = {model with controllerInfos = updateCont}
@@ -132,17 +121,7 @@ module Demo =
                     model
                     |> AnnotationOpc.annotationMode kind p model.menuModel.subMenu
                 | Menu.MenuState.MainReset -> 
-                    {model with 
-                        opcSpaceTrafo           = Trafo3d.Translation -model.boundingBox.Center * Trafo3d.RotateInto(model.boundingBox.Center.Normalized, V3d.OOI) 
-                        annotationSpaceTrafo    = Trafo3d.Identity
-                        workSpaceTrafo          = Trafo3d.Identity
-                        flagOnController        = PList.empty
-                        flagOnAnnotationSpace   = PList.empty
-                        lineOnController        = PList.empty
-                        lineOnAnnotationSpace   = PList.empty
-                        lineMarsDisplay         = [|Line3d()|]
-                        drawingLine             = [|Line3d()|]
-                    }
+                    Model.initMainReset
             
             let controllerMenuUpdate = MenuApp.update model.controllerInfos state vr newModel.menuModel (MenuAction.UpdateControllerPose (kind, p))
 
@@ -181,7 +160,45 @@ module Demo =
             
             printfn "Menu mode is: %s when buttonpress is: %s" (model.menuModel.menu.ToString()) (buttonPress.ToString())
             
-            let updateControllerButtons = model |> OpcUtilities.updateControllersInfoWhenPress kind buttonKind buttonPress
+            let updateControllerButtons = //model |> OpcUtilities.updateControllersInfoWhenPress kind buttonKind buttonPress
+                model.controllerInfos
+                |> HMap.alter kind (fun but ->  
+                match but with
+                | Some x -> 
+                    match buttonKind with 
+                    | ControllerButtons.Joystick -> Some {x with joystickPressed = buttonPress}
+                    | ControllerButtons.Back -> Some {x with backButtonPressed = buttonPress}
+                    | ControllerButtons.Side -> Some {x with sideButtonPressed = buttonPress}
+                    | _ -> None
+                    
+                | None -> 
+                    match buttonKind with 
+                    | ControllerButtons.Side -> 
+                        Some 
+                            {
+                                ControllerInfo.initial with 
+                                    kind                = kind
+                                    buttonKind          = buttonKind
+                                    sideButtonPressed   = buttonPress
+                            }
+                    | ControllerButtons.Back -> 
+                        Some 
+                            {
+                                ControllerInfo.initial with 
+                                    kind                = kind 
+                                    buttonKind          = buttonKind
+                                    backButtonPressed   = buttonPress
+                            }
+                    | ControllerButtons.Joystick -> 
+                        Some 
+                            {
+                                ControllerInfo.initial with 
+                                    kind                = kind 
+                                    buttonKind          = buttonKind
+                                    joystickPressed     = buttonPress
+                            }
+                    | _ -> None
+                )
             
             let newModel = {model with controllerInfos = updateControllerButtons}
             
@@ -204,8 +221,8 @@ module Demo =
                 | Some id -> 
                     match newModel.menuModel.subMenu with
                     | Draw -> 
-                        match buttonKind |> ControllerButtons.toInt with 
-                        | 1 -> 
+                        match buttonKind with 
+                        | ControllerButtons.Back -> 
                             match buttonPress with 
                             | true -> 
                                 match newModel.currentlyDrawing with 
@@ -240,8 +257,8 @@ module Demo =
                             let newLine = OpcUtilities.mkSphere id.pose 1 0.02
                             let newModel = {newModel with lineOnController = newLine}
                             printfn "button kind: %d" (buttonKind |> ControllerButtons.toInt)
-                            match buttonKind |> ControllerButtons.toInt with 
-                            | 2 -> 
+                            match buttonKind with 
+                            | ControllerButtons.Side -> 
 
                                 let spherePoints = 
                                     newModel.lineOnAnnotationSpace
@@ -290,13 +307,14 @@ module Demo =
                     | _ -> newModel
                 | None -> newModel
             | MainReset -> 
-                {newModel with 
-                        opcSpaceTrafo           = Trafo3d.Translation -model.boundingBox.Center * Trafo3d.RotateInto(model.boundingBox.Center.Normalized, V3d.OOI) 
-                        annotationSpaceTrafo    = Trafo3d.Identity
-                        workSpaceTrafo          = Trafo3d.Identity
-                        flagOnController        = PList.empty
-                        flagOnAnnotationSpace              = PList.empty
-                }
+                Model.initMainReset
+                //{newModel with 
+                //        opcSpaceTrafo           = Trafo3d.Translation -model.boundingBox.Center * Trafo3d.RotateInto(model.boundingBox.Center.Normalized, V3d.OOI) 
+                //        annotationSpaceTrafo    = Trafo3d.Identity
+                //        workSpaceTrafo          = Trafo3d.Identity
+                //        flagOnController        = PList.empty
+                //        flagOnAnnotationSpace              = PList.empty
+                //}
                 
     let mkColor (model : MModel) (box : MVisibleBox) =
         let id = box.id

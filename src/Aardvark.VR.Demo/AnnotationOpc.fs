@@ -154,15 +154,5 @@ module AnnotationOpc =
                 
             | _ -> newModel
         | Reset -> 
-            {newModel with 
-                opcSpaceTrafo           = Trafo3d.Translation -model.boundingBox.Center * Trafo3d.RotateInto(model.boundingBox.Center.Normalized, V3d.OOI) 
-                annotationSpaceTrafo    = Trafo3d.Identity
-                workSpaceTrafo          = Trafo3d.Identity
-                flagOnController        = PList.empty
-                flagOnAnnotationSpace              = PList.empty
-                lineOnController        = PList.empty        
-                lineOnAnnotationSpace              = PList.empty
-                lineMarsDisplay         = [|Line3d()|]
-                drawingLine             = [|Line3d()|]
-            }
+            Model.initMainReset
         | _ -> newModel

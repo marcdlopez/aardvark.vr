@@ -26,8 +26,11 @@ type ControllerButtons =
 module ControllerButtons = 
     let fromInt i = 
         i |> enum<ControllerButtons>
+    
     let toInt (button : ControllerButtons) = 
         button |> int
+    
+
 
 [<DomainType>]
 type ControllerInfo = {
@@ -53,6 +56,7 @@ module ControllerInfo =
             sideButtonPressed   = false
             joystickHold        = false
         }
+
 
 [<DomainType>]
 type VisibleBox = {

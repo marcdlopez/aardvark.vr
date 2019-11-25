@@ -254,3 +254,76 @@ module Mutable =
                     override x.Set(r,v) = { r with id = v }
                     override x.Update(r,f) = { r with id = f r.id }
                 }
+    
+    
+    type MVisibleCylinder(__initial : Demo.VisibleCylinder) =
+        inherit obj()
+        let mutable __current : Aardvark.Base.Incremental.IModRef<Demo.VisibleCylinder> = Aardvark.Base.Incremental.EqModRef<Demo.VisibleCylinder>(__initial) :> Aardvark.Base.Incremental.IModRef<Demo.VisibleCylinder>
+        let _geometry = ResetMod.Create(__initial.geometry)
+        let _color = ResetMod.Create(__initial.color)
+        let _trafo = ResetMod.Create(__initial.trafo)
+        let _radius = ResetMod.Create(__initial.radius)
+        let _id = ResetMod.Create(__initial.id)
+        
+        member x.geometry = _geometry :> IMod<_>
+        member x.color = _color :> IMod<_>
+        member x.trafo = _trafo :> IMod<_>
+        member x.radius = _radius :> IMod<_>
+        member x.id = _id :> IMod<_>
+        
+        member x.Current = __current :> IMod<_>
+        member x.Update(v : Demo.VisibleCylinder) =
+            if not (System.Object.ReferenceEquals(__current.Value, v)) then
+                __current.Value <- v
+                
+                ResetMod.Update(_geometry,v.geometry)
+                ResetMod.Update(_color,v.color)
+                ResetMod.Update(_trafo,v.trafo)
+                ResetMod.Update(_radius,v.radius)
+                _id.Update(v.id)
+                
+        
+        static member Create(__initial : Demo.VisibleCylinder) : MVisibleCylinder = MVisibleCylinder(__initial)
+        static member Update(m : MVisibleCylinder, v : Demo.VisibleCylinder) = m.Update(v)
+        
+        override x.ToString() = __current.Value.ToString()
+        member x.AsString = sprintf "%A" __current.Value
+        interface IUpdatable<Demo.VisibleCylinder> with
+            member x.Update v = x.Update v
+    
+    
+    
+    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+    module VisibleCylinder =
+        [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+        module Lens =
+            let geometry =
+                { new Lens<Demo.VisibleCylinder, Aardvark.Base.Cylinder3d>() with
+                    override x.Get(r) = r.geometry
+                    override x.Set(r,v) = { r with geometry = v }
+                    override x.Update(r,f) = { r with geometry = f r.geometry }
+                }
+            let color =
+                { new Lens<Demo.VisibleCylinder, Aardvark.Base.C4b>() with
+                    override x.Get(r) = r.color
+                    override x.Set(r,v) = { r with color = v }
+                    override x.Update(r,f) = { r with color = f r.color }
+                }
+            let trafo =
+                { new Lens<Demo.VisibleCylinder, Aardvark.Base.Trafo3d>() with
+                    override x.Get(r) = r.trafo
+                    override x.Set(r,v) = { r with trafo = v }
+                    override x.Update(r,f) = { r with trafo = f r.trafo }
+                }
+            let radius =
+                { new Lens<Demo.VisibleCylinder, System.Double>() with
+                    override x.Get(r) = r.radius
+                    override x.Set(r,v) = { r with radius = v }
+                    override x.Update(r,f) = { r with radius = f r.radius }
+                }
+            let id =
+                { new Lens<Demo.VisibleCylinder, System.String>() with
+                    override x.Get(r) = r.id
+                    override x.Set(r,v) = { r with id = v }
+                    override x.Update(r,f) = { r with id = f r.id }
+                }
