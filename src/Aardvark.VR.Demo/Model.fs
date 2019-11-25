@@ -88,13 +88,15 @@ type Model =
         currentlyDrawing            : Option<Polygon>
         finishedDrawings            : hmap<string, Polygon>
 
-        flagOnController            : plist<VisibleBox> 
-        flagOnAnnotationSpace       : plist<VisibleBox> 
-        lineOnController            : plist<VisibleSphere>
-        lineOnAnnotationSpace       : plist<VisibleSphere>
-        lineIsHovered               : bool
-        lineMarsDisplay             : Line3d[]
-        finishedLine                : hmap<string, FinishedLine>
+        flagOnController                : plist<VisibleBox> 
+        flagOnAnnotationSpace           : plist<VisibleBox> 
+        lineOnController                : plist<VisibleSphere>
+        lineOnAnnotationSpace           : plist<VisibleSphere>
+        lineIsHovered                   : bool
+        lineMarsDisplay                 : Line3d[]
+        finishedLine                    : hmap<string, FinishedLine>
+        dipAndStrikeOnController        : plist<VisibleCylinder>
+        dipAndStrikeOnAnnotationSpace   : plist<VisibleCylinder>
         
     }
 
@@ -163,18 +165,22 @@ module Model =
             lineMarsDisplay         = [|Line3d()|]
             finishedLine            = HMap.empty
             lineIsHovered           = false
+            dipAndStrikeOnController        = PList.empty
+            dipAndStrikeOnAnnotationSpace   = PList.empty
         }
 
     let initMainReset = 
         {
             initial with 
-                opcSpaceTrafo           = Trafo3d.Translation -initial.boundingBox.Center * Trafo3d.RotateInto(initial.boundingBox.Center.Normalized, V3d.OOI) 
-                annotationSpaceTrafo    = Trafo3d.Identity
-                workSpaceTrafo          = Trafo3d.Identity
-                flagOnController        = PList.empty
-                flagOnAnnotationSpace   = PList.empty
-                lineOnController        = PList.empty
-                lineOnAnnotationSpace   = PList.empty
-                lineMarsDisplay         = [|Line3d()|]
-                drawingLine             = [|Line3d()|]
+                opcSpaceTrafo                   = Trafo3d.Translation -initial.boundingBox.Center * Trafo3d.RotateInto(initial.boundingBox.Center.Normalized, V3d.OOI) 
+                annotationSpaceTrafo            = Trafo3d.Identity
+                workSpaceTrafo                  = Trafo3d.Identity
+                flagOnController                = PList.empty
+                flagOnAnnotationSpace           = PList.empty
+                lineOnController                = PList.empty
+                lineOnAnnotationSpace           = PList.empty
+                lineMarsDisplay                 = [|Line3d()|]
+                drawingLine                     = [|Line3d()|]
+                dipAndStrikeOnController        = PList.empty
+                dipAndStrikeOnAnnotationSpace   = PList.empty
         }

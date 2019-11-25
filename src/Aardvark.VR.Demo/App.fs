@@ -152,15 +152,13 @@ module Demo =
                     {newModel.menuModel with lineSubMenu = lineSubMenuState.Edit}
                 else {newModel.menuModel with lineSubMenu = lineSubMenuState.LineCreate}
             
-            printfn "%s, %s" (newModel.lineIsHovered.ToString()) (newModel.menuModel.lineSubMenu.ToString())
-            
             {newModel with menuModel = changeLineMode}
             
         | GrabObject (kind, buttonKind, buttonPress)-> 
             
             printfn "Menu mode is: %s when buttonpress is: %s" (model.menuModel.menu.ToString()) (buttonPress.ToString())
             
-            let updateControllerButtons = //model |> OpcUtilities.updateControllersInfoWhenPress kind buttonKind buttonPress
+            let updateControllerButtons = 
                 model.controllerInfos
                 |> HMap.alter kind (fun but ->  
                 match but with
@@ -214,6 +212,7 @@ module Demo =
                 {newModel with 
                     flagOnController    = PList.empty
                     lineOnController    = PList.empty
+                    dipAndStrikeOnController = PList.empty
                 }
             | Annotation ->
                 let controllerPos = newModel.controllerInfos |> HMap.tryFind kind
@@ -303,18 +302,12 @@ module Demo =
                             printfn "new MOOOOOOODE"
                             {newModel with lineOnController = PList.empty}
                     | DipAndStrike -> 
-                        newModel
+                        let newCylinder = OpcUtilities.mkCyllinder id.pose 1 0.5
+                        {newModel with dipAndStrikeOnController = newCylinder}
                     | _ -> newModel
                 | None -> newModel
             | MainReset -> 
                 Model.initMainReset
-                //{newModel with 
-                //        opcSpaceTrafo           = Trafo3d.Translation -model.boundingBox.Center * Trafo3d.RotateInto(model.boundingBox.Center.Normalized, V3d.OOI) 
-                //        annotationSpaceTrafo    = Trafo3d.Identity
-                //        workSpaceTrafo          = Trafo3d.Identity
-                //        flagOnController        = PList.empty
-                //        flagOnAnnotationSpace              = PList.empty
-                //}
                 
     let mkColor (model : MModel) (box : MVisibleBox) =
         let id = box.id
@@ -450,6 +443,19 @@ module Demo =
                 do! DefaultSurfaces.vertexColor
                 //do! DefaultSurfaces.simpleLighting
                 }  
+
+    let mkCylinder (model : MModel) (cylinder : MVisibleCylinder) = 
+        let color = cylinder.color
+        let pos = cylinder.trafo
+
+        Sg.cylinder 20 color cylinder.radius (Mod.constant 0.01)
+            |> Sg.noEvents
+            |> Sg.trafo(pos)
+            |> Sg.shader {
+                do! DefaultSurfaces.trafo
+                do! DefaultSurfaces.vertexColor
+                //do! DefaultSurfaces.simpleLighting
+            }
 
     let ui' (info : VrSystemInfo) (m : MModel) = 
         let text = m.vr |> Mod.map (function true -> "Stop VR" | false -> "Start VR")
@@ -602,7 +608,7 @@ module Demo =
                 ]
             |> Sg.noEvents
 
-        let sphereOnMars = 
+        let sphereOnAnnotationSpace = 
             m.lineOnAnnotationSpace
             |> AList.toASet
             |> ASet.map (fun b -> 
@@ -706,7 +712,7 @@ module Demo =
                 ]
             |> Sg.noEvents
 
-        let flagsOnMars = 
+        let flagsOnAnnotationSpace = 
             m.flagOnAnnotationSpace
             |> AList.toASet 
             |> ASet.map (fun b -> 
@@ -808,6 +814,34 @@ module Demo =
                 do! DefaultSurfaces.simpleLighting
             }
     
+        let cylinders = 
+            m.dipAndStrikeOnController
+            |> AList.toASet
+            |> ASet.map (fun c -> 
+                mkCylinder m c
+            )
+            |> Sg.set
+            |> Sg.effect [
+                toEffect DefaultSurfaces.trafo
+                toEffect DefaultSurfaces.vertexColor
+                toEffect DefaultSurfaces.simpleLighting                              
+                ]
+            |> Sg.noEvents
+
+        let cylindersOnAnnotationSpace = 
+            m.dipAndStrikeOnAnnotationSpace
+            |> AList.toASet
+            |> ASet.map (fun c -> 
+                mkCylinder m c
+            )
+            |> Sg.set
+            |> Sg.effect [
+                toEffect DefaultSurfaces.trafo
+                toEffect DefaultSurfaces.vertexColor
+                toEffect DefaultSurfaces.simpleLighting                              
+                ]
+            |> Sg.noEvents
+        
         let menuApp = 
             MenuApp.vr info m.menuModel
             |> Sg.map MenuMessage
@@ -833,11 +867,12 @@ module Demo =
             [
                 drawPolygon
                 //drawFinishedPolygon
-                flagsOnMars
-                sphereOnMars
+                flagsOnAnnotationSpace
+                sphereOnAnnotationSpace
                 drawSphereLines
                 distanceText
                 finishedLineHmap
+                cylindersOnAnnotationSpace
             ]   
             |> Sg.ofList
             |> Sg.trafo m.annotationSpaceTrafo
@@ -847,6 +882,7 @@ module Demo =
                 flags
                 spheres
                 showDynamicLine
+                cylinders
             ]   |> Sg.ofList
 
         let mkDisappear = 
@@ -950,6 +986,8 @@ module Demo =
             lineMarsDisplay         = [|Line3d()|]
             finishedLine            = HMap.empty
             lineIsHovered           = false
+            dipAndStrikeOnController        = PList.empty
+            dipAndStrikeOnAnnotationSpace   = PList.empty
 
         }
     let app =

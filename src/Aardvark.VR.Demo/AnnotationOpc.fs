@@ -48,7 +48,33 @@ module AnnotationOpc =
                 
             | None -> newModel
         | DipAndStrike -> 
-            newModel
+            let controllerPos = newModel.menuModel.controllerMenuSelector
+            let newCP = newModel.controllerInfos |> HMap.tryFind controllerPos.kind
+            
+            match newCP with 
+            | Some id -> 
+                let updateCylinderPos = 
+                    newModel.dipAndStrikeOnController
+                    |> PList.map (fun cylinder -> {cylinder with trafo = id.pose.deviceToWorld})
+                
+                match id.backButtonPressed with 
+                | true -> 
+                    let dipAndStrikeOnController = 
+                        newModel.dipAndStrikeOnController
+                        |> PList.tryFirst
+
+                    match dipAndStrikeOnController with 
+                    | Some ds ->
+                        let updateDS = {ds with trafo = id.pose.deviceToWorld * newModel.workSpaceTrafo}
+                        let newDSOnAnnotationSpace = 
+                            newModel.dipAndStrikeOnAnnotationSpace
+                            |> PList.prepend updateDS
+
+                        {newModel with dipAndStrikeOnController = PList.empty; dipAndStrikeOnAnnotationSpace = newDSOnAnnotationSpace}
+                    | None -> newModel
+                | false -> {newModel with dipAndStrikeOnController = updateCylinderPos}
+                
+            | None -> newModel
         | Line -> 
             let controllerPos = newModel.menuModel.controllerMenuSelector
             let newCP = newModel.controllerInfos |> HMap.tryFind controllerPos.kind

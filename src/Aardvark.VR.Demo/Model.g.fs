@@ -148,6 +148,8 @@ module Mutable =
         let _lineIsHovered = ResetMod.Create(__initial.lineIsHovered)
         let _lineMarsDisplay = ResetMod.Create(__initial.lineMarsDisplay)
         let _finishedLine = MMap.Create(__initial.finishedLine, (fun v -> MFinishedLine.Create(v)), (fun (m,v) -> MFinishedLine.Update(m, v)), (fun v -> v))
+        let _dipAndStrikeOnController = MList.Create(__initial.dipAndStrikeOnController, (fun v -> Demo.Mutable.MVisibleCylinder.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleCylinder.Update(m, v)), (fun v -> v))
+        let _dipAndStrikeOnAnnotationSpace = MList.Create(__initial.dipAndStrikeOnAnnotationSpace, (fun v -> Demo.Mutable.MVisibleCylinder.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleCylinder.Update(m, v)), (fun v -> v))
         
         member x.text = _text :> IMod<_>
         member x.vr = _vr :> IMod<_>
@@ -184,6 +186,8 @@ module Mutable =
         member x.lineIsHovered = _lineIsHovered :> IMod<_>
         member x.lineMarsDisplay = _lineMarsDisplay :> IMod<_>
         member x.finishedLine = _finishedLine :> amap<_,_>
+        member x.dipAndStrikeOnController = _dipAndStrikeOnController :> alist<_>
+        member x.dipAndStrikeOnAnnotationSpace = _dipAndStrikeOnAnnotationSpace :> alist<_>
         
         member x.Current = __current :> IMod<_>
         member x.Update(v : Demo.Main.Model) =
@@ -224,6 +228,8 @@ module Mutable =
                 ResetMod.Update(_lineIsHovered,v.lineIsHovered)
                 ResetMod.Update(_lineMarsDisplay,v.lineMarsDisplay)
                 MMap.Update(_finishedLine, v.finishedLine)
+                MList.Update(_dipAndStrikeOnController, v.dipAndStrikeOnController)
+                MList.Update(_dipAndStrikeOnAnnotationSpace, v.dipAndStrikeOnAnnotationSpace)
                 
         
         static member Create(__initial : Demo.Main.Model) : MModel = MModel(__initial)
@@ -449,4 +455,16 @@ module Mutable =
                     override x.Get(r) = r.finishedLine
                     override x.Set(r,v) = { r with finishedLine = v }
                     override x.Update(r,f) = { r with finishedLine = f r.finishedLine }
+                }
+            let dipAndStrikeOnController =
+                { new Lens<Demo.Main.Model, Aardvark.Base.plist<Demo.VisibleCylinder>>() with
+                    override x.Get(r) = r.dipAndStrikeOnController
+                    override x.Set(r,v) = { r with dipAndStrikeOnController = v }
+                    override x.Update(r,f) = { r with dipAndStrikeOnController = f r.dipAndStrikeOnController }
+                }
+            let dipAndStrikeOnAnnotationSpace =
+                { new Lens<Demo.Main.Model, Aardvark.Base.plist<Demo.VisibleCylinder>>() with
+                    override x.Get(r) = r.dipAndStrikeOnAnnotationSpace
+                    override x.Set(r,v) = { r with dipAndStrikeOnAnnotationSpace = v }
+                    override x.Update(r,f) = { r with dipAndStrikeOnAnnotationSpace = f r.dipAndStrikeOnAnnotationSpace }
                 }
