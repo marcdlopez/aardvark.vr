@@ -31,6 +31,7 @@ type DemoAction =
 | SetControllerPosition of ControllerKind *  Pose
 | GrabObject            of ControllerKind * ControllerButtons * bool
 | OpcViewerMsg of PickingAction
+| GetTrackpadPosition of ControllerKind * int * V2d
 
 module Demo =
     open Aardvark.Application
@@ -103,7 +104,13 @@ module Demo =
             let controllers = newModel.controllerInfos
 
             let newMenuModel = 
-                MenuApp.update controllers state vr newModel.menuModel a
+                let checkCon = controllers |> HMap.tryFind kind
+                match checkCon with 
+                | Some controller -> 
+                    if not (controller.sideButtonPressed) then 
+                        MenuApp.update controllers state vr newModel.menuModel a
+                    else newModel.menuModel
+                | None -> newModel.menuModel
             
             { newModel with 
                 menuModel = newMenuModel; 
@@ -310,6 +317,41 @@ module Demo =
                 | None -> newModel
             | MainReset -> 
                 Model.initMainReset
+        
+        | GetTrackpadPosition (con, axis, pos) -> 
+            let controller = model.controllerInfos |> HMap.tryFind con
+            match controller with 
+            | Some c -> 
+                match model.menuModel.menu with 
+                | Annotation -> 
+                    match model.menuModel.subMenu with 
+                    | DipAndStrike -> 
+                        if c.sideButtonPressed && c.joystickPressed then 
+                            match pos.Y with 
+                            | x when x >= 0.60 -> 
+                                printfn "make radius bigger"
+                                let newDipAndStrikeOnController = 
+                                    model.dipAndStrikeOnController
+                                    |> PList.map (fun disk -> 
+                                        {disk with radius = disk.radius + 1.0}
+                                    )
+                                {model with dipAndStrikeOnController = newDipAndStrikeOnController}
+                            | x when x < -0.40 -> 
+                                printfn "make radius smaller"
+                                let newDipAndStrikeOnController = 
+                                    model.dipAndStrikeOnController
+                                    |> PList.map (fun disk -> 
+                                        {disk with radius = disk.radius - 1.0}
+                                    )
+                                {model with dipAndStrikeOnController = newDipAndStrikeOnController}
+                            | _ -> model
+                        else model
+                    | _ -> model
+                | _ -> model 
+
+            | None -> model 
+
+            
                 
     let mkColor (model : MModel) (box : MVisibleBox) =
         let id = box.id
@@ -391,8 +433,7 @@ module Demo =
         | VrMessage.ValueChange(con, axis, pos) ->
             match axis with 
             | 0 -> 
-                printfn "%A" pos
-                []
+                [GetTrackpadPosition(con |> ControllerKind.fromInt, axis, pos)]
             | _ -> []
         | VrMessage.PressButton(con,button) ->
             printfn "button pressed: %d" button
@@ -454,9 +495,8 @@ module Demo =
                 }  
 
     let mkCylinder (model : MModel) (cylinder : MVisibleCylinder) = 
-        let color = cylinder.color
-
-        let color1 = 
+        let pos = cylinder.trafo
+        let color = 
             adaptive {
                 let! dipAngle = model.dipAndStrikeAngle
                 let! min = Mod.constant 0.0
@@ -467,10 +507,13 @@ module Demo =
                 let hsv = HSVf((1.0 - hue) * 0.625, 1.0, 1.0)
                 return hsv.ToC3f().ToC4b()
             }
+        let rad = 
+            adaptive { 
+                let! rad1 = cylinder.radius
+                return rad1
+            }
 
-        let pos = cylinder.trafo
-
-        Sg.cylinder 20 color1 cylinder.radius (Mod.constant 0.01)
+        Sg.cylinder 20 color rad (Mod.constant 0.01)
             |> Sg.noEvents
             |> Sg.trafo(pos)
             |> Sg.shader {
@@ -747,6 +790,24 @@ module Demo =
                 ]
             |> Sg.noEvents
 
+        let dsAngleText = 
+            m.dipAndStrikeOnAnnotationSpace
+            |> AList.toASet
+            |> ASet.map (fun angle -> 
+                Sg.text font C4b.White (angle.angle)
+                |> Sg.noEvents
+                |> Sg.trafo(Mod.constant(Trafo3d.RotationInDegrees(V3d(90.0,0.0,90.0))))
+                |> Sg.scale 0.05
+                |> Sg.trafo(angle.trafo)
+            )
+            |> Sg.set
+            |> Sg.effect [
+                toEffect DefaultSurfaces.trafo
+                toEffect DefaultSurfaces.vertexColor
+                toEffect DefaultSurfaces.simpleLighting                              
+                ]
+            |> Sg.noEvents
+
         let flagsOnAnnotationSpace = 
             m.flagOnAnnotationSpace
             |> AList.toASet 
@@ -906,6 +967,7 @@ module Demo =
                 sphereOnAnnotationSpace
                 drawSphereLines
                 distanceText
+                dsAngleText
                 finishedLineHmap
                 cylindersOnAnnotationSpace
             ]   

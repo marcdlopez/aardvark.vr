@@ -148,22 +148,24 @@ module VisibleSphere =
 [<DomainType>]
 type VisibleCylinder = 
     {
-        geometry : Cylinder3d
-        color : C4b
-        trafo : Trafo3d
-        radius : float
+        geometry: Cylinder3d
+        color   : C4b
+        trafo   : Trafo3d
+        radius  : float
+        angle   : string
         [<TreatAsValue>]
-        id : string
+        id      : string
     }
 
 module VisibleCylinder = 
     let initial = 
         {
             geometry = Cylinder3d()
-            color = C4b.White
-            trafo = Trafo3d.Identity
-            radius = 1.0
-            id = ""
+            color    = C4b.White
+            trafo    = Trafo3d.Identity
+            radius   = 1.0
+            angle    = ""
+            id       = ""
         }
 
     let createCylinder (color : C4b) (position : V3d) (radius : float) = 

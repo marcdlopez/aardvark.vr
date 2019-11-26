@@ -263,12 +263,14 @@ module Mutable =
         let _color = ResetMod.Create(__initial.color)
         let _trafo = ResetMod.Create(__initial.trafo)
         let _radius = ResetMod.Create(__initial.radius)
+        let _angle = ResetMod.Create(__initial.angle)
         let _id = ResetMod.Create(__initial.id)
         
         member x.geometry = _geometry :> IMod<_>
         member x.color = _color :> IMod<_>
         member x.trafo = _trafo :> IMod<_>
         member x.radius = _radius :> IMod<_>
+        member x.angle = _angle :> IMod<_>
         member x.id = _id :> IMod<_>
         
         member x.Current = __current :> IMod<_>
@@ -280,6 +282,7 @@ module Mutable =
                 ResetMod.Update(_color,v.color)
                 ResetMod.Update(_trafo,v.trafo)
                 ResetMod.Update(_radius,v.radius)
+                ResetMod.Update(_angle,v.angle)
                 _id.Update(v.id)
                 
         
@@ -320,6 +323,12 @@ module Mutable =
                     override x.Get(r) = r.radius
                     override x.Set(r,v) = { r with radius = v }
                     override x.Update(r,f) = { r with radius = f r.radius }
+                }
+            let angle =
+                { new Lens<Demo.VisibleCylinder, System.String>() with
+                    override x.Get(r) = r.angle
+                    override x.Set(r,v) = { r with angle = v }
+                    override x.Update(r,f) = { r with angle = f r.angle }
                 }
             let id =
                 { new Lens<Demo.VisibleCylinder, System.String>() with

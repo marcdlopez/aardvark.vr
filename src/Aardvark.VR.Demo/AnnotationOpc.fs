@@ -59,9 +59,9 @@ module AnnotationOpc =
                     
                 let computeDipAndStrikeDotProduct = abs(id.pose.deviceToWorld.Forward.M22) //we only want the M22 element since we are comparing with horizontal plane V3d(OOI)
                 // this is the same as line above: let horiPlane = abs(id.pose.deviceToWorld.Forward.C2.Normalized.Z)                
-                printfn "dot product: %f" computeDipAndStrikeDotProduct
+                //printfn "dot product: %f" computeDipAndStrikeDotProduct
                 let anglePlane = acos(computeDipAndStrikeDotProduct).DegreesFromRadians()
-                printfn "angle: %f" anglePlane
+                //printfn "angle: %f" anglePlane
 
                 let dipColor = 
                     let dipAngle = anglePlane
@@ -87,6 +87,7 @@ module AnnotationOpc =
                             {ds with 
                                 trafo = id.pose.deviceToWorld * newModel.workSpaceTrafo.Inverse
                                 color = dipColor
+                                angle = newModel.dipAndStrikeAngle.ToString()
                             }
                         let newDSOnAnnotationSpace = 
                             newModel.dipAndStrikeOnAnnotationSpace
