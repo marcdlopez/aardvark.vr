@@ -97,6 +97,7 @@ type Model =
         finishedLine                    : hmap<string, FinishedLine>
         dipAndStrikeOnController        : plist<VisibleCylinder>
         dipAndStrikeOnAnnotationSpace   : plist<VisibleCylinder>
+        dipAndStrikeAngle               : float
         
     }
 
@@ -167,6 +168,7 @@ module Model =
             lineIsHovered           = false
             dipAndStrikeOnController        = PList.empty
             dipAndStrikeOnAnnotationSpace   = PList.empty
+            dipAndStrikeAngle               = 0.0
         }
 
     let initMainReset = 

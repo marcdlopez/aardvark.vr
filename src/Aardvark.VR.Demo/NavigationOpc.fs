@@ -40,7 +40,7 @@ module NavigationOpc =
 
                 {newModel with 
                     opcSpaceTrafo           = newOpcSpace;
-                    annotationSpaceTrafo          = newFlagSpace;
+                    annotationSpaceTrafo    = newFlagSpace;
                     workSpaceTrafo          = newWorkSpace
                 }
             | 2 ->
@@ -79,7 +79,7 @@ module NavigationOpc =
 
                 {newModel with  
                     opcSpaceTrafo           = newOpcSpace;
-                    annotationSpaceTrafo          = newFlagSpace;
+                    annotationSpaceTrafo    = newFlagSpace;
                     workSpaceTrafo          = newWorkSpace}
             | _ -> 
                 newModel
@@ -137,7 +137,6 @@ module NavigationOpc =
 
         {model with 
             initWorkSpaceTrafo          = model.workSpaceTrafo;
-
             initControlTrafo            = firstControllerTrafo; 
             init2ControlTrafo           = secondControllerTrafo;
             offsetControllerDistance    = InitialControllerDistance; 

@@ -56,7 +56,15 @@ module AnnotationOpc =
                 let updateCylinderPos = 
                     newModel.dipAndStrikeOnController
                     |> PList.map (fun cylinder -> {cylinder with trafo = id.pose.deviceToWorld})
-                
+                    
+                let computeDipAndStrikeDotProduct = abs(id.pose.deviceToWorld.Forward.M22) //we only want the M22 element since we are comparing with horizontal plane V3d(OOI)
+                // this is the same as line above: let horiPlane = abs(id.pose.deviceToWorld.Forward.C2.Normalized.Z)                
+                printfn "dot product: %f" computeDipAndStrikeDotProduct
+                let anglePlane = acos(computeDipAndStrikeDotProduct).DegreesFromRadians()
+                printfn "angle: %f" anglePlane
+
+                let newModel = {newModel with dipAndStrikeAngle = anglePlane}
+
                 match id.backButtonPressed with 
                 | true -> 
                     let dipAndStrikeOnController = 

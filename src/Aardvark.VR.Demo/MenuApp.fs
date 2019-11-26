@@ -67,22 +67,24 @@ module MenuApp =
                             else if idx.id.Equals(boxID3.id) then {idx with id = "Flag"}
                             else if idx.id.Equals(boxID4.id) then {idx with id = "Draw"} //allow different options in the draw mode: freely draw and draw by points
                             else {idx with id = "Line"})
-                    
-                    match model.lineSubMenu with 
-                    | Edit -> 
-                        let newLineMenuBoxes = UtilitiesMenu.mkBoxesMenu model.initialMenuPosition hmdPos.pose 3
-                        let boxID0 = newLineMenuBoxes |> Seq.item 0
-                        let boxID1 = newLineMenuBoxes |> Seq.item 1 
+                    match model.subMenu with 
+                    | Line -> 
+                        match model.lineSubMenu with 
+                        | Edit -> 
+                            let newLineMenuBoxes = UtilitiesMenu.mkBoxesMenu model.initialMenuPosition hmdPos.pose 3
+                            let boxID0 = newLineMenuBoxes |> Seq.item 0
+                            let boxID1 = newLineMenuBoxes |> Seq.item 1 
                         
-                        let newLineMenuBoxes = 
-                            newLineMenuBoxes
-                            |> PList.map (fun idx -> 
-                                if idx.id.Equals(boxID0.id)then {idx with id = "Remove Line"}
-                                else if idx.id.Equals(boxID1.id) then {idx with id = "Modify Poistion"}
-                                else {idx with id = "Start new Line"})
-                        model //TODO   
-                    | LineCreate -> 
-                        {model with subMenuBoxes = newSubMenuBoxes; menuButtonPressed = buttonPressed}//; lineSubMenuBoxes = lineSubModel}
+                            let newLineMenuBoxes = 
+                                newLineMenuBoxes
+                                |> PList.map (fun idx -> 
+                                    if idx.id.Equals(boxID0.id)then {idx with id = "Remove Line"}
+                                    else if idx.id.Equals(boxID1.id) then {idx with id = "Modify Poistion"}
+                                    else {idx with id = "Start new Line"})
+                            {model with menuButtonPressed = buttonPressed; lineSubMenuBoxes = newLineMenuBoxes}
+                        | _ -> {model with subMenuBoxes = newSubMenuBoxes; menuButtonPressed = buttonPressed}//; lineSubMenuBoxes = lineSubModel}
+                    | _ ->  {model with subMenuBoxes = newSubMenuBoxes; menuButtonPressed = buttonPressed}
+                    
                 | MainReset -> 
                     {model with menu = MenuState.Navigation}
             else 

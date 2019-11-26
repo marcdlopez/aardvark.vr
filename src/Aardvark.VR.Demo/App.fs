@@ -152,6 +152,8 @@ module Demo =
                     {newModel.menuModel with lineSubMenu = lineSubMenuState.Edit}
                 else {newModel.menuModel with lineSubMenu = lineSubMenuState.LineCreate}
             
+            //printfn "%s, %s" (newModel.lineIsHovered.ToString()) (newModel.menuModel.lineSubMenu.ToString())
+
             {newModel with menuModel = changeLineMode}
             
         | GrabObject (kind, buttonKind, buttonPress)-> 
@@ -416,6 +418,7 @@ module Demo =
         Sg.cone' 20 C4b.Cyan 0.5 5.0 
             |> Sg.noEvents
             |> Sg.scale 0.01
+            |> Sg.trafo (Mod.constant (Trafo3d.RotationInDegrees(V3d(-90.0,90.0,0.0))))
             |> Sg.trafo cp.deviceToWorld
     
     let mkFlag (model : MModel) (box : MVisibleBox) =
@@ -988,7 +991,7 @@ module Demo =
             lineIsHovered           = false
             dipAndStrikeOnController        = PList.empty
             dipAndStrikeOnAnnotationSpace   = PList.empty
-
+            dipAndStrikeAngle               = 0.0
         }
     let app =
         {
