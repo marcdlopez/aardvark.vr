@@ -63,6 +63,16 @@ module AnnotationOpc =
                 let anglePlane = acos(computeDipAndStrikeDotProduct).DegreesFromRadians()
                 printfn "angle: %f" anglePlane
 
+                let dipColor = 
+                    let dipAngle = anglePlane
+                    let min = 0.0
+                    let max = 90.0
+
+                    let range = new Range1d(min, max)
+                    let hue = (dipAngle - range.Min) / range.Size
+                    let hsv = HSVf((1.0 - hue) * 0.625, 1.0, 1.0)
+                    hsv.ToC3f().ToC4b()
+
                 let newModel = {newModel with dipAndStrikeAngle = anglePlane}
 
                 match id.backButtonPressed with 
@@ -73,7 +83,11 @@ module AnnotationOpc =
 
                     match dipAndStrikeOnController with 
                     | Some ds ->
-                        let updateDS = {ds with trafo = id.pose.deviceToWorld * newModel.workSpaceTrafo}
+                        let updateDS = 
+                            {ds with 
+                                trafo = id.pose.deviceToWorld * newModel.workSpaceTrafo.Inverse
+                                color = dipColor
+                            }
                         let newDSOnAnnotationSpace = 
                             newModel.dipAndStrikeOnAnnotationSpace
                             |> PList.prepend updateDS
@@ -104,7 +118,6 @@ module AnnotationOpc =
 
                         match lineOnController with
                         | Some line -> 
-
                             let updateLine = {line with trafo = id.pose.deviceToWorld * newModel.workSpaceTrafo.Inverse}
                         
                             let newLineOnMars = 

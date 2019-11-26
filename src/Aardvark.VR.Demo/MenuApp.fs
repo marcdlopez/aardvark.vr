@@ -80,15 +80,33 @@ module MenuApp =
                                 |> PList.map (fun idx -> 
                                     if idx.id.Equals(boxID0.id)then {idx with id = "Remove Line"}
                                     else if idx.id.Equals(boxID1.id) then {idx with id = "Modify Poistion"}
-                                    else {idx with id = "Start new Line"})
-                            {model with menuButtonPressed = buttonPressed; lineSubMenuBoxes = newLineMenuBoxes}
-                        | _ -> {model with subMenuBoxes = newSubMenuBoxes; menuButtonPressed = buttonPressed}//; lineSubMenuBoxes = lineSubModel}
-                    | _ ->  {model with subMenuBoxes = newSubMenuBoxes; menuButtonPressed = buttonPressed}
+                                    else {idx with id = "Start new Line"} //MISSING: hovering boxes and selecting
+                                )
+                            {model with 
+                                menuButtonPressed = buttonPressed; 
+                                lineSubMenuBoxes = newLineMenuBoxes
+                            }
+                        | _ -> 
+                            {model with 
+                                subMenuBoxes = newSubMenuBoxes; 
+                                menuButtonPressed = buttonPressed
+                            }
+                    | _ ->  
+                        {model with 
+                            subMenuBoxes = newSubMenuBoxes; 
+                            menuButtonPressed = buttonPressed
+                        }
                     
                 | MainReset -> 
                     {model with menu = MenuState.Navigation}
             else 
-                {model with mainMenuBoxes = PList.empty; subMenuBoxes = PList.empty; menuButtonPressed = buttonPressed; initialMenuPositionBool = false}
+                {model with 
+                    mainMenuBoxes = PList.empty; 
+                    subMenuBoxes = PList.empty; 
+                    lineSubMenuBoxes = PList.empty; 
+                    menuButtonPressed = buttonPressed; 
+                    initialMenuPositionBool = false
+                }
         | HoverIn id -> 
             match model.boxHovered with 
             | Some oldID when id = oldID -> model

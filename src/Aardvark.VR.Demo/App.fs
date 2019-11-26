@@ -388,6 +388,12 @@ module Demo =
             match button with 
             | 0 -> [MenuMessage (Demo.MenuAction.CreateMenu(con |> ControllerKind.fromInt, false), con |> ControllerKind.fromInt, false)]
             | _ -> []
+        | VrMessage.ValueChange(con, axis, pos) ->
+            match axis with 
+            | 0 -> 
+                printfn "%A" pos
+                []
+            | _ -> []
         | VrMessage.PressButton(con,button) ->
             printfn "button pressed: %d" button
             match button with 
@@ -448,6 +454,32 @@ module Demo =
                 }  
 
     let mkCylinder (model : MModel) (cylinder : MVisibleCylinder) = 
+        let color = cylinder.color
+
+        let color1 = 
+            adaptive {
+                let! dipAngle = model.dipAndStrikeAngle
+                let! min = Mod.constant 0.0
+                let! max = Mod.constant 90.0
+
+                let range = new Range1d(min, max)
+                let hue = (dipAngle - range.Min) / range.Size
+                let hsv = HSVf((1.0 - hue) * 0.625, 1.0, 1.0)
+                return hsv.ToC3f().ToC4b()
+            }
+
+        let pos = cylinder.trafo
+
+        Sg.cylinder 20 color1 cylinder.radius (Mod.constant 0.01)
+            |> Sg.noEvents
+            |> Sg.trafo(pos)
+            |> Sg.shader {
+                do! DefaultSurfaces.trafo
+                do! DefaultSurfaces.vertexColor
+                //do! DefaultSurfaces.simpleLighting
+            }
+
+    let mkCylinderOnAnnotationSpace (model : MModel) (cylinder : MVisibleCylinder) = 
         let color = cylinder.color
         let pos = cylinder.trafo
 
@@ -835,7 +867,7 @@ module Demo =
             m.dipAndStrikeOnAnnotationSpace
             |> AList.toASet
             |> ASet.map (fun c -> 
-                mkCylinder m c
+                mkCylinderOnAnnotationSpace m c
             )
             |> Sg.set
             |> Sg.effect [

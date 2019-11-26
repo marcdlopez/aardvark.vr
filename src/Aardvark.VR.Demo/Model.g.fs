@@ -150,6 +150,7 @@ module Mutable =
         let _finishedLine = MMap.Create(__initial.finishedLine, (fun v -> MFinishedLine.Create(v)), (fun (m,v) -> MFinishedLine.Update(m, v)), (fun v -> v))
         let _dipAndStrikeOnController = MList.Create(__initial.dipAndStrikeOnController, (fun v -> Demo.Mutable.MVisibleCylinder.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleCylinder.Update(m, v)), (fun v -> v))
         let _dipAndStrikeOnAnnotationSpace = MList.Create(__initial.dipAndStrikeOnAnnotationSpace, (fun v -> Demo.Mutable.MVisibleCylinder.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleCylinder.Update(m, v)), (fun v -> v))
+        let _dipAndStrikeAngle = ResetMod.Create(__initial.dipAndStrikeAngle)
         
         member x.text = _text :> IMod<_>
         member x.vr = _vr :> IMod<_>
@@ -188,6 +189,7 @@ module Mutable =
         member x.finishedLine = _finishedLine :> amap<_,_>
         member x.dipAndStrikeOnController = _dipAndStrikeOnController :> alist<_>
         member x.dipAndStrikeOnAnnotationSpace = _dipAndStrikeOnAnnotationSpace :> alist<_>
+        member x.dipAndStrikeAngle = _dipAndStrikeAngle :> IMod<_>
         
         member x.Current = __current :> IMod<_>
         member x.Update(v : Demo.Main.Model) =
@@ -230,6 +232,7 @@ module Mutable =
                 MMap.Update(_finishedLine, v.finishedLine)
                 MList.Update(_dipAndStrikeOnController, v.dipAndStrikeOnController)
                 MList.Update(_dipAndStrikeOnAnnotationSpace, v.dipAndStrikeOnAnnotationSpace)
+                ResetMod.Update(_dipAndStrikeAngle,v.dipAndStrikeAngle)
                 
         
         static member Create(__initial : Demo.Main.Model) : MModel = MModel(__initial)
@@ -467,4 +470,10 @@ module Mutable =
                     override x.Get(r) = r.dipAndStrikeOnAnnotationSpace
                     override x.Set(r,v) = { r with dipAndStrikeOnAnnotationSpace = v }
                     override x.Update(r,f) = { r with dipAndStrikeOnAnnotationSpace = f r.dipAndStrikeOnAnnotationSpace }
+                }
+            let dipAndStrikeAngle =
+                { new Lens<Demo.Main.Model, System.Double>() with
+                    override x.Get(r) = r.dipAndStrikeAngle
+                    override x.Set(r,v) = { r with dipAndStrikeAngle = v }
+                    override x.Update(r,f) = { r with dipAndStrikeAngle = f r.dipAndStrikeAngle }
                 }
