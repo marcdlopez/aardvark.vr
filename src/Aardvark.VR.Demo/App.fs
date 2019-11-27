@@ -132,7 +132,7 @@ module Demo =
             
             let controllerMenuUpdate = MenuApp.update model.controllerInfos state vr newModel.menuModel (MenuAction.UpdateControllerPose (kind, p))
 
-            let somethingHovered = 
+            let someLineHovered = 
                     newModel.finishedLine
                     |> HMap.map (fun idPoints fl -> 
                         fl.points |> PList.filter(fun lp -> lp.hovered = true)
@@ -140,8 +140,8 @@ module Demo =
                     |> HMap.values
                     |> Seq.first
                 
-            let isHovered = 
-                match somethingHovered with 
+            let newLineIsHovered = 
+                match someLineHovered with 
                 | Some h -> 
                     let getHovered = 
                         h
@@ -152,7 +152,7 @@ module Demo =
                     | None -> false
                 | None -> false
 
-            let newModel = {newModel with menuModel = controllerMenuUpdate; lineIsHovered = isHovered}
+            let newModel = {newModel with menuModel = controllerMenuUpdate; lineIsHovered = newLineIsHovered}
             
             let changeLineMode = 
                 if newModel.lineIsHovered then 
@@ -176,6 +176,7 @@ module Demo =
                     | ControllerButtons.Joystick -> Some {x with joystickPressed = buttonPress}
                     | ControllerButtons.Back -> Some {x with backButtonPressed = buttonPress}
                     | ControllerButtons.Side -> Some {x with sideButtonPressed = buttonPress}
+                    | ControllerButtons.Home -> Some {x with homeButtonPressed = buttonPress}
                     | _ -> None
                     
                 | None -> 
@@ -204,11 +205,26 @@ module Demo =
                                     buttonKind          = buttonKind
                                     joystickPressed     = buttonPress
                             }
+                    | ControllerButtons.Home -> 
+                        Some 
+                            {
+                                ControllerInfo.initial with
+                                    kind                = kind
+                                    buttonKind          = buttonKind
+                                    homeButtonPressed   = buttonPress
+                            }
                     | _ -> None
                 )
             
             let newModel = {model with controllerInfos = updateControllerButtons}
             
+            let homeButtonPressed = 
+                match buttonKind with 
+                | ControllerButtons.Home -> {newModel.menuModel with menu = MenuState.Navigation}
+                | _ -> newModel.menuModel
+
+            let newModel = {newModel with menuModel = homeButtonPressed}
+
             let controllerMenuUpdate = MenuApp.update newModel.controllerInfos state vr newModel.menuModel (MenuAction.Select (kind, buttonPress))
 
             let newModel = {newModel with menuModel = controllerMenuUpdate}
@@ -333,6 +349,7 @@ module Demo =
                                 let newDipAndStrikeOnController = 
                                     model.dipAndStrikeOnController
                                     |> PList.map (fun disk -> 
+                                        printfn "%f" disk.radius
                                         {disk with radius = disk.radius + 1.0}
                                     )
                                 {model with dipAndStrikeOnController = newDipAndStrikeOnController}
@@ -439,7 +456,7 @@ module Demo =
             printfn "button pressed: %d" button
             match button with 
             | 2 -> [GrabObject(con |> ControllerKind.fromInt, button |> ControllerButtons.fromInt, true)]
-            //| 1 -> [GrabObject(con |> ControllerKind.fromInt, button |> ControllerButtons.fromInt, true)]
+            | 1 -> [GrabObject(con |> ControllerKind.fromInt, 3 |> ControllerButtons.fromInt, true)]
             | _ -> []
         | VrMessage.UnpressButton(con, button) -> 
             match button with 
@@ -740,7 +757,7 @@ module Demo =
                 marsLine 
                 |> Mod.bind (fun sphere -> 
                     match sphere with 
-                    | Some id -> id.trafo
+                    | Some id -> id.trafo 
                     | None -> Mod.constant (Trafo3d.Translation(V3d(50000.0, 50000.0, 50000.0)))
                 )
             adaptive {
@@ -750,8 +767,8 @@ module Demo =
                 | Some clID -> 
                     match marsLineTest with 
                     | Some mlID -> 
-                        let! conLineTrafo = conLine1 |> Mod.map (fun t -> t)
-                        let! marsLineTrafo = marsLine1 |> Mod.map (fun t -> t)
+                        let! conLineTrafo = conLine1 |> Mod.map (fun t -> t )
+                        let! marsLineTrafo = marsLine1 |> Mod.map (fun t -> t )
                         return [|Line3d(conLineTrafo.GetModelOrigin(), marsLineTrafo.GetModelOrigin())|]
                     | None -> return [|Line3d()|]
                 | None -> return [|Line3d()|]
@@ -980,7 +997,8 @@ module Demo =
                 spheres
                 showDynamicLine
                 cylinders
-            ]   |> Sg.ofList
+            ]   
+            |> Sg.ofList
 
         let mkDisappear = 
             let controllerInfo = m.menuModel.controllerMenuSelector

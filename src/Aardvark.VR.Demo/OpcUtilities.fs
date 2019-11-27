@@ -78,6 +78,7 @@ module OpcUtilities =
                 frontButtonPressed = false
                 joystickPressed    = false
                 joystickHold       = false
+                homeButtonPressed  = false
                 sideButtonPressed  = false
             }
 

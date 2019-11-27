@@ -20,6 +20,7 @@ module Mutable =
         let _frontButtonPressed = ResetMod.Create(__initial.frontButtonPressed)
         let _joystickPressed = ResetMod.Create(__initial.joystickPressed)
         let _sideButtonPressed = ResetMod.Create(__initial.sideButtonPressed)
+        let _homeButtonPressed = ResetMod.Create(__initial.homeButtonPressed)
         let _joystickHold = ResetMod.Create(__initial.joystickHold)
         
         member x.kind = _kind :> IMod<_>
@@ -29,6 +30,7 @@ module Mutable =
         member x.frontButtonPressed = _frontButtonPressed :> IMod<_>
         member x.joystickPressed = _joystickPressed :> IMod<_>
         member x.sideButtonPressed = _sideButtonPressed :> IMod<_>
+        member x.homeButtonPressed = _homeButtonPressed :> IMod<_>
         member x.joystickHold = _joystickHold :> IMod<_>
         
         member x.Current = __current :> IMod<_>
@@ -43,6 +45,7 @@ module Mutable =
                 ResetMod.Update(_frontButtonPressed,v.frontButtonPressed)
                 ResetMod.Update(_joystickPressed,v.joystickPressed)
                 ResetMod.Update(_sideButtonPressed,v.sideButtonPressed)
+                ResetMod.Update(_homeButtonPressed,v.homeButtonPressed)
                 ResetMod.Update(_joystickHold,v.joystickHold)
                 
         
@@ -102,6 +105,12 @@ module Mutable =
                     override x.Set(r,v) = { r with sideButtonPressed = v }
                     override x.Update(r,f) = { r with sideButtonPressed = f r.sideButtonPressed }
                 }
+            let homeButtonPressed =
+                { new Lens<Demo.ControllerInfo, System.Boolean>() with
+                    override x.Get(r) = r.homeButtonPressed
+                    override x.Set(r,v) = { r with homeButtonPressed = v }
+                    override x.Update(r,f) = { r with homeButtonPressed = f r.homeButtonPressed }
+                }
             let joystickHold =
                 { new Lens<Demo.ControllerInfo, System.Boolean>() with
                     override x.Get(r) = r.joystickHold
@@ -116,11 +125,13 @@ module Mutable =
         let _geometry = ResetMod.Create(__initial.geometry)
         let _color = ResetMod.Create(__initial.color)
         let _trafo = ResetMod.Create(__initial.trafo)
+        let _flagHovered = ResetMod.Create(__initial.flagHovered)
         let _id = ResetMod.Create(__initial.id)
         
         member x.geometry = _geometry :> IMod<_>
         member x.color = _color :> IMod<_>
         member x.trafo = _trafo :> IMod<_>
+        member x.flagHovered = _flagHovered :> IMod<_>
         member x.id = _id :> IMod<_>
         
         member x.Current = __current :> IMod<_>
@@ -131,6 +142,7 @@ module Mutable =
                 ResetMod.Update(_geometry,v.geometry)
                 ResetMod.Update(_color,v.color)
                 ResetMod.Update(_trafo,v.trafo)
+                ResetMod.Update(_flagHovered,v.flagHovered)
                 _id.Update(v.id)
                 
         
@@ -165,6 +177,12 @@ module Mutable =
                     override x.Get(r) = r.trafo
                     override x.Set(r,v) = { r with trafo = v }
                     override x.Update(r,f) = { r with trafo = f r.trafo }
+                }
+            let flagHovered =
+                { new Lens<Demo.VisibleBox, System.Boolean>() with
+                    override x.Get(r) = r.flagHovered
+                    override x.Set(r,v) = { r with flagHovered = v }
+                    override x.Update(r,f) = { r with flagHovered = f r.flagHovered }
                 }
             let id =
                 { new Lens<Demo.VisibleBox, System.String>() with

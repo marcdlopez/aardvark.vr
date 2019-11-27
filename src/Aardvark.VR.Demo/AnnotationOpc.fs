@@ -23,29 +23,43 @@ module AnnotationOpc =
             let controllerPos = newModel.menuModel.controllerMenuSelector
             let newCP = newModel.controllerInfos |> HMap.tryFind controllerPos.kind
             
+            
             match newCP with 
             | Some id -> 
-                let updateFlagPos = 
-                    newModel.flagOnController
-                    |> PList.map (fun flag -> {flag with trafo = id.pose.deviceToWorld})
-                
-                match id.backButtonPressed with 
-                | true -> 
-                    let flagOnController = 
+                let newModel = 
+                    let updateFlagPos = 
                         newModel.flagOnController
-                        |> PList.tryFirst
-
-                    match flagOnController with 
-                    | Some flag ->
-                        let updateFlag = {flag with trafo = id.pose.deviceToWorld * newModel.workSpaceTrafo.Inverse}
-                        let newFlagOnMars = 
-                            newModel.flagOnAnnotationSpace
-                            |> PList.prepend updateFlag
-
-                        {newModel with flagOnController = PList.empty; flagOnAnnotationSpace = newFlagOnMars}
-                    | None -> newModel
-                | false -> {newModel with flagOnController = updateFlagPos}
+                        |> PList.map (fun flag -> {flag with trafo = id.pose.deviceToWorld})
                 
+                    match id.backButtonPressed with 
+                    | true -> 
+                        let flagOnController = 
+                            newModel.flagOnController
+                            |> PList.tryFirst
+
+                        match flagOnController with 
+                        | Some flag ->
+                            let updateFlag = {flag with trafo = id.pose.deviceToWorld * newModel.workSpaceTrafo.Inverse}
+                            let newFlagOnMars = 
+                                newModel.flagOnAnnotationSpace
+                                |> PList.prepend updateFlag
+
+                            {newModel with flagOnController = PList.empty; flagOnAnnotationSpace = newFlagOnMars}
+                        | None -> newModel
+                    | false -> {newModel with flagOnController = updateFlagPos}
+               
+                let checkFlagHover = 
+                    newModel.flagOnAnnotationSpace
+                    |> PList.choosei (fun _ f -> 
+                        let distance = V3d.Distance(f.trafo.GetModelOrigin(), id.pose.deviceToWorld.GetModelOrigin())
+                        if (distance <= 0.1) then 
+                            Some {f with color = C4b.Red; flagHovered = true}
+                        else 
+                            Some {f with color = C4b.White; flagHovered = false}
+                    )
+
+                {newModel with flagOnAnnotationSpace = checkFlagHover}   
+
             | None -> newModel
         | DipAndStrike -> 
             let controllerPos = newModel.menuModel.controllerMenuSelector
@@ -144,6 +158,7 @@ module AnnotationOpc =
                             match linePointMars with
                             | Some line1 ->
                                 let newDistanceLine = V3d.Distance(line1.trafo.GetModelOrigin(), updateLine.trafo.GetModelOrigin())
+                                let newDistanceLine = System.Math.Round(newDistanceLine, 3)
                                 let newSphereListIndex = 
                                     newModel.lineOnAnnotationSpace
                                     |> PList.findIndex updateLine 

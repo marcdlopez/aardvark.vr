@@ -78,7 +78,7 @@ module MenuApp =
                             let newLineMenuBoxes = 
                                 newLineMenuBoxes
                                 |> PList.map (fun idx -> 
-                                    if idx.id.Equals(boxID0.id)then {idx with id = "Remove Line"}
+                                    if idx.id.Equals(boxID0.id)then {idx with id = "Remove Point"}
                                     else if idx.id.Equals(boxID1.id) then {idx with id = "Modify Poistion"}
                                     else {idx with id = "Start new Line"} //MISSING: hovering boxes and selecting
                                 )

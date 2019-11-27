@@ -22,6 +22,7 @@ type ControllerButtons =
 | Joystick  = 0
 | Back      = 1
 | Side      = 2
+| Home      = 3
 
 module ControllerButtons = 
     let fromInt i = 
@@ -41,6 +42,7 @@ type ControllerInfo = {
     frontButtonPressed: bool
     joystickPressed   : bool
     sideButtonPressed : bool
+    homeButtonPressed : bool
     joystickHold      : bool
 }
 
@@ -54,6 +56,7 @@ module ControllerInfo =
             frontButtonPressed  = false
             joystickPressed     = false
             sideButtonPressed   = false
+            homeButtonPressed   = false
             joystickHold        = false
         }
 
@@ -63,6 +66,7 @@ type VisibleBox = {
     geometry : Box3d
     color : C4b
     trafo : Trafo3d
+    flagHovered : bool
     [<TreatAsValue>]
     id : string
 }
@@ -75,6 +79,7 @@ module VisibleBox =
             geometry  = Box3d.FromSize(V3d(0.10, 0.5, 0.05))//Box3d.FromCenterAndSize(V3d.Zero, V3d.One)
             color = C4b.Red
             trafo = Trafo3d.Identity
+            flagHovered = false
             //size = V3d.One
             id = ""
         }
