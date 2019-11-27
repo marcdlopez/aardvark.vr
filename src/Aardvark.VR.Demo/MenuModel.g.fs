@@ -17,9 +17,11 @@ module Mutable =
         let _boxHovered = MOption.Create(__initial.boxHovered)
         let _subMenuBoxes = MList.Create(__initial.subMenuBoxes, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
         let _lineSubMenuBoxes = MList.Create(__initial.lineSubMenuBoxes, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
+        let _flagSubMenuBoxes = MList.Create(__initial.flagSubMenuBoxes, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
         let _menu = ResetMod.Create(__initial.menu)
         let _subMenu = ResetMod.Create(__initial.subMenu)
         let _lineSubMenu = ResetMod.Create(__initial.lineSubMenu)
+        let _flagSubMenu = ResetMod.Create(__initial.flagSubMenu)
         let _initialMenuState = ResetMod.Create(__initial.initialMenuState)
         let _menuButtonPressed = ResetMod.Create(__initial.menuButtonPressed)
         let _initialMenuPosition = Aardvark.Vr.Mutable.MPose.Create(__initial.initialMenuPosition)
@@ -30,9 +32,11 @@ module Mutable =
         member x.boxHovered = _boxHovered :> IMod<_>
         member x.subMenuBoxes = _subMenuBoxes :> alist<_>
         member x.lineSubMenuBoxes = _lineSubMenuBoxes :> alist<_>
+        member x.flagSubMenuBoxes = _flagSubMenuBoxes :> alist<_>
         member x.menu = _menu :> IMod<_>
         member x.subMenu = _subMenu :> IMod<_>
         member x.lineSubMenu = _lineSubMenu :> IMod<_>
+        member x.flagSubMenu = _flagSubMenu :> IMod<_>
         member x.initialMenuState = _initialMenuState :> IMod<_>
         member x.menuButtonPressed = _menuButtonPressed :> IMod<_>
         member x.initialMenuPosition = _initialMenuPosition
@@ -48,9 +52,11 @@ module Mutable =
                 MOption.Update(_boxHovered, v.boxHovered)
                 MList.Update(_subMenuBoxes, v.subMenuBoxes)
                 MList.Update(_lineSubMenuBoxes, v.lineSubMenuBoxes)
+                MList.Update(_flagSubMenuBoxes, v.flagSubMenuBoxes)
                 ResetMod.Update(_menu,v.menu)
                 ResetMod.Update(_subMenu,v.subMenu)
                 ResetMod.Update(_lineSubMenu,v.lineSubMenu)
+                ResetMod.Update(_flagSubMenu,v.flagSubMenu)
                 ResetMod.Update(_initialMenuState,v.initialMenuState)
                 ResetMod.Update(_menuButtonPressed,v.menuButtonPressed)
                 Aardvark.Vr.Mutable.MPose.Update(_initialMenuPosition, v.initialMenuPosition)
@@ -96,6 +102,12 @@ module Mutable =
                     override x.Set(r,v) = { r with lineSubMenuBoxes = v }
                     override x.Update(r,f) = { r with lineSubMenuBoxes = f r.lineSubMenuBoxes }
                 }
+            let flagSubMenuBoxes =
+                { new Lens<Demo.Menu.MenuModel, Aardvark.Base.plist<Demo.VisibleBox>>() with
+                    override x.Get(r) = r.flagSubMenuBoxes
+                    override x.Set(r,v) = { r with flagSubMenuBoxes = v }
+                    override x.Update(r,f) = { r with flagSubMenuBoxes = f r.flagSubMenuBoxes }
+                }
             let menu =
                 { new Lens<Demo.Menu.MenuModel, Demo.Menu.MenuState>() with
                     override x.Get(r) = r.menu
@@ -113,6 +125,12 @@ module Mutable =
                     override x.Get(r) = r.lineSubMenu
                     override x.Set(r,v) = { r with lineSubMenu = v }
                     override x.Update(r,f) = { r with lineSubMenu = f r.lineSubMenu }
+                }
+            let flagSubMenu =
+                { new Lens<Demo.Menu.MenuModel, Demo.Menu.flagSubMenuState>() with
+                    override x.Get(r) = r.flagSubMenu
+                    override x.Set(r,v) = { r with flagSubMenu = v }
+                    override x.Update(r,f) = { r with flagSubMenu = f r.flagSubMenu }
                 }
             let initialMenuState =
                 { new Lens<Demo.Menu.MenuModel, Demo.Menu.MenuState>() with

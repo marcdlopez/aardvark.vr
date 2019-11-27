@@ -152,16 +152,39 @@ module Demo =
                     | None -> false
                 | None -> false
 
-            let newModel = {newModel with menuModel = controllerMenuUpdate; lineIsHovered = newLineIsHovered}
+            let someFlagHover = 
+                newModel.flagOnAnnotationSpace
+                |> PList.filter (fun f -> f.flagHovered = true)
+                |> Seq.first
+
+            let newFlagIsHovered = 
+                match someFlagHover with 
+                | Some f -> 
+                    f.flagHovered
+                | None -> false
+
+            let newModel = 
+                {newModel with 
+                    menuModel = controllerMenuUpdate; 
+                    lineIsHovered = newLineIsHovered; 
+                    flagIsHovered = newFlagIsHovered
+                }
             
             let changeLineMode = 
                 if newModel.lineIsHovered then 
-                    {newModel.menuModel with lineSubMenu = lineSubMenuState.Edit}
+                    {newModel.menuModel with lineSubMenu = lineSubMenuState.EditLine}
                 else {newModel.menuModel with lineSubMenu = lineSubMenuState.LineCreate}
             
+            let newModel = {newModel with menuModel = changeLineMode}
+
+            let changeFlagMode = 
+                if newModel.flagIsHovered then 
+                    {newModel.menuModel with flagSubMenu = flagSubMenuState.EditFlag}
+                else {newModel.menuModel with flagSubMenu = flagSubMenuState.FlagCreate}
+            
+            {newModel with menuModel = changeFlagMode}
             //printfn "%s, %s" (newModel.lineIsHovered.ToString()) (newModel.menuModel.lineSubMenu.ToString())
 
-            {newModel with menuModel = changeLineMode}
             
         | GrabObject (kind, buttonKind, buttonPress)-> 
             
@@ -1101,6 +1124,7 @@ module Demo =
             lineMarsDisplay         = [|Line3d()|]
             finishedLine            = HMap.empty
             lineIsHovered           = false
+            flagIsHovered           = false
             dipAndStrikeOnController        = PList.empty
             dipAndStrikeOnAnnotationSpace   = PList.empty
             dipAndStrikeAngle               = 0.0

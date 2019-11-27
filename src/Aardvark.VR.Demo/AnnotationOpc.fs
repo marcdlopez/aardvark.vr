@@ -23,7 +23,6 @@ module AnnotationOpc =
             let controllerPos = newModel.menuModel.controllerMenuSelector
             let newCP = newModel.controllerInfos |> HMap.tryFind controllerPos.kind
             
-            
             match newCP with 
             | Some id -> 
                 let newModel = 

@@ -7,7 +7,13 @@ open Demo
 
 type lineSubMenuState = 
 | LineCreate
-| Edit
+| EditLine
+
+type flagSubMenuState = 
+| Remove
+| EditFlag
+| ModifyPos
+| FlagCreate
 
 type subMenuState = 
 | Flag
@@ -29,9 +35,11 @@ type MenuModel =
         boxHovered                  : option<string>
         subMenuBoxes                : plist<VisibleBox>
         lineSubMenuBoxes            : plist<VisibleBox>
+        flagSubMenuBoxes            : plist<VisibleBox>
         menu                        : MenuState
         subMenu                     : subMenuState
         lineSubMenu                 : lineSubMenuState
+        flagSubMenu                 : flagSubMenuState
         initialMenuState            : MenuState
         menuButtonPressed           : bool
         initialMenuPosition         : Pose
@@ -47,9 +55,11 @@ module MenuModel =
             boxHovered                  = None
             subMenuBoxes                = PList.empty
             lineSubMenuBoxes            = PList.empty
+            flagSubMenuBoxes            = PList.empty
             menu                        = MenuState.Navigation
             subMenu                     = subMenuState.Init
             lineSubMenu                 = lineSubMenuState.LineCreate
+            flagSubMenu                 = flagSubMenuState.FlagCreate
             initialMenuState            = MenuState.Navigation
             menuButtonPressed           = false
             initialMenuPosition         = Pose.none

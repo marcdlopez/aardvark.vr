@@ -93,6 +93,7 @@ type Model =
         lineOnController                : plist<VisibleSphere>
         lineOnAnnotationSpace           : plist<VisibleSphere>
         lineIsHovered                   : bool
+        flagIsHovered                   : bool
         lineMarsDisplay                 : Line3d[]
         finishedLine                    : hmap<string, FinishedLine>
         dipAndStrikeOnController        : plist<VisibleCylinder>
@@ -166,6 +167,7 @@ module Model =
             lineMarsDisplay         = [|Line3d()|]
             finishedLine            = HMap.empty
             lineIsHovered           = false
+            flagIsHovered           = false
             dipAndStrikeOnController        = PList.empty
             dipAndStrikeOnAnnotationSpace   = PList.empty
             dipAndStrikeAngle               = 0.0

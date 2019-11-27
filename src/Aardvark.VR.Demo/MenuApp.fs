@@ -21,6 +21,7 @@ type MenuAction =
 | CloseMenu
 
 module MenuApp = 
+    open FShade
     
 
     let rec update (controllers : hmap<ControllerKind, ControllerInfo>) (state : VrState) (vr : VrActions) (model : MenuModel) (msg : MenuAction)  : MenuModel = 
@@ -68,9 +69,9 @@ module MenuApp =
                             else if idx.id.Equals(boxID4.id) then {idx with id = "Draw"} //allow different options in the draw mode: freely draw and draw by points
                             else {idx with id = "Line"})
                     match model.subMenu with 
-                    | Line -> 
+                    | subMenuState.Line -> 
                         match model.lineSubMenu with 
-                        | Edit -> 
+                        | EditLine -> 
                             let newLineMenuBoxes = UtilitiesMenu.mkBoxesMenu model.initialMenuPosition hmdPos.pose 3
                             let boxID0 = newLineMenuBoxes |> Seq.item 0
                             let boxID1 = newLineMenuBoxes |> Seq.item 1 
@@ -91,6 +92,27 @@ module MenuApp =
                                 subMenuBoxes = newSubMenuBoxes; 
                                 menuButtonPressed = buttonPressed
                             }
+                    | subMenuState.Flag -> 
+                        match model.flagSubMenu with 
+                        | EditFlag -> 
+                            let newFlagMenuBoxes = UtilitiesMenu.mkBoxesMenu model.initialMenuPosition hmdPos.pose 2
+                            let boxID0 = newFlagMenuBoxes |> Seq.item 0
+
+                            let newFlagMenuBoxes = 
+                                newFlagMenuBoxes
+                                |> PList.map (fun idx -> 
+                                    if idx.id.Equals(boxID0.id) then {idx with id = "Remove Flag"}
+                                    else {idx with id = "Modify Position"}
+                                )
+                            {model with 
+                                menuButtonPressed = buttonPressed; 
+                                flagSubMenuBoxes = newFlagMenuBoxes
+                            }
+                        | _ -> 
+                            {model with 
+                                subMenuBoxes = newSubMenuBoxes;
+                                menuButtonPressed = buttonPressed
+                            }
                     | _ ->  
                         {model with 
                             subMenuBoxes = newSubMenuBoxes; 
@@ -101,10 +123,11 @@ module MenuApp =
                     {model with menu = MenuState.Navigation}
             else 
                 {model with 
-                    mainMenuBoxes = PList.empty; 
-                    subMenuBoxes = PList.empty; 
-                    lineSubMenuBoxes = PList.empty; 
-                    menuButtonPressed = buttonPressed; 
+                    mainMenuBoxes           = PList.empty; 
+                    subMenuBoxes            = PList.empty; 
+                    lineSubMenuBoxes        = PList.empty; 
+                    flagSubMenuBoxes        = PList.empty;
+                    menuButtonPressed       = buttonPressed; 
                     initialMenuPositionBool = false
                 }
         | HoverIn id -> 
@@ -168,12 +191,39 @@ module MenuApp =
                             if boxID0.id.Contains(ID) then {newModel with menu = MenuState.Navigation}
                             else if boxID1.id.Contains(ID) then {newModel with subMenu = subMenuState.Reset}
                             else if boxID2.id.Contains(ID) then{newModel with subMenu = subMenuState.DipAndStrike}
-                            else if boxID3.id.Contains(ID) then{newModel with subMenu = subMenuState.Flag}
+                            else if boxID3.id.Contains(ID) then{newModel with subMenu = subMenuState.Flag; flagSubMenu = flagSubMenuState.FlagCreate}
                             else if boxID4.id.Contains(ID) then{newModel with subMenu = subMenuState.Draw}
                             else {newModel with subMenu = subMenuState.Line}
                         else update controllers state vr newModel (HoverIn ID)
                     | None -> update controllers state vr newModel HoverOut
                 else {newModel with subMenuBoxes = PList.empty}
+            
+            let newModel = 
+                if (newModel.menu.Equals(MenuState.Annotation) && newModel.subMenu.Equals(subMenuState.Flag) && controllers.Count.Equals(5)) then 
+                    let controllerA = controllers |> HMap.tryFind ControllerKind.ControllerA
+                    let controllerB = controllers |> HMap.tryFind ControllerKind.ControllerB
+                 
+                    match controllerA, controllerB with
+                    | Some a, Some b ->
+                        let mayHoverMenu = UtilitiesMenu.mayHover newModel.flagSubMenuBoxes a b
+                        match mayHoverMenu with
+                        | Some id  ->
+                            if (a.joystickPressed || b.joystickPressed) then
+                                let box0ID = newModel.flagSubMenuBoxes |> Seq.item 0
+
+                                let menuSelector = if a.joystickHold then a else b
+                                
+                                if box0ID.id = id then 
+                                    {   newModel with flagSubMenu = flagSubMenuState.Remove; controllerMenuSelector = menuSelector}
+                                else  
+                                    {   newModel with flagSubMenu = flagSubMenuState.ModifyPos; controllerMenuSelector = menuSelector}
+                            else //HOVER
+                                update controllers state vr newModel (HoverIn id)
+                         | _ -> //HOVEROUT
+                             update controllers state vr newModel HoverOut
+                     | _ -> //DEFAULT
+                        newModel
+                else {newModel with flagSubMenuBoxes = PList.empty}
             newModel
         | Select (kind, buttonPressed) -> 
             match model.menuButtonPressed with 
@@ -304,9 +354,24 @@ module MenuApp =
                 ]
             |> Sg.noEvents
 
+        let flagSubMenuBox = 
+            m.flagSubMenuBoxes
+            |> AList.toASet 
+            |> ASet.map (fun b -> 
+                mkISg m b 
+                )
+            |> Sg.set
+            |> Sg.effect [
+                toEffect DefaultSurfaces.trafo
+                toEffect DefaultSurfaces.vertexColor
+                toEffect DefaultSurfaces.simpleLighting                              
+                ]
+            |> Sg.noEvents
+
         menuBox
         |> Sg.andAlso annotationSubMenuBox
         |> Sg.andAlso lineSubMenuBox
+        |> Sg.andAlso flagSubMenuBox
 
     let threads (model : MenuModel) = 
         ThreadPool.empty
@@ -326,7 +391,9 @@ module MenuApp =
             controllerMenuSelector  = ControllerInfo.initial
             subMenu                 = subMenuState.Init
             lineSubMenuBoxes        = PList.empty
+            flagSubMenuBoxes        = PList.empty
             lineSubMenu             = lineSubMenuState.LineCreate
+            flagSubMenu             = flagSubMenuState.FlagCreate
             initialMenuState        = MenuState.Navigation
             menuButtonPressed       = false
             initialMenuPosition     = Pose.none
