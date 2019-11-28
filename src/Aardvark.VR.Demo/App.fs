@@ -300,7 +300,7 @@ module Demo =
                         {newModel with flagOnController = newFlag}
                     | Line -> 
                         match newModel.menuModel.lineSubMenu with 
-                        | LineCreate -> 
+                        | lineSubMenuState.LineCreate -> 
                             let newLine = OpcUtilities.mkSphere id.pose 1 0.02
                             let newModel = {newModel with lineOnController = newLine}
                             printfn "button kind: %d" (buttonKind |> ControllerButtons.toInt)
@@ -346,7 +346,7 @@ module Demo =
                                 }    
                                 //newModel
                             | _ -> newModel 
-                        | Edit -> 
+                        | lineSubMenuState.EditLine -> 
                             printfn "new MOOOOOOODE"
                             {newModel with lineOnController = PList.empty}
                     | DipAndStrike -> 
@@ -740,6 +740,46 @@ module Demo =
                 ]
             |> Sg.noEvents
 
+        let drawinALine = 
+            let ttt = 
+                m.lineOnAnnotationSpace
+                |> AList.toMod
+                |> Mod.map (fun l -> 
+                        l
+                        |> PList.tryFirst
+                    )
+            let t2 = 
+                m.lineOnAnnotationSpace
+                |> AList.toMod
+                |> Mod.map (fun l -> 
+                    l 
+                    |> PList.tryAt 1
+                )
+            adaptive {
+                let! qwer = ttt
+                let! asdf = t2
+                match qwer with 
+                | Some point1 -> 
+                    match asdf with 
+                    | Some point2 -> 
+                        return [|Line3d(point1.trafo.GetValue().GetModelOrigin(), point2.trafo.GetValue().GetModelOrigin())|]
+                    | None -> return [|Line3d()|]
+                | None -> return [|Line3d()|]
+            }
+
+        let drawLineTest = 
+            drawinALine 
+            |> Sg.lines (Mod.constant C4b.White)
+            |> Sg.noEvents
+            |> Sg.uniform "LineWidth" (Mod.constant 5) 
+            |> Sg.effect [
+                toEffect DefaultSurfaces.trafo
+                toEffect DefaultSurfaces.vertexColor
+                toEffect DefaultSurfaces.thickLine
+                ]
+            |> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
+            |> Sg.depthTest (Mod.constant DepthTestMode.None)
+
         let drawSphereLines = 
             m.lineMarsDisplay
                 |> Sg.lines (Mod.constant C4b.White)
@@ -1005,7 +1045,8 @@ module Demo =
                 //drawFinishedPolygon
                 flagsOnAnnotationSpace
                 sphereOnAnnotationSpace
-                drawSphereLines
+                drawLineTest
+                //drawSphereLines
                 distanceText
                 dsAngleText
                 finishedLineHmap

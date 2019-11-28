@@ -133,7 +133,7 @@ module AnnotationOpc =
                         match lineOnController with
                         | Some line -> 
                             let updateLine = {line with trafo = id.pose.deviceToWorld * newModel.workSpaceTrafo.Inverse}
-                        
+
                             let newLineOnMars = 
                                 newModel.lineOnAnnotationSpace
                                 |> PList.prepend updateLine
