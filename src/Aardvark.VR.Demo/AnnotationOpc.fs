@@ -60,9 +60,7 @@ module AnnotationOpc =
                 let newModel = {newModel with flagOnAnnotationSpace = checkFlagHover} 
                 printfn "annotation mode: %s" (newModel.menuModel.flagSubMenu.ToString())
                 match newModel.menuModel.hoveredFlagMenu with 
-                //| flagSubMenuState.FlagCreate ->
                 | hoveredFlagSubmenu.Remove -> 
-                    printfn "removing flag"
                     let removeFlag = 
                         newModel.flagOnAnnotationSpace
                         |> PList.filter (fun x -> x.flagHovered = false)

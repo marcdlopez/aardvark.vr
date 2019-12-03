@@ -855,38 +855,26 @@ module Demo =
         let distanceText =
             m.lineOnAnnotationSpace
             |> AList.toASet
-            |> ASet.map (fun dist -> 
-                Sg.text font C4b.White (dist.distance)
-                    |> Sg.noEvents
-                    |> Sg.trafo(Mod.constant(Trafo3d.RotationInDegrees(V3d(90.0,0.0,90.0))))
-                    |> Sg.scale 0.05
-                    |> Sg.trafo(dist.trafo)
+            |> ASet.map (fun dist -> //dist.trafo, dist.distance
+                let distTrafo = dist.trafo |> Mod.map (fun dt -> dt * Trafo3d.Translation(V3d(0.0, 0.0, 0.05)))
+                Sg.textWithConfig { TextConfig.Default with renderStyle = RenderStyle.Billboard; align = TextAlignment.Center; flipViewDependent = true } dist.distance
+                |> Sg.noEvents
+                |> Sg.scale 0.05
+                |> Sg.trafo(distTrafo)
             )
             |> Sg.set
-            |> Sg.effect [
-                toEffect DefaultSurfaces.trafo
-                toEffect DefaultSurfaces.vertexColor
-                toEffect DefaultSurfaces.simpleLighting                              
-                ]
-            |> Sg.noEvents
 
         let dsAngleText = 
             m.dipAndStrikeOnAnnotationSpace
             |> AList.toASet
             |> ASet.map (fun angle -> 
-                Sg.text font C4b.White (angle.angle)
+                let angleTrafo = angle.trafo |> Mod.map (fun at -> at * Trafo3d.Translation(V3d(0.0, 0.0, 0.05)))
+                Sg.textWithConfig { TextConfig.Default with renderStyle = RenderStyle.Billboard; align = TextAlignment.Center; flipViewDependent = true } angle.angle
                 |> Sg.noEvents
-                |> Sg.trafo(Mod.constant(Trafo3d.RotationInDegrees(V3d(90.0,0.0,90.0))))
                 |> Sg.scale 0.05
-                |> Sg.trafo(angle.trafo)
+                |> Sg.trafo(angleTrafo)
             )
             |> Sg.set
-            |> Sg.effect [
-                toEffect DefaultSurfaces.trafo
-                toEffect DefaultSurfaces.vertexColor
-                toEffect DefaultSurfaces.simpleLighting                              
-                ]
-            |> Sg.noEvents
 
         let flagsOnAnnotationSpace = 
             m.flagOnAnnotationSpace
@@ -919,6 +907,21 @@ module Demo =
             m.finishedLine
             |> AMap.toASet
             |> ASet.map (fun (s, b) ->
+                let text = 
+                    b.points
+                    |> AList.toList
+                    |> List.pairwise
+                    |> List.map (fun (a, b) -> 
+                        let distance = Mod.constant (V3d.Distance(a.pos, b.pos))
+                        let distance = distance |> Mod.map (fun d -> System.Math.Round(d, 3).ToString())
+                        Sg.textWithConfig { TextConfig.Default with renderStyle = RenderStyle.Billboard; align = TextAlignment.Center; flipViewDependent = true } distance
+                        |> Sg.noEvents
+                        |> Sg.scale 0.05
+                        |> Sg.trafo(Mod.constant (Trafo3d.Translation(a.pos + V3d(0.0, 0.0, 0.05))))
+                    )
+                    |> Sg.ofList
+
+
                 let newFinishedLine = 
                     b.points
                     |> AList.toList
@@ -965,6 +968,7 @@ module Demo =
                 
                 newFinishedLineOnMars
                 |> Sg.andAlso renderFinishedLine
+                |> Sg.andAlso text
                 
             )
             |> Sg.set
