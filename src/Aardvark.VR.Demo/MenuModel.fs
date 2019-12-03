@@ -9,10 +9,13 @@ type lineSubMenuState =
 | LineCreate
 | EditLine
 
-type flagSubMenuState = 
-| Remove
-| EditFlag
+type hoveredFlagSubmenu = 
+| Remove 
 | ModifyPos
+| InMenu
+
+type flagSubMenuState = 
+| EditFlag
 | FlagCreate
 
 type subMenuState = 
@@ -40,6 +43,7 @@ type MenuModel =
         subMenu                     : subMenuState
         lineSubMenu                 : lineSubMenuState
         flagSubMenu                 : flagSubMenuState
+        hoveredFlagMenu             : hoveredFlagSubmenu
         initialMenuState            : MenuState
         menuButtonPressed           : bool
         initialMenuPosition         : Pose
@@ -60,6 +64,7 @@ module MenuModel =
             subMenu                     = subMenuState.Init
             lineSubMenu                 = lineSubMenuState.LineCreate
             flagSubMenu                 = flagSubMenuState.FlagCreate
+            hoveredFlagMenu             = hoveredFlagSubmenu.InMenu
             initialMenuState            = MenuState.Navigation
             menuButtonPressed           = false
             initialMenuPosition         = Pose.none

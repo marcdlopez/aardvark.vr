@@ -57,7 +57,18 @@ module AnnotationOpc =
                             Some {f with color = C4b.White; flagHovered = false}
                     )
 
-                {newModel with flagOnAnnotationSpace = checkFlagHover}   
+                let newModel = {newModel with flagOnAnnotationSpace = checkFlagHover} 
+                printfn "annotation mode: %s" (newModel.menuModel.flagSubMenu.ToString())
+                match newModel.menuModel.hoveredFlagMenu with 
+                //| flagSubMenuState.FlagCreate ->
+                | hoveredFlagSubmenu.Remove -> 
+                    printfn "removing flag"
+                    let removeFlag = 
+                        newModel.flagOnAnnotationSpace
+                        |> PList.filter (fun x -> x.flagHovered = false)
+                    let newMenuModel = {newModel.menuModel with hoveredFlagMenu = hoveredFlagSubmenu.InMenu; flagSubMenu = flagSubMenuState.FlagCreate}
+                    {newModel with flagOnAnnotationSpace = removeFlag; menuModel = newMenuModel}
+                | _ -> newModel 
 
             | None -> newModel
         | DipAndStrike -> 

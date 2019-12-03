@@ -214,9 +214,9 @@ module MenuApp =
                                 let menuSelector = if a.joystickHold then a else b
                                 
                                 if box0ID.id = id then 
-                                    {   newModel with flagSubMenu = flagSubMenuState.Remove; controllerMenuSelector = menuSelector}
+                                    {   newModel with hoveredFlagMenu = hoveredFlagSubmenu.Remove; controllerMenuSelector = menuSelector}
                                 else  
-                                    {   newModel with flagSubMenu = flagSubMenuState.ModifyPos; controllerMenuSelector = menuSelector}
+                                    {   newModel with hoveredFlagMenu = hoveredFlagSubmenu.ModifyPos; controllerMenuSelector = menuSelector}
                             else //HOVER
                                 update controllers state vr newModel (HoverIn id)
                          | _ -> //HOVEROUT
@@ -394,6 +394,7 @@ module MenuApp =
             flagSubMenuBoxes        = PList.empty
             lineSubMenu             = lineSubMenuState.LineCreate
             flagSubMenu             = flagSubMenuState.FlagCreate
+            hoveredFlagMenu         = hoveredFlagSubmenu.InMenu
             initialMenuState        = MenuState.Navigation
             menuButtonPressed       = false
             initialMenuPosition     = Pose.none
