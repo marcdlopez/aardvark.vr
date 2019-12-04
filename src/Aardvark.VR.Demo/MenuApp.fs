@@ -54,7 +54,7 @@ module MenuApp =
                     {model with mainMenuBoxes = newMenuBoxes; menuButtonPressed = buttonPressed}
                 | Annotation  -> 
                     let newSubMenuBoxes = UtilitiesMenu.mkBoxesMenu model.initialMenuPosition hmdPos.pose 6
-                    let boxID0 = newSubMenuBoxes |> Seq.item 0
+                    let boxID0 = newSubMenuBoxes |> Seq.item 0 //TODO ML+TO: make a nice domain model for that
                     let boxID1 = newSubMenuBoxes |> Seq.item 1 
                     let boxID2 = newSubMenuBoxes |> Seq.item 2
                     let boxID3 = newSubMenuBoxes |> Seq.item 3

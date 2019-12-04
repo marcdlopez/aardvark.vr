@@ -34,7 +34,7 @@ type DemoAction =
 | GetTrackpadPosition of ControllerKind * int * V2d
 
 module Demo =
-    open Aardvark.Application
+    open Aardvark.Application //TODO ML: avoid using module opens ... just put them up in one place
     open Aardvark.VRVis.Opc
     open Aardvark.UI.Primitives
     open Aardvark.Base.Rendering
@@ -139,7 +139,7 @@ module Demo =
                     )
                     |> HMap.values
                     |> Seq.first
-                
+            
             let newLineIsHovered = 
                 match someLineHovered with 
                 | Some h -> 
@@ -262,7 +262,7 @@ module Demo =
                     lineOnController    = PList.empty
                     dipAndStrikeOnController = PList.empty
                 }
-            | Annotation ->
+            | Annotation -> //TODO ML: make your own annotation app
                 let controllerPos = newModel.controllerInfos |> HMap.tryFind kind
                 match controllerPos with 
                 | Some id -> 
@@ -1185,9 +1185,9 @@ module Demo =
             finishedDrawings        = HMap.empty
 
             flagOnController        = PList.empty
-            flagOnAnnotationSpace   = PList.empty
+            flagOnAnnotationSpace              = PList.empty
             lineOnController        = PList.empty
-            lineOnAnnotationSpace   = PList.empty
+            lineOnAnnotationSpace              = PList.empty
             lineMarsDisplay         = [|Line3d()|]
             finishedLine            = HMap.empty
             lineIsHovered           = false
