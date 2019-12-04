@@ -52,7 +52,7 @@ module MenuApp =
                             else {idx with id = "Annotation"}
                             )
                     {model with mainMenuBoxes = newMenuBoxes; menuButtonPressed = buttonPressed}
-                | Annotation -> 
+                | Annotation  -> 
                     let newSubMenuBoxes = UtilitiesMenu.mkBoxesMenu model.initialMenuPosition hmdPos.pose 6
                     let boxID0 = newSubMenuBoxes |> Seq.item 0
                     let boxID1 = newSubMenuBoxes |> Seq.item 1 
@@ -69,7 +69,7 @@ module MenuApp =
                             else if idx.id.Equals(boxID4.id) then {idx with id = "Draw"} //allow different options in the draw mode: freely draw and draw by points
                             else {idx with id = "Line"})
                     match model.subMenu with 
-                    | subMenuState.Line -> 
+                    | subMenuState.Line  -> 
                         match model.lineSubMenu with 
                         | EditLine -> 
                             let newLineMenuBoxes = UtilitiesMenu.mkBoxesMenu model.initialMenuPosition hmdPos.pose 3
@@ -92,7 +92,7 @@ module MenuApp =
                                 subMenuBoxes = newSubMenuBoxes; 
                                 menuButtonPressed = buttonPressed
                             }
-                    | subMenuState.Flag -> 
+                    | subMenuState.Flag  -> 
                         match model.flagSubMenu with 
                         | EditFlag -> 
                             let newFlagMenuBoxes = UtilitiesMenu.mkBoxesMenu model.initialMenuPosition hmdPos.pose 2

@@ -110,6 +110,7 @@ module AnnotationOpc =
                                 trafo = id.pose.deviceToWorld * newModel.workSpaceTrafo.Inverse
                                 color = dipColor
                                 angle = newModel.dipAndStrikeAngle.ToString()
+                                radius = ds.radius
                             }
                         let newDSOnAnnotationSpace = 
                             newModel.dipAndStrikeOnAnnotationSpace

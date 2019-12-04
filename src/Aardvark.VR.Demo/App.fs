@@ -124,7 +124,7 @@ module Demo =
                 | Menu.MenuState.Navigation ->
                     model 
                     |> NavigationOpc.currentSceneInfo kind p
-                | Menu.MenuState.Annotation ->
+                | Menu.MenuState.Annotation  ->
                     model
                     |> AnnotationOpc.annotationMode kind p model.menuModel.subMenu
                 | Menu.MenuState.MainReset -> 
@@ -295,13 +295,13 @@ module Demo =
                                 //    {newModel with finishedDrawings = newFinishedPol; currentlyDrawing = Some {vertices = [||]}}
                                 newModel
                         | _ -> newModel
-                    | Flag -> 
+                    | Flag  -> 
                         let newFlag = OpcUtilities.mkFlags id.pose.deviceToWorld 1
                         {newModel with flagOnController = newFlag}
-                    | Line -> 
+                    | Line  -> 
                         match newModel.menuModel.lineSubMenu with 
                         | lineSubMenuState.LineCreate -> 
-                            let newLine = OpcUtilities.mkSphere id.pose 1 0.02
+                            let newLine = OpcUtilities.mkSphere id.pose 1 0.005
                             let newModel = {newModel with lineOnController = newLine}
                             printfn "button kind: %d" (buttonKind |> ControllerButtons.toInt)
                             match buttonKind with 
@@ -338,7 +338,7 @@ module Demo =
                                 let newModel = {newModel with finishedLine = newFinishedLine}
 
                                 let newControllerLine = 
-                                    OpcUtilities.mkSphere id.pose 1 0.02
+                                    OpcUtilities.mkSphere id.pose 1 0.005
 
                                 {newModel with 
                                     lineOnController = newControllerLine;
@@ -350,7 +350,24 @@ module Demo =
                             printfn "new MOOOOOOODE"
                             {newModel with lineOnController = PList.empty}
                     | DipAndStrike -> 
-                        let newCylinder = OpcUtilities.mkCyllinder id.pose 1 0.5
+                        let indexDS = 
+                            newModel.dipAndStrikeOnController
+                            |> PList.tryFirstIndex
+                        let newCylinder = 
+                            match indexDS with 
+                            | Some idx ->
+                                newModel.dipAndStrikeOnController
+                                |> PList.alter idx (fun disk ->
+                                    match disk with 
+                                    | Some x -> 
+                                        match id.joystickPressed with 
+                                        | true -> 
+                                            Some {x with radius = x.radius}
+                                        | false -> Some {x with radius = x.radius}
+                                    | None -> Some VisibleCylinder.initial
+                                )
+                            | None -> OpcUtilities.mkCyllinder id.pose 1 0.5
+
                         {newModel with dipAndStrikeOnController = newCylinder}
                     | _ -> newModel
                 | None -> newModel
@@ -362,30 +379,34 @@ module Demo =
             match controller with 
             | Some c -> 
                 match model.menuModel.menu with 
-                | Annotation -> 
+                | Annotation  -> 
                     match model.menuModel.subMenu with 
                     | DipAndStrike -> 
-                        if c.sideButtonPressed && c.joystickPressed then 
+                        match c.sideButtonPressed, c.joystickPressed with 
+                        | true, true ->
+                        //if c.sideButtonPressed && c.joystickPressed then 
                             match pos.Y with 
                             | x when x >= 0.60 -> 
                                 printfn "make radius bigger"
-                                let newDipAndStrikeOnController = 
+                                let newDipAndStrikeOnController =
                                     model.dipAndStrikeOnController
                                     |> PList.map (fun disk -> 
                                         printfn "%f" disk.radius
-                                        {disk with radius = disk.radius + 1.0}
+                                        {disk with radius = disk.radius + 0.01}
                                     )
                                 {model with dipAndStrikeOnController = newDipAndStrikeOnController}
                             | x when x < -0.40 -> 
                                 printfn "make radius smaller"
                                 let newDipAndStrikeOnController = 
                                     model.dipAndStrikeOnController
-                                    |> PList.map (fun disk -> 
-                                        {disk with radius = disk.radius - 1.0}
+                                    |> PList.map (fun disk ->
+                                        if disk.radius <= 0.0 then 
+                                            {disk with radius = 0.0}
+                                        else {disk with radius = disk.radius - 0.01}
                                     )
                                 {model with dipAndStrikeOnController = newDipAndStrikeOnController}
                             | _ -> model
-                        else model
+                        | _ -> model//else model
                     | _ -> model
                 | _ -> model 
 
@@ -945,7 +966,7 @@ module Demo =
                 let newFinishedLineOnMars = 
                     b.points
                     |> AList.map (fun l -> 
-                        let newSphere = Mod.constant (VisibleSphere.createSphere l.color l.pos 0.02)
+                        let newSphere = Mod.constant (VisibleSphere.createSphere l.color l.pos 0.005)
                         let color = newSphere |> Mod.map (fun s -> s.color)
                         let pos = newSphere |> Mod.map (fun s -> s.trafo)
                         Sg.sphere 10 color (newSphere |> Mod.map (fun s -> s.radius))
@@ -1054,6 +1075,7 @@ module Demo =
                 distanceText
                 dsAngleText
                 finishedLineHmap
+                cylinders
                 cylindersOnAnnotationSpace
             ]   
             |> Sg.ofList
@@ -1064,7 +1086,7 @@ module Demo =
                 flags
                 spheres
                 showDynamicLine
-                cylinders
+                //cylinders
             ]   
             |> Sg.ofList
 

@@ -19,7 +19,7 @@ type flagSubMenuState =
 | FlagCreate
 
 type subMenuState = 
-| Flag
+| Flag 
 | Reset
 | Draw
 | Line 
