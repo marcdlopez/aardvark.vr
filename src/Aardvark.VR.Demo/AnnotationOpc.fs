@@ -8,7 +8,7 @@ module AnnotationOpc =
      open Aardvark.Base.IndexedGeometryPrimitives
      open Aardvark.Base
 
-     let annotationMode kind p (annotationSelection : subMenuState) model : Model = 
+     let annotationMode kind p (annotationSelection : SubMenuState) model : Model = 
     
         let newControllersPosition = 
             model 
@@ -19,7 +19,7 @@ module AnnotationOpc =
         let ci = newModel.controllerInfos |> HMap.tryFind kind
         
         match annotationSelection with 
-        | Flag -> 
+        | Flag (flagMenu) -> 
             let controllerPos = newModel.menuModel.controllerMenuSelector
             let newCP = newModel.controllerInfos |> HMap.tryFind controllerPos.kind
             
@@ -60,11 +60,11 @@ module AnnotationOpc =
                 let newModel = {newModel with flagOnAnnotationSpace = checkFlagHover} 
                 printfn "annotation mode: %s" (newModel.menuModel.flagSubMenu.ToString())
                 match newModel.menuModel.hoveredFlagMenu with 
-                | hoveredFlagSubmenu.Remove -> 
+                | HoveredFlagSubmenu.Remove -> 
                     let removeFlag = 
                         newModel.flagOnAnnotationSpace
                         |> PList.filter (fun x -> x.flagHovered = false)
-                    let newMenuModel = {newModel.menuModel with hoveredFlagMenu = hoveredFlagSubmenu.InMenu; flagSubMenu = flagSubMenuState.FlagCreate}
+                    let newMenuModel = {newModel.menuModel with hoveredFlagMenu = HoveredFlagSubmenu.InMenu; flagSubMenu = FlagSubMenuState.FlagCreate}
                     {newModel with flagOnAnnotationSpace = removeFlag; menuModel = newMenuModel}
                 | _ -> newModel 
 
@@ -121,7 +121,7 @@ module AnnotationOpc =
                 | false -> {newModel with dipAndStrikeOnController = updateCylinderPos}
                 
             | None -> newModel
-        | Line -> 
+        | Line(lineMenu) -> 
             let controllerPos = newModel.menuModel.controllerMenuSelector
             let newCP = newModel.controllerInfos |> HMap.tryFind controllerPos.kind
             

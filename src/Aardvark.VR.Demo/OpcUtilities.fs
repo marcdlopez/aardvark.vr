@@ -91,7 +91,7 @@ module OpcUtilities =
                 mkControllerInfo kind pose |> Some // create
         )
 
-    let changeLineSubMenu (model : MenuModel) (lineMode : lineSubMenuState) = 
+    let changeLineSubMenu (model : MenuModel) (lineMode : LineSubMenuState) = 
         {model with lineSubMenu = lineMode}
 
 

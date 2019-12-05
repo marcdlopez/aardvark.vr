@@ -5,30 +5,30 @@ open Aardvark.Vr
 open Aardvark.Base
 open Demo
 
-type lineSubMenuState = 
+type LineSubMenuState = 
 | LineCreate
 | EditLine
 
-type hoveredFlagSubmenu = 
+type HoveredFlagSubmenu = 
 | Remove 
 | ModifyPos
 | InMenu
 
-type flagSubMenuState = 
+type FlagSubMenuState = 
 | EditFlag
 | FlagCreate
 
-type subMenuState = 
-| Flag 
+type SubMenuState = 
+| Flag of FlagSubMenuState
 | Reset
 | Draw
-| Line 
+| Line of LineSubMenuState
 | DipAndStrike
 | Init
 
 type MenuState = 
 | Navigation
-| Annotation 
+| Annotation of SubMenuState
 | MainReset
 
 [<DomainType>]
@@ -40,10 +40,10 @@ type MenuModel =
         lineSubMenuBoxes            : plist<VisibleBox>
         flagSubMenuBoxes            : plist<VisibleBox>
         menu                        : MenuState
-        subMenu                     : subMenuState
-        lineSubMenu                 : lineSubMenuState
-        flagSubMenu                 : flagSubMenuState
-        hoveredFlagMenu             : hoveredFlagSubmenu
+        subMenu                     : SubMenuState
+        lineSubMenu                 : LineSubMenuState
+        flagSubMenu                 : FlagSubMenuState
+        hoveredFlagMenu             : HoveredFlagSubmenu
         initialMenuState            : MenuState
         menuButtonPressed           : bool
         initialMenuPosition         : Pose
@@ -61,10 +61,10 @@ module MenuModel =
             lineSubMenuBoxes            = PList.empty
             flagSubMenuBoxes            = PList.empty
             menu                        = MenuState.Navigation
-            subMenu                     = subMenuState.Init
-            lineSubMenu                 = lineSubMenuState.LineCreate
-            flagSubMenu                 = flagSubMenuState.FlagCreate
-            hoveredFlagMenu             = hoveredFlagSubmenu.InMenu
+            subMenu                     = SubMenuState.Init
+            lineSubMenu                 = LineSubMenuState.LineCreate
+            flagSubMenu                 = FlagSubMenuState.FlagCreate
+            hoveredFlagMenu             = HoveredFlagSubmenu.InMenu
             initialMenuState            = MenuState.Navigation
             menuButtonPressed           = false
             initialMenuPosition         = Pose.none

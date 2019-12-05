@@ -118,25 +118,25 @@ module Mutable =
                     override x.Update(r,f) = { r with menu = f r.menu }
                 }
             let subMenu =
-                { new Lens<Demo.Menu.MenuModel, Demo.Menu.subMenuState>() with
+                { new Lens<Demo.Menu.MenuModel, Demo.Menu.SubMenuState>() with
                     override x.Get(r) = r.subMenu
                     override x.Set(r,v) = { r with subMenu = v }
                     override x.Update(r,f) = { r with subMenu = f r.subMenu }
                 }
             let lineSubMenu =
-                { new Lens<Demo.Menu.MenuModel, Demo.Menu.lineSubMenuState>() with
+                { new Lens<Demo.Menu.MenuModel, Demo.Menu.LineSubMenuState>() with
                     override x.Get(r) = r.lineSubMenu
                     override x.Set(r,v) = { r with lineSubMenu = v }
                     override x.Update(r,f) = { r with lineSubMenu = f r.lineSubMenu }
                 }
             let flagSubMenu =
-                { new Lens<Demo.Menu.MenuModel, Demo.Menu.flagSubMenuState>() with
+                { new Lens<Demo.Menu.MenuModel, Demo.Menu.FlagSubMenuState>() with
                     override x.Get(r) = r.flagSubMenu
                     override x.Set(r,v) = { r with flagSubMenu = v }
                     override x.Update(r,f) = { r with flagSubMenu = f r.flagSubMenu }
                 }
             let hoveredFlagMenu =
-                { new Lens<Demo.Menu.MenuModel, Demo.Menu.hoveredFlagSubmenu>() with
+                { new Lens<Demo.Menu.MenuModel, Demo.Menu.HoveredFlagSubmenu>() with
                     override x.Get(r) = r.hoveredFlagMenu
                     override x.Set(r,v) = { r with hoveredFlagMenu = v }
                     override x.Update(r,f) = { r with hoveredFlagMenu = f r.hoveredFlagMenu }

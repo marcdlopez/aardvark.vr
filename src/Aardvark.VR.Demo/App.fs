@@ -124,9 +124,9 @@ module Demo =
                 | Menu.MenuState.Navigation ->
                     model 
                     |> NavigationOpc.currentSceneInfo kind p
-                | Menu.MenuState.Annotation  ->
+                | Menu.MenuState.Annotation (annotationMenu)  ->
                     model
-                    |> AnnotationOpc.annotationMode kind p model.menuModel.subMenu
+                    |> AnnotationOpc.annotationMode kind p annotationMenu
                 | Menu.MenuState.MainReset -> 
                     Model.initMainReset
             
@@ -172,15 +172,15 @@ module Demo =
             
             let changeLineMode = 
                 if newModel.lineIsHovered then 
-                    {newModel.menuModel with lineSubMenu = lineSubMenuState.EditLine}
-                else {newModel.menuModel with lineSubMenu = lineSubMenuState.LineCreate}
+                    {newModel.menuModel with lineSubMenu = LineSubMenuState.EditLine}
+                else {newModel.menuModel with lineSubMenu = LineSubMenuState.LineCreate}
             
             let newModel = {newModel with menuModel = changeLineMode}
 
             let changeFlagMode = 
                 if newModel.flagIsHovered then 
-                    {newModel.menuModel with flagSubMenu = flagSubMenuState.EditFlag}
-                else {newModel.menuModel with flagSubMenu = flagSubMenuState.FlagCreate}
+                    {newModel.menuModel with flagSubMenu = FlagSubMenuState.EditFlag}
+                else {newModel.menuModel with flagSubMenu = FlagSubMenuState.FlagCreate}
             
             {newModel with menuModel = changeFlagMode}
             //printfn "%s, %s" (newModel.lineIsHovered.ToString()) (newModel.menuModel.lineSubMenu.ToString())
@@ -262,11 +262,11 @@ module Demo =
                     lineOnController    = PList.empty
                     dipAndStrikeOnController = PList.empty
                 }
-            | Annotation -> //TODO ML: make your own annotation app
+            | Annotation (annotationMenu) -> //TODO ML: make your own annotation app
                 let controllerPos = newModel.controllerInfos |> HMap.tryFind kind
                 match controllerPos with 
                 | Some id -> 
-                    match newModel.menuModel.subMenu with
+                    match annotationMenu with
                     | Draw -> 
                         match buttonKind with 
                         | ControllerButtons.Back -> 
@@ -295,12 +295,12 @@ module Demo =
                                 //    {newModel with finishedDrawings = newFinishedPol; currentlyDrawing = Some {vertices = [||]}}
                                 newModel
                         | _ -> newModel
-                    | Flag  -> 
+                    | Flag (flagMenu)  -> 
                         let newFlag = OpcUtilities.mkFlags id.pose.deviceToWorld 1
                         {newModel with flagOnController = newFlag}
-                    | Line  -> 
-                        match newModel.menuModel.lineSubMenu with 
-                        | lineSubMenuState.LineCreate -> 
+                    | Line (lineMenu)  -> 
+                        match lineMenu with 
+                        | LineSubMenuState.LineCreate -> 
                             let newLine = OpcUtilities.mkSphere id.pose 1 0.005
                             let newModel = {newModel with lineOnController = newLine}
                             printfn "button kind: %d" (buttonKind |> ControllerButtons.toInt)
@@ -346,7 +346,7 @@ module Demo =
                                 }    
                                 //newModel
                             | _ -> newModel 
-                        | lineSubMenuState.EditLine -> 
+                        | LineSubMenuState.EditLine -> 
                             printfn "new MOOOOOOODE"
                             {newModel with lineOnController = PList.empty}
                     | DipAndStrike -> 
@@ -379,8 +379,8 @@ module Demo =
             match controller with 
             | Some c -> 
                 match model.menuModel.menu with 
-                | Annotation  -> 
-                    match model.menuModel.subMenu with 
+                | Annotation (annotationMenu)  -> 
+                    match annotationMenu with 
                     | DipAndStrike -> 
                         match c.sideButtonPressed, c.joystickPressed with 
                         | true, true ->
