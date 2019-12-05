@@ -173,14 +173,14 @@ module Demo =
             let changeLineMode = 
                 if newModel.lineIsHovered then 
                     {newModel.menuModel with lineSubMenu = LineSubMenuState.EditLine}
-                else {newModel.menuModel with lineSubMenu = LineSubMenuState.LineCreate}
+                else {newModel.menuModel with lineSubMenu = LineSubMenuState.LineCreate}//; menu = MenuState.Annotation (SubMenuState.Line LineSubMenuState.LineCreate)}
             
             let newModel = {newModel with menuModel = changeLineMode}
 
             let changeFlagMode = 
                 if newModel.flagIsHovered then 
-                    {newModel.menuModel with flagSubMenu = FlagSubMenuState.EditFlag}
-                else {newModel.menuModel with flagSubMenu = FlagSubMenuState.FlagCreate}
+                    {newModel.menuModel with flagSubMenu = FlagSubMenuState.EditFlag; menu = MenuState.Annotation (SubMenuState.Flag FlagSubMenuState.EditFlag)}
+                else {newModel.menuModel with flagSubMenu = FlagSubMenuState.FlagCreate}//; menu = MenuState.Annotation (SubMenuState.Flag FlagSubMenuState.FlagCreate)}
             
             {newModel with menuModel = changeFlagMode}
             //printfn "%s, %s" (newModel.lineIsHovered.ToString()) (newModel.menuModel.lineSubMenu.ToString())
@@ -826,8 +826,8 @@ module Demo =
                 conLine 
                 |> Mod.bind (fun sphere -> 
                     match sphere with 
-                    | Some id -> id.trafo
-                    | None -> Mod.constant (Trafo3d.Translation(V3d(50000.0, 50000.0, 50000.0)))
+                    | Some id -> id.trafo 
+                    | None -> Mod.constant (Trafo3d.Translation(V3d(-50000.0, -50000.0, -50000.0)))
                 )
                 
             let marsLine = 
@@ -847,6 +847,7 @@ module Demo =
             adaptive {
                 let! conLineTest = conLine |> Mod.map (fun tt -> tt)
                 let! marsLineTest = marsLine  |> Mod.map (fun tt -> tt)
+                
                 match conLineTest with 
                 | Some clID -> 
                     match marsLineTest with 

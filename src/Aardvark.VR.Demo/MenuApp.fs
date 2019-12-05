@@ -190,18 +190,18 @@ module MenuApp =
                                 let boxID4 = newModel.subMenuBoxes |> Seq.item 4
                             
                                 if boxID0.id.Contains(ID) then {newModel with menu = MenuState.Navigation}
-                                else if boxID1.id.Contains(ID) then {newModel with subMenu = SubMenuState.Reset; menu = MenuState.Annotation SubMenuState.Reset}
-                                else if boxID2.id.Contains(ID) then{newModel with subMenu = SubMenuState.DipAndStrike; menu = MenuState.Annotation SubMenuState.DipAndStrike}
-                                else if boxID3.id.Contains(ID) then{newModel with subMenu = SubMenuState.Flag FlagSubMenuState.FlagCreate; flagSubMenu = FlagSubMenuState.FlagCreate; menu = MenuState.Annotation (SubMenuState.Flag FlagSubMenuState.FlagCreate)}
-                                else if boxID4.id.Contains(ID) then{newModel with subMenu = SubMenuState.Draw; menu = MenuState.Annotation SubMenuState.Draw}
-                                else {newModel with subMenu = SubMenuState.Line LineSubMenuState.LineCreate; menu = MenuState.Annotation (SubMenuState.Line LineSubMenuState.LineCreate)}
+                                else if boxID1.id.Contains(ID) then {newModel with menu = MenuState.Annotation SubMenuState.Reset}
+                                else if boxID2.id.Contains(ID) then{newModel with menu = MenuState.Annotation SubMenuState.DipAndStrike}
+                                else if boxID3.id.Contains(ID) then{newModel with flagSubMenu = FlagSubMenuState.FlagCreate; menu = MenuState.Annotation (SubMenuState.Flag FlagSubMenuState.FlagCreate)}
+                                else if boxID4.id.Contains(ID) then{newModel with menu = MenuState.Annotation SubMenuState.Draw}
+                                else {newModel with menu = MenuState.Annotation (SubMenuState.Line LineSubMenuState.LineCreate)}
                             else update controllers state vr newModel (HoverIn ID)
                         | None -> update controllers state vr newModel HoverOut
                     | _ -> {newModel with subMenuBoxes = PList.empty}
                 else {newModel with subMenuBoxes = PList.empty}
             
             let newModel = 
-                if (newModel.menu.Equals(MenuState.Annotation) && newModel.subMenu.Equals(SubMenuState.Flag) && controllers.Count.Equals(5)) then 
+                if ((newModel.menu.Equals(MenuState.Annotation (SubMenuState.Flag FlagSubMenuState.FlagCreate)) || (newModel.menu.Equals(MenuState.Annotation (SubMenuState.Flag FlagSubMenuState.EditFlag)))) && controllers.Count.Equals(5)) then 
                     let controllerA = controllers |> HMap.tryFind ControllerKind.ControllerA
                     let controllerB = controllers |> HMap.tryFind ControllerKind.ControllerB
                  
@@ -216,9 +216,9 @@ module MenuApp =
                                 let menuSelector = if a.joystickHold then a else b
                                 
                                 if box0ID.id = id then 
-                                    {   newModel with hoveredFlagMenu = HoveredFlagSubmenu.Remove; controllerMenuSelector = menuSelector}
+                                    {   newModel with hoveredFlagMenu = HoveredFlagSubmenu.Remove; controllerMenuSelector = menuSelector; menu = MenuState.Annotation (SubMenuState.Flag FlagSubMenuState.EditFlag)}
                                 else  
-                                    {   newModel with hoveredFlagMenu = HoveredFlagSubmenu.ModifyPos; controllerMenuSelector = menuSelector}
+                                    {   newModel with hoveredFlagMenu = HoveredFlagSubmenu.ModifyPos; controllerMenuSelector = menuSelector; menu = MenuState.Annotation (SubMenuState.Flag FlagSubMenuState.EditFlag)}
                             else //HOVER
                                 update controllers state vr newModel (HoverIn id)
                          | _ -> //HOVEROUT
@@ -391,7 +391,7 @@ module MenuApp =
         {
             menu                    = MenuState.Navigation
             controllerMenuSelector  = ControllerInfo.initial
-            subMenu                 = SubMenuState.Init
+            //subMenu                 = SubMenuState.Init
             lineSubMenuBoxes        = PList.empty
             flagSubMenuBoxes        = PList.empty
             lineSubMenu             = LineSubMenuState.LineCreate

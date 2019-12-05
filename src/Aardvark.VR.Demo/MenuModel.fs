@@ -15,7 +15,7 @@ type HoveredFlagSubmenu =
 | InMenu
 
 type FlagSubMenuState = 
-| EditFlag
+| EditFlag 
 | FlagCreate
 
 type SubMenuState = 
@@ -40,7 +40,7 @@ type MenuModel =
         lineSubMenuBoxes            : plist<VisibleBox>
         flagSubMenuBoxes            : plist<VisibleBox>
         menu                        : MenuState
-        subMenu                     : SubMenuState
+        //subMenu                     : SubMenuState
         lineSubMenu                 : LineSubMenuState
         flagSubMenu                 : FlagSubMenuState
         hoveredFlagMenu             : HoveredFlagSubmenu
@@ -61,7 +61,7 @@ module MenuModel =
             lineSubMenuBoxes            = PList.empty
             flagSubMenuBoxes            = PList.empty
             menu                        = MenuState.Navigation
-            subMenu                     = SubMenuState.Init
+            //subMenu                     = SubMenuState.Init
             lineSubMenu                 = LineSubMenuState.LineCreate
             flagSubMenu                 = FlagSubMenuState.FlagCreate
             hoveredFlagMenu             = HoveredFlagSubmenu.InMenu

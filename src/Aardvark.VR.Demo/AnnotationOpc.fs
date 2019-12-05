@@ -58,15 +58,43 @@ module AnnotationOpc =
                     )
 
                 let newModel = {newModel with flagOnAnnotationSpace = checkFlagHover} 
-                printfn "annotation mode: %s" (newModel.menuModel.flagSubMenu.ToString())
+                printfn "annotation mode: %s" (newModel.menuModel.menu.ToString())
                 match newModel.menuModel.hoveredFlagMenu with 
                 | HoveredFlagSubmenu.Remove -> 
                     let removeFlag = 
                         newModel.flagOnAnnotationSpace
                         |> PList.filter (fun x -> x.flagHovered = false)
-                    let newMenuModel = {newModel.menuModel with hoveredFlagMenu = HoveredFlagSubmenu.InMenu; flagSubMenu = FlagSubMenuState.FlagCreate}
+                    let newMenuModel = 
+                        {
+                            newModel.menuModel with 
+                                hoveredFlagMenu = HoveredFlagSubmenu.InMenu; 
+                                flagSubMenu     = FlagSubMenuState.FlagCreate;
+                                menu            = MenuState.Annotation (SubMenuState.Flag FlagSubMenuState.FlagCreate )
+                        }
                     {newModel with flagOnAnnotationSpace = removeFlag; menuModel = newMenuModel}
-                | _ -> newModel 
+                | HoveredFlagSubmenu.ModifyPos -> //TODO still not finished
+                    let hoveredFlag = 
+                        newModel.flagOnAnnotationSpace
+                        |> PList.filter (fun x -> x.flagHovered = true)
+                    let noHoveredFlags = 
+                        newModel.flagOnAnnotationSpace
+                        |> PList.filter (fun x -> x.flagHovered = false)
+                    let newMenuModel = 
+                        {
+                            newModel.menuModel with 
+                                hoveredFlagMenu = HoveredFlagSubmenu.InMenu;
+                                flagSubMenu     = FlagSubMenuState.FlagCreate;
+                                menu            = MenuState.Annotation (SubMenuState.Flag FlagSubMenuState.FlagCreate )
+                        }
+                    {
+                        newModel with 
+                            flagOnController        = hoveredFlag; 
+                            flagOnAnnotationSpace   = noHoveredFlags;
+                            menuModel               = newMenuModel
+                    }
+                | _ -> newModel
+                
+                    
 
             | None -> newModel
         | DipAndStrike -> 
@@ -130,8 +158,6 @@ module AnnotationOpc =
                 let updateLinePos = 
                     newModel.lineOnController
                     |> PList.map (fun line -> {line with trafo = id.pose.deviceToWorld})
-
-                
 
                 let newModel = 
                     match id.backButtonPressed with 
