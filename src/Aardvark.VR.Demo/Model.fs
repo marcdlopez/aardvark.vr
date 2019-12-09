@@ -90,11 +90,10 @@ type Model =
 
         flagOnController                : plist<VisibleBox> 
         flagOnAnnotationSpace           : plist<VisibleBox> 
-        lineOnController                : plist<VisibleSphere>
-        lineOnAnnotationSpace           : plist<VisibleSphere>
+        lineOnController                : Option<VisibleSphere>
+        lineOnAnnotationSpace           : plist<VisibleSphere> //currently working line
         lineIsHovered                   : bool
         flagIsHovered                   : bool
-        lineMarsDisplay                 : Line3d[]
         finishedLine                    : hmap<string, FinishedLine>
         dipAndStrikeOnController        : plist<VisibleCylinder>
         dipAndStrikeOnAnnotationSpace   : plist<VisibleCylinder>
@@ -162,9 +161,8 @@ module Model =
 
             flagOnController        = PList.empty
             flagOnAnnotationSpace   = PList.empty
-            lineOnController        = PList.empty
+            lineOnController        = None
             lineOnAnnotationSpace   = PList.empty
-            lineMarsDisplay         = [|Line3d()|]
             finishedLine            = HMap.empty
             lineIsHovered           = false
             flagIsHovered           = false
@@ -181,9 +179,8 @@ module Model =
                 workSpaceTrafo                  = Trafo3d.Identity
                 flagOnController                = PList.empty
                 flagOnAnnotationSpace           = PList.empty
-                lineOnController                = PList.empty
+                lineOnController                = None
                 lineOnAnnotationSpace           = PList.empty
-                lineMarsDisplay                 = [|Line3d()|]
                 drawingLine                     = [|Line3d()|]
                 dipAndStrikeOnController        = PList.empty
                 dipAndStrikeOnAnnotationSpace   = PList.empty

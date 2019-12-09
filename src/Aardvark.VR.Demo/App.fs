@@ -241,12 +241,18 @@ module Demo =
             
             let newModel = {model with controllerInfos = updateControllerButtons}
             
-            let homeButtonPressed = 
+            let newModel = 
                 match buttonKind with 
-                | ControllerButtons.Home -> {newModel.menuModel with menu = MenuState.Navigation}
-                | _ -> newModel.menuModel
-
-            let newModel = {newModel with menuModel = homeButtonPressed}
+                | ControllerButtons.Home -> 
+                    let homeButtonPressed = {newModel.menuModel with menu = MenuState.Navigation}
+                    {newModel with 
+                        menuModel           = homeButtonPressed
+                        flagOnController    = PList.empty
+                        lineOnController    = None
+                        dipAndStrikeOnController = PList.empty
+                        //should i add the currentlyDrawing Option??
+                    }
+                | _ -> newModel
 
             let controllerMenuUpdate = MenuApp.update newModel.controllerInfos state vr newModel.menuModel (MenuAction.Select (kind, buttonPress))
 
@@ -259,7 +265,7 @@ module Demo =
                     |> NavigationOpc.initialSceneInfo
                 {newModel with 
                     flagOnController    = PList.empty
-                    lineOnController    = PList.empty
+                    lineOnController    = None
                     dipAndStrikeOnController = PList.empty
                 }
             | Annotation (annotationMenu) -> //TODO ML: make your own annotation app
@@ -301,17 +307,17 @@ module Demo =
                     | Line (lineMenu)  -> 
                         match lineMenu with 
                         | LineSubMenuState.LineCreate -> 
-                            let newLine = OpcUtilities.mkSphere id.pose 1 0.005
-                            let newModel = {newModel with lineOnController = newLine}
+                            let newLine = VisibleSphere.createSphere C4b.White (id.pose.deviceToWorld.GetModelOrigin()) 0.005
+                            let newModel = {newModel with lineOnController = Some newLine}
+
                             printfn "button kind: %d" (buttonKind |> ControllerButtons.toInt)
                             match buttonKind with 
                             | ControllerButtons.Side -> 
-
                                 let spherePoints = 
                                     newModel.lineOnAnnotationSpace
                                     |> PList.map (fun p -> 
                                         {
-                                            pos         = p.trafo.GetModelOrigin()
+                                            pos         = p.trafo.GetModelOrigin() 
                                             hovered     = false 
                                             color       = C4b.White
                                         }
@@ -321,7 +327,7 @@ module Demo =
                                     newModel.finishedLine
                                     |> HMap.alter (System.Guid.NewGuid().ToString()) (fun fl ->
                                         match fl with 
-                                        | Some updateLine -> Some updateLine //update line... never happens
+                                        | Some oldLine -> Some oldLine //update line... not overwriting it...discard changes...!
                                         | None -> // create new finished line
                                             let newLine = 
                                                 {
@@ -329,26 +335,19 @@ module Demo =
                                                     trafo           = Trafo3d.Identity
                                                     colorLine       = C4b.White
                                                     colorVertices   = C4b.White
-                                                    //finishedLineOnMars      = newModel.lineOnMars
-                                                    //finishedLineMarsDisplay = newModel.lineMarsDisplay
                                                 }
                                             Some newLine
                                     )
 
-                                let newModel = {newModel with finishedLine = newFinishedLine}
-
-                                let newControllerLine = 
-                                    OpcUtilities.mkSphere id.pose 1 0.005
-
-                                {newModel with 
-                                    lineOnController = newControllerLine;
+                                { newModel with 
+                                    finishedLine = newFinishedLine
                                     lineOnAnnotationSpace = PList.empty
                                 }    
                                 //newModel
                             | _ -> newModel 
                         | LineSubMenuState.EditLine -> 
                             printfn "new MOOOOOOODE"
-                            {newModel with lineOnController = PList.empty}
+                            {newModel with lineOnController = None }
                     | DipAndStrike -> 
                         let indexDS = 
                             newModel.dipAndStrikeOnController
@@ -733,26 +732,30 @@ module Demo =
                 ]
             |> Sg.noEvents
 
+        let defaultEffect (msg : ISg<_>)=    
+            msg
+            |> Sg.effect [
+                    toEffect DefaultSurfaces.trafo
+                    toEffect DefaultSurfaces.vertexColor
+                    toEffect DefaultSurfaces.simpleLighting                              
+                ]
+
         let spheres = 
             m.lineOnController
-            |> AList.toASet
+            |> Mod.toASet
             |> ASet.map (fun b -> 
-                mkSphere m b 
+                match b with 
+                | Some bb -> mkSphere m bb 
+                | None -> Sg.empty
                )
             |> Sg.set
-            |> Sg.effect [
-                toEffect DefaultSurfaces.trafo
-                toEffect DefaultSurfaces.vertexColor
-                toEffect DefaultSurfaces.simpleLighting                              
-                ]
+            |> defaultEffect
             |> Sg.noEvents
 
         let sphereOnAnnotationSpace = 
             m.lineOnAnnotationSpace
             |> AList.toASet
-            |> ASet.map (fun b -> 
-                mkSphere m b 
-               )
+            |> ASet.map (fun b -> mkSphere m b )
             |> Sg.set
             |> Sg.effect [
                 toEffect DefaultSurfaces.trafo
@@ -766,9 +769,9 @@ module Demo =
                 m.lineOnAnnotationSpace
                 |> AList.toMod
                 |> Mod.map (fun l -> 
-                        l
-                        |> PList.tryFirst
-                    )
+                    l
+                    |> PList.tryFirst
+                )
             let t2 = 
                 m.lineOnAnnotationSpace
                 |> AList.toMod
@@ -779,13 +782,10 @@ module Demo =
             adaptive {
                 let! qwer = ttt
                 let! asdf = t2
-                match qwer with 
-                | Some point1 -> 
-                    match asdf with 
-                    | Some point2 -> 
-                        return [|Line3d(point1.trafo.GetValue().GetModelOrigin(), point2.trafo.GetValue().GetModelOrigin())|]
-                    | None -> return [|Line3d()|]
-                | None -> return [|Line3d()|]
+                match qwer, asdf with 
+                | Some point1, Some point2 -> 
+                    return [|Line3d(point1.trafo.GetValue().GetModelOrigin(), point2.trafo.GetValue().GetModelOrigin())|]
+                | _ -> return [|Line3d()|]
             }
 
         let drawLineTest = 
@@ -801,62 +801,42 @@ module Demo =
             |> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
             |> Sg.depthTest (Mod.constant DepthTestMode.None)
 
-        let drawSphereLines = 
-            m.lineMarsDisplay
-                |> Sg.lines (Mod.constant C4b.White)
-                |> Sg.noEvents
-                |> Sg.uniform "LineWidth" (Mod.constant 5) 
-                |> Sg.effect [
-                    toEffect DefaultSurfaces.trafo
-                    toEffect DefaultSurfaces.vertexColor
-                    toEffect DefaultSurfaces.thickLine
-                    ]
-                |> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
-                |> Sg.depthTest (Mod.constant DepthTestMode.None)
+        //let drawSphereLines = 
+        //    m.lineMarsDisplay
+        //        |> Sg.lines (Mod.constant C4b.White)
+        //        |> Sg.noEvents
+        //        |> Sg.uniform "LineWidth" (Mod.constant 5) 
+        //        |> Sg.effect [
+        //            toEffect DefaultSurfaces.trafo
+        //            toEffect DefaultSurfaces.vertexColor
+        //            toEffect DefaultSurfaces.thickLine
+        //            ]
+        //        |> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
+        //        |> Sg.depthTest (Mod.constant DepthTestMode.None)
                 
         let dynamicLine = 
-            let conLine = 
-                m.lineOnController
-                |> AList.toMod
-                |> Mod.map (fun cl -> 
-                    cl
-                    |> PList.tryFirst
-                )
-            let conLine1 = 
-                conLine 
-                |> Mod.bind (fun sphere -> 
-                    match sphere with 
-                    | Some id -> id.trafo 
-                    | None -> Mod.constant (Trafo3d.Translation(V3d(-50000.0, -50000.0, -50000.0)))
-                )
+            //let conLine = 
+            //    m.lineOnController
+            //    |> Mod.map ( fun cl -> cl)
                 
             let marsLine = 
                 m.lineOnAnnotationSpace
                 |> AList.toMod
-                |> Mod.map (fun ml -> 
-                    ml
-                    |> PList.tryFirst
-                )
-            let marsLine1 = 
-                marsLine 
-                |> Mod.bind (fun sphere -> 
-                    match sphere with 
-                    | Some id -> id.trafo 
-                    | None -> Mod.constant (Trafo3d.Translation(V3d(50000.0, 50000.0, 50000.0)))
-                )
+                |> Mod.map ( fun ml -> ml |> PList.tryFirst )
+
             adaptive {
-                let! conLineTest = conLine |> Mod.map (fun tt -> tt)
-                let! marsLineTest = marsLine  |> Mod.map (fun tt -> tt)
-                
-                match conLineTest with 
-                | Some clID -> 
-                    match marsLineTest with 
-                    | Some mlID -> 
-                        let! conLineTrafo = conLine1 |> Mod.map (fun t -> t )
-                        let! marsLineTrafo = marsLine1 |> Mod.map (fun t -> t )
-                        return [|Line3d(conLineTrafo.GetModelOrigin(), marsLineTrafo.GetModelOrigin())|]
-                    | None -> return [|Line3d()|]
-                | None -> return [|Line3d()|]
+                let! marsLineTest = marsLine 
+                let! conLineTest = m.lineOnController   
+
+                match conLineTest, marsLineTest with
+                | Some con, Some mars -> 
+                    let! ma = mars.trafo // annotation space 
+                    let! workTrafo = m.workSpaceTrafo
+                    let! co = con.trafo // world space
+
+                    let con11234 = co * workTrafo.Inverse
+                    return [|Line3d(con11234.GetModelOrigin(), ma.GetModelOrigin())|]
+                | _ -> return [|Line3d()|]
             }
 
         let showDynamicLine = 
@@ -928,11 +908,15 @@ module Demo =
         let finishedLineHmap = 
             m.finishedLine
             |> AMap.toASet
-            |> ASet.map (fun (s, b) ->
-                let text = 
-                    b.points
+            |> ASet.map (fun (_, finishedLines) ->
+                
+                let pairwaiseLine =     
+                    finishedLines.points
                     |> AList.toList
                     |> List.pairwise
+                
+                let lineText = 
+                    pairwaiseLine
                     |> List.map (fun (a, b) -> 
                         let distance = Mod.constant (V3d.Distance(a.pos, b.pos))
                         let distance = distance |> Mod.map (fun d -> System.Math.Round(d, 3).ToString())
@@ -943,16 +927,11 @@ module Demo =
                     )
                     |> Sg.ofList
 
-
-                let newFinishedLine = 
-                    b.points
-                    |> AList.toList
-                    |> List.pairwise
+                let lineConnection = 
+                    pairwaiseLine
                     |> List.map (fun (a, b) -> Line3d(a.pos, b.pos))
                     |> List.toArray
-
-                let renderFinishedLine = 
-                    Mod.constant newFinishedLine
+                    |> Mod.constant
                     |> Sg.lines (Mod.constant C4b.White)
                     |> Sg.noEvents
                     |> Sg.uniform "LineWidth" (Mod.constant 5) 
@@ -964,34 +943,27 @@ module Demo =
                     |> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
                     |> Sg.depthTest (Mod.constant DepthTestMode.None)
 
-                let newFinishedLineOnMars = 
-                    b.points
-                    |> AList.map (fun l -> 
-                        let newSphere = Mod.constant (VisibleSphere.createSphere l.color l.pos 0.005)
-                        let color = newSphere |> Mod.map (fun s -> s.color)
-                        let pos = newSphere |> Mod.map (fun s -> s.trafo)
-                        Sg.sphere 10 color (newSphere |> Mod.map (fun s -> s.radius))
-                        |> Sg.noEvents
-                        |> Sg.trafo(pos)
-                        |> Sg.shader {
-                            do! DefaultSurfaces.trafo
-                            do! DefaultSurfaces.vertexColor
-                            //do! DefaultSurfaces.simpleLighting
-                            }  
+                let lineVertices = 
+                    finishedLines.points
+                    |> AList.map (fun linePoint -> 
+                        Sg.sphere 10 (Mod.constant linePoint.color) (Mod.constant 0.005)
+                        |> Sg.trafo (Mod.constant (Trafo3d.Translation linePoint.pos))
                     )                
                     |> AList.toASet
                     |> Sg.set
                     |> Sg.effect [
                         toEffect DefaultSurfaces.trafo
                         toEffect DefaultSurfaces.vertexColor
-                        toEffect DefaultSurfaces.simpleLighting                              
+                        //toEffect DefaultSurfaces.simpleLighting                              
                         ]
                     |> Sg.noEvents
                 
-                newFinishedLineOnMars
-                |> Sg.andAlso renderFinishedLine
-                |> Sg.andAlso text
-                
+                [
+                    lineVertices
+                    lineConnection
+                    lineText
+                ] 
+                |> Sg.ofList
             )
             |> Sg.set
 
@@ -1078,15 +1050,15 @@ module Demo =
                 finishedLineHmap
                 cylinders
                 cylindersOnAnnotationSpace
-            ]   
+            ]  
             |> Sg.ofList
             |> Sg.trafo m.annotationSpaceTrafo
 
         let inMenuDisappear = 
             [
                 flags
+                showDynamicLine |> Sg.trafo m.annotationSpaceTrafo
                 spheres
-                showDynamicLine
                 //cylinders
             ]   
             |> Sg.ofList
@@ -1186,10 +1158,9 @@ module Demo =
             finishedDrawings        = HMap.empty
 
             flagOnController        = PList.empty
-            flagOnAnnotationSpace              = PList.empty
-            lineOnController        = PList.empty
-            lineOnAnnotationSpace              = PList.empty
-            lineMarsDisplay         = [|Line3d()|]
+            flagOnAnnotationSpace   = PList.empty
+            lineOnController        = None
+            lineOnAnnotationSpace   = PList.empty
             finishedLine            = HMap.empty
             lineIsHovered           = false
             flagIsHovered           = false

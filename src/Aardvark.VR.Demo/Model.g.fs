@@ -143,11 +143,10 @@ module Mutable =
         let _finishedDrawings = MMap.Create(__initial.finishedDrawings, (fun v -> MPolygon.Create(v)), (fun (m,v) -> MPolygon.Update(m, v)), (fun v -> v))
         let _flagOnController = MList.Create(__initial.flagOnController, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
         let _flagOnAnnotationSpace = MList.Create(__initial.flagOnAnnotationSpace, (fun v -> Demo.Mutable.MVisibleBox.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleBox.Update(m, v)), (fun v -> v))
-        let _lineOnController = MList.Create(__initial.lineOnController, (fun v -> Demo.Mutable.MVisibleSphere.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleSphere.Update(m, v)), (fun v -> v))
+        let _lineOnController = MOption.Create(__initial.lineOnController, (fun v -> Demo.Mutable.MVisibleSphere.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleSphere.Update(m, v)), (fun v -> v))
         let _lineOnAnnotationSpace = MList.Create(__initial.lineOnAnnotationSpace, (fun v -> Demo.Mutable.MVisibleSphere.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleSphere.Update(m, v)), (fun v -> v))
         let _lineIsHovered = ResetMod.Create(__initial.lineIsHovered)
         let _flagIsHovered = ResetMod.Create(__initial.flagIsHovered)
-        let _lineMarsDisplay = ResetMod.Create(__initial.lineMarsDisplay)
         let _finishedLine = MMap.Create(__initial.finishedLine, (fun v -> MFinishedLine.Create(v)), (fun (m,v) -> MFinishedLine.Update(m, v)), (fun v -> v))
         let _dipAndStrikeOnController = MList.Create(__initial.dipAndStrikeOnController, (fun v -> Demo.Mutable.MVisibleCylinder.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleCylinder.Update(m, v)), (fun v -> v))
         let _dipAndStrikeOnAnnotationSpace = MList.Create(__initial.dipAndStrikeOnAnnotationSpace, (fun v -> Demo.Mutable.MVisibleCylinder.Create(v)), (fun (m,v) -> Demo.Mutable.MVisibleCylinder.Update(m, v)), (fun v -> v))
@@ -183,11 +182,10 @@ module Mutable =
         member x.finishedDrawings = _finishedDrawings :> amap<_,_>
         member x.flagOnController = _flagOnController :> alist<_>
         member x.flagOnAnnotationSpace = _flagOnAnnotationSpace :> alist<_>
-        member x.lineOnController = _lineOnController :> alist<_>
+        member x.lineOnController = _lineOnController :> IMod<_>
         member x.lineOnAnnotationSpace = _lineOnAnnotationSpace :> alist<_>
         member x.lineIsHovered = _lineIsHovered :> IMod<_>
         member x.flagIsHovered = _flagIsHovered :> IMod<_>
-        member x.lineMarsDisplay = _lineMarsDisplay :> IMod<_>
         member x.finishedLine = _finishedLine :> amap<_,_>
         member x.dipAndStrikeOnController = _dipAndStrikeOnController :> alist<_>
         member x.dipAndStrikeOnAnnotationSpace = _dipAndStrikeOnAnnotationSpace :> alist<_>
@@ -227,11 +225,10 @@ module Mutable =
                 MMap.Update(_finishedDrawings, v.finishedDrawings)
                 MList.Update(_flagOnController, v.flagOnController)
                 MList.Update(_flagOnAnnotationSpace, v.flagOnAnnotationSpace)
-                MList.Update(_lineOnController, v.lineOnController)
+                MOption.Update(_lineOnController, v.lineOnController)
                 MList.Update(_lineOnAnnotationSpace, v.lineOnAnnotationSpace)
                 ResetMod.Update(_lineIsHovered,v.lineIsHovered)
                 ResetMod.Update(_flagIsHovered,v.flagIsHovered)
-                ResetMod.Update(_lineMarsDisplay,v.lineMarsDisplay)
                 MMap.Update(_finishedLine, v.finishedLine)
                 MList.Update(_dipAndStrikeOnController, v.dipAndStrikeOnController)
                 MList.Update(_dipAndStrikeOnAnnotationSpace, v.dipAndStrikeOnAnnotationSpace)
@@ -433,7 +430,7 @@ module Mutable =
                     override x.Update(r,f) = { r with flagOnAnnotationSpace = f r.flagOnAnnotationSpace }
                 }
             let lineOnController =
-                { new Lens<Demo.Main.Model, Aardvark.Base.plist<Demo.VisibleSphere>>() with
+                { new Lens<Demo.Main.Model, Microsoft.FSharp.Core.Option<Demo.VisibleSphere>>() with
                     override x.Get(r) = r.lineOnController
                     override x.Set(r,v) = { r with lineOnController = v }
                     override x.Update(r,f) = { r with lineOnController = f r.lineOnController }
@@ -455,12 +452,6 @@ module Mutable =
                     override x.Get(r) = r.flagIsHovered
                     override x.Set(r,v) = { r with flagIsHovered = v }
                     override x.Update(r,f) = { r with flagIsHovered = f r.flagIsHovered }
-                }
-            let lineMarsDisplay =
-                { new Lens<Demo.Main.Model, Aardvark.Base.Line3d[]>() with
-                    override x.Get(r) = r.lineMarsDisplay
-                    override x.Set(r,v) = { r with lineMarsDisplay = v }
-                    override x.Update(r,f) = { r with lineMarsDisplay = f r.lineMarsDisplay }
                 }
             let finishedLine =
                 { new Lens<Demo.Main.Model, Aardvark.Base.hmap<System.String,Demo.Main.FinishedLine>>() with

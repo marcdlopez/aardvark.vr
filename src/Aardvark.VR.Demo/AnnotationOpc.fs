@@ -157,55 +157,33 @@ module AnnotationOpc =
             | Some id -> 
                 let updateLinePos = 
                     newModel.lineOnController
-                    |> PList.map (fun line -> {line with trafo = id.pose.deviceToWorld})
+                    |> Option.map (fun sphere -> {sphere with trafo = id.pose.deviceToWorld})
 
                 let newModel = 
                     match id.backButtonPressed with 
                     | true -> 
-                        let lineOnController = 
-                            newModel.lineOnController
-                            |> PList.tryFirst
-
-                        match lineOnController with
-                        | Some line -> 
-                            let updateLine = {line with trafo = id.pose.deviceToWorld * newModel.workSpaceTrafo.Inverse}
+                        match newModel.lineOnController with
+                        | Some newP -> 
+                            let newPoint = {newP with trafo = id.pose.deviceToWorld * newModel.workSpaceTrafo.Inverse}
+                            printfn"mars line: %A" (newPoint.trafo.GetModelOrigin())
+                            
+                            let newPointWithDistance = 
+                                newModel.lineOnAnnotationSpace
+                                |> PList.tryFirst
+                                |> Option.map(fun lastP -> 
+                                    let dist = System.Math.Round(V3d.Distance(lastP.trafo.GetModelOrigin(), newPoint.trafo.GetModelOrigin()), 3) 
+                                    { newPoint with distance = string dist})    // Update distance
+                                |> Option.defaultValue newPoint                 // Distance -> "0.0"
 
                             let newLineOnMars = 
                                 newModel.lineOnAnnotationSpace
-                                |> PList.prepend updateLine
-                        
-                            let spherePoint =  
-                                newLineOnMars 
-                                |> PList.toArray 
-                                |> Array.map (fun sphere -> sphere)
-                        
-                            let sphereLine = 
-                                spherePoint 
-                                |> Array.pairwise
-                                |> Array.map (fun (a, b) -> new Line3d(a.trafo.GetModelOrigin(), b.trafo.GetModelOrigin()))
+                                |> PList.prepend newPointWithDistance   // PRE-PREND new POINT!
 
-                            let newModel = {newModel with lineMarsDisplay = sphereLine; lineOnController = PList.empty; lineOnAnnotationSpace = newLineOnMars}
+                            { newModel with
+                                lineOnController = None
+                                lineOnAnnotationSpace = newLineOnMars
+                            }
 
-                            let linePointMars = 
-                                newLineOnMars
-                                |> PList.tryLast
-
-                            match linePointMars with
-                            | Some line1 ->
-                                let newDistanceLine = V3d.Distance(line1.trafo.GetModelOrigin(), updateLine.trafo.GetModelOrigin())
-                                let newDistanceLine = System.Math.Round(newDistanceLine, 3)
-                                let newSphereListIndex = 
-                                    newModel.lineOnAnnotationSpace
-                                    |> PList.findIndex updateLine 
-                                let newSphereList = 
-                                    newModel.lineOnAnnotationSpace
-                                    |> PList.alter newSphereListIndex (fun dist -> 
-                                        match dist with 
-                                        | Some s -> Some {s with distance = string newDistanceLine}
-                                        | None -> Some VisibleSphere.initial
-                                    )
-                                {newModel with lineOnAnnotationSpace = newSphereList}
-                            | None -> newModel
                         | None -> newModel 
                     | false -> {newModel with lineOnController = updateLinePos}
             
