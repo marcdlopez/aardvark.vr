@@ -248,12 +248,12 @@ module Demo =
                     {newModel with 
                         menuModel           = homeButtonPressed
                         flagOnController    = PList.empty
-                        lineOnController    = None
+                        lineOnController    = PList.empty
                         dipAndStrikeOnController = PList.empty
                         //should i add the currentlyDrawing Option??
                     }
                 | _ -> newModel
-
+                
             let controllerMenuUpdate = MenuApp.update newModel.controllerInfos state vr newModel.menuModel (MenuAction.Select (kind, buttonPress))
 
             let newModel = {newModel with menuModel = controllerMenuUpdate}
@@ -265,7 +265,7 @@ module Demo =
                     |> NavigationOpc.initialSceneInfo
                 {newModel with 
                     flagOnController    = PList.empty
-                    lineOnController    = None
+                    lineOnController    = PList.empty
                     dipAndStrikeOnController = PList.empty
                 }
             | Annotation (annotationMenu) -> //TODO ML: make your own annotation app
@@ -307,17 +307,17 @@ module Demo =
                     | Line (lineMenu)  -> 
                         match lineMenu with 
                         | LineSubMenuState.LineCreate -> 
-                            let newLine = VisibleSphere.createSphere C4b.White (id.pose.deviceToWorld.GetModelOrigin()) 0.005
-                            let newModel = {newModel with lineOnController = Some newLine}
-
+                            let newLine = OpcUtilities.mkSphere id.pose 1 0.005
+                            let newModel = {newModel with lineOnController = newLine}
                             printfn "button kind: %d" (buttonKind |> ControllerButtons.toInt)
                             match buttonKind with 
                             | ControllerButtons.Side -> 
+
                                 let spherePoints = 
                                     newModel.lineOnAnnotationSpace
                                     |> PList.map (fun p -> 
                                         {
-                                            pos         = p.trafo.GetModelOrigin() 
+                                            pos         = p.trafo.GetModelOrigin()
                                             hovered     = false 
                                             color       = C4b.White
                                         }
@@ -327,7 +327,7 @@ module Demo =
                                     newModel.finishedLine
                                     |> HMap.alter (System.Guid.NewGuid().ToString()) (fun fl ->
                                         match fl with 
-                                        | Some oldLine -> Some oldLine //update line... not overwriting it...discard changes...!
+                                        | Some oldLine -> Some oldLine //update line... never happens
                                         | None -> // create new finished line
                                             let newLine = 
                                                 {
@@ -339,15 +339,13 @@ module Demo =
                                             Some newLine
                                     )
 
-                                { newModel with 
-                                    finishedLine = newFinishedLine
+                                {newModel with 
+                                    finishedLine        = newFinishedLine
                                     lineOnAnnotationSpace = PList.empty
                                 }    
-                                //newModel
                             | _ -> newModel 
                         | LineSubMenuState.EditLine -> 
-                            printfn "new MOOOOOOODE"
-                            {newModel with lineOnController = None }
+                            {newModel with lineOnController = PList.empty}
                     | DipAndStrike -> 
                         let indexDS = 
                             newModel.dipAndStrikeOnController
@@ -661,6 +659,14 @@ module Demo =
     
     let vr' (info : VrSystemInfo) (m : MModel) = 
 
+        let defaultEffect (msg : ISg<_>)=    
+            msg
+            |> Sg.effect [
+                toEffect DefaultSurfaces.trafo
+                toEffect DefaultSurfaces.vertexColor
+                toEffect DefaultSurfaces.simpleLighting                              
+            ]            
+
         let drawLineToPolygon = 
             m.currentlyDrawing
             |> Mod.bind (fun cd -> 
@@ -721,33 +727,15 @@ module Demo =
         let flags = 
             m.flagOnController
             |> AList.toASet 
-            |> ASet.map (fun b -> 
-                mkFlag m b 
-               )
+            |> ASet.map (fun b -> mkFlag m b )
             |> Sg.set
-            |> Sg.effect [
-                toEffect DefaultSurfaces.trafo
-                toEffect DefaultSurfaces.vertexColor
-                toEffect DefaultSurfaces.simpleLighting                              
-                ]
+            |> defaultEffect
             |> Sg.noEvents
-
-        let defaultEffect (msg : ISg<_>)=    
-            msg
-            |> Sg.effect [
-                    toEffect DefaultSurfaces.trafo
-                    toEffect DefaultSurfaces.vertexColor
-                    toEffect DefaultSurfaces.simpleLighting                              
-                ]
 
         let spheres = 
             m.lineOnController
-            |> Mod.toASet
-            |> ASet.map (fun b -> 
-                match b with 
-                | Some bb -> mkSphere m bb 
-                | None -> Sg.empty
-               )
+            |> AList.toASet
+            |> ASet.map (fun b -> mkSphere m b )
             |> Sg.set
             |> defaultEffect
             |> Sg.noEvents
@@ -757,11 +745,7 @@ module Demo =
             |> AList.toASet
             |> ASet.map (fun b -> mkSphere m b )
             |> Sg.set
-            |> Sg.effect [
-                toEffect DefaultSurfaces.trafo
-                toEffect DefaultSurfaces.vertexColor
-                toEffect DefaultSurfaces.simpleLighting                              
-                ]
+            |> defaultEffect
             |> Sg.noEvents
 
         let drawinALine = 
@@ -801,23 +785,11 @@ module Demo =
             |> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
             |> Sg.depthTest (Mod.constant DepthTestMode.None)
 
-        //let drawSphereLines = 
-        //    m.lineMarsDisplay
-        //        |> Sg.lines (Mod.constant C4b.White)
-        //        |> Sg.noEvents
-        //        |> Sg.uniform "LineWidth" (Mod.constant 5) 
-        //        |> Sg.effect [
-        //            toEffect DefaultSurfaces.trafo
-        //            toEffect DefaultSurfaces.vertexColor
-        //            toEffect DefaultSurfaces.thickLine
-        //            ]
-        //        |> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
-        //        |> Sg.depthTest (Mod.constant DepthTestMode.None)
-                
         let dynamicLine = 
-            //let conLine = 
-            //    m.lineOnController
-            //    |> Mod.map ( fun cl -> cl)
+            let conLine = 
+                m.lineOnController
+                |> AList.toMod
+                |> Mod.map ( fun cl -> cl |> PList.tryFirst)
                 
             let marsLine = 
                 m.lineOnAnnotationSpace
@@ -826,7 +798,7 @@ module Demo =
 
             adaptive {
                 let! marsLineTest = marsLine 
-                let! conLineTest = m.lineOnController   
+                let! conLineTest = conLine //m.lineOnController   
 
                 match conLineTest, marsLineTest with
                 | Some con, Some mars -> 
@@ -851,8 +823,6 @@ module Demo =
                     ]
                 |> Sg.pass (RenderPass.after "lines" RenderPassOrder.Arbitrary RenderPass.main)
                 |> Sg.depthTest (Mod.constant DepthTestMode.None)
-
-        let font = Font.create "Consolas" FontStyle.Regular
 
         let distanceText =
             m.lineOnAnnotationSpace
@@ -885,25 +855,17 @@ module Demo =
                 mkFlag m b 
                )
             |> Sg.set
-            |> Sg.effect [
-                toEffect DefaultSurfaces.trafo
-                toEffect DefaultSurfaces.vertexColor
-                toEffect DefaultSurfaces.simpleLighting                              
-                ]
+            |> defaultEffect
             |> Sg.noEvents
 
-        let a = 
+        let showControllerCones = 
             m.controllerInfos
             |> AMap.toASet
             |> ASet.map (fun boxController -> 
                 let ci_pose = snd boxController
                 mkControllerBox ci_pose.pose)
             |> Sg.set
-            |> Sg.effect [
-                toEffect DefaultSurfaces.trafo
-                toEffect DefaultSurfaces.vertexColor
-                toEffect DefaultSurfaces.simpleLighting                              
-                ]
+            |> defaultEffect
 
         let finishedLineHmap = 
             m.finishedLine
@@ -995,11 +957,7 @@ module Demo =
                 mkCylinder m c
             )
             |> Sg.set
-            |> Sg.effect [
-                toEffect DefaultSurfaces.trafo
-                toEffect DefaultSurfaces.vertexColor
-                toEffect DefaultSurfaces.simpleLighting                              
-                ]
+            |> defaultEffect
             |> Sg.noEvents
 
         let cylindersOnAnnotationSpace = 
@@ -1009,11 +967,7 @@ module Demo =
                 mkCylinderOnAnnotationSpace m c
             )
             |> Sg.set
-            |> Sg.effect [
-                toEffect DefaultSurfaces.trafo
-                toEffect DefaultSurfaces.vertexColor
-                toEffect DefaultSurfaces.simpleLighting                              
-                ]
+            |> defaultEffect
             |> Sg.noEvents
         
         let menuApp = 
@@ -1050,15 +1004,15 @@ module Demo =
                 finishedLineHmap
                 cylinders
                 cylindersOnAnnotationSpace
-            ]  
+            ]   
             |> Sg.ofList
             |> Sg.trafo m.annotationSpaceTrafo
 
         let inMenuDisappear = 
             [
                 flags
-                showDynamicLine |> Sg.trafo m.annotationSpaceTrafo
                 spheres
+                showDynamicLine |> Sg.trafo m.annotationSpaceTrafo
                 //cylinders
             ]   
             |> Sg.ofList
@@ -1085,7 +1039,7 @@ module Demo =
         let notTransformedSgs =
             [
                 deviceSgs
-                a
+                showControllerCones
                 menuApp
             ] |> Sg.ofList
 
@@ -1158,9 +1112,9 @@ module Demo =
             finishedDrawings        = HMap.empty
 
             flagOnController        = PList.empty
-            flagOnAnnotationSpace   = PList.empty
-            lineOnController        = None
-            lineOnAnnotationSpace   = PList.empty
+            flagOnAnnotationSpace              = PList.empty
+            lineOnController        = PList.empty
+            lineOnAnnotationSpace              = PList.empty
             finishedLine            = HMap.empty
             lineIsHovered           = false
             flagIsHovered           = false
