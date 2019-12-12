@@ -563,7 +563,7 @@ module Demo =
                 let range = new Range1d(min, max)
                 let hue = (dipAngle - range.Min) / range.Size
                 let hsv = HSVf((1.0 - hue) * 0.625, 1.0, 1.0)
-                return hsv.ToC3f().ToC4b()
+                return C4f(hsv.ToC3f(), 0.5f).ToC4b()
             }
         let rad = 
             adaptive { 
