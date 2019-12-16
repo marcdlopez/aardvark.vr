@@ -571,7 +571,7 @@ module Demo =
                 return rad1
             }
 
-        Sg.cylinder 20 color rad (Mod.constant 0.01)
+        Sg.cylinder 50 color rad (Mod.constant 0.01)
             |> Sg.noEvents
             |> Sg.trafo(pos)
             |> Sg.shader {
@@ -581,10 +581,11 @@ module Demo =
             }
 
     let mkCylinderOnAnnotationSpace (model : MModel) (cylinder : MVisibleCylinder) = 
-        let color = cylinder.color
         let pos = cylinder.trafo
+        let color = cylinder.color
+            
 
-        Sg.cylinder 20 color cylinder.radius (Mod.constant 0.01)
+        Sg.cylinder 50 color cylinder.radius (Mod.constant 0.01)
             |> Sg.noEvents
             |> Sg.trafo(pos)
             |> Sg.shader {
@@ -958,6 +959,9 @@ module Demo =
             )
             |> Sg.set
             |> defaultEffect
+            |> Sg.blendMode (Mod.constant BlendMode.Blend)
+            |> Sg.cullMode (Mod.constant CullMode.Front)
+            |> Sg.pass (RenderPass.after "" RenderPassOrder.Arbitrary RenderPass.main)
             |> Sg.noEvents
 
         let cylindersOnAnnotationSpace = 
@@ -968,6 +972,9 @@ module Demo =
             )
             |> Sg.set
             |> defaultEffect
+            //|> Sg.blendMode (Mod.constant BlendMode.Blend)
+            //|> Sg.cullMode (Mod.constant CullMode.Front)
+            //|> Sg.pass (RenderPass.after "" RenderPassOrder.Arbitrary RenderPass.main)
             |> Sg.noEvents
         
         let menuApp = 
@@ -1133,3 +1140,4 @@ module Demo =
             vr = vr'
             pauseScene = Some pause
         }
+

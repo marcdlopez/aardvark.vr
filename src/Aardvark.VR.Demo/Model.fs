@@ -174,14 +174,14 @@ module Model =
     let initMainReset = 
         {
             initial with 
-                opcSpaceTrafo                   = Trafo3d.Translation -initial.boundingBox.Center * Trafo3d.RotateInto(initial.boundingBox.Center.Normalized, V3d.OOI) 
-                annotationSpaceTrafo            = Trafo3d.Identity
-                workSpaceTrafo                  = Trafo3d.Identity
-                flagOnController                = PList.empty
-                flagOnAnnotationSpace           = PList.empty
-                lineOnController                = PList.empty
-                lineOnAnnotationSpace           = PList.empty
-                drawingLine                     = [|Line3d()|]
-                dipAndStrikeOnController        = PList.empty
-                dipAndStrikeOnAnnotationSpace   = PList.empty
+                opcSpaceTrafo                = Trafo3d.Translation -initial.boundingBox.Center * Trafo3d.RotateInto(initial.boundingBox.Center.Normalized, V3d.OOI) 
+                annotationSpaceTrafo         = Trafo3d.Identity
+                workSpaceTrafo               = Trafo3d.Identity
+                flagOnController             = PList.empty
+                flagOnAnnotationSpace        = PList.empty
+                lineOnController             = PList.empty
+                lineOnAnnotationSpace        = PList.empty
+                drawingLine                  = [|Line3d()|]
+                dipAndStrikeOnController     = PList.empty
+                dipAndStrikeOnAnnotationSpace= PList.empty
         }

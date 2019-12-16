@@ -121,7 +121,7 @@ module AnnotationOpc =
                     let range = new Range1d(min, max)
                     let hue = (dipAngle - range.Min) / range.Size
                     let hsv = HSVf((1.0 - hue) * 0.625, 1.0, 1.0)
-                    hsv.ToC3f().ToC4b()
+                    C4f(hsv.ToC3f(), 0.5f).ToC4b()
 
                 let newModel = {newModel with dipAndStrikeAngle = anglePlane}
 
